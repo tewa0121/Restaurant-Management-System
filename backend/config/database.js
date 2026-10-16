@@ -1,7 +1,7 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
-// የዳታቤዝ ፑል (Connection Pool) ከ MAMP Port እና Password ጋር ማዋቀር
+
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 8889, // MAMP port (8889)

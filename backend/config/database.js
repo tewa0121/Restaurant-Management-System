@@ -24,3 +24,11 @@ pool.getConnection((err, connection) => {
 });
 
 module.exports = pool.promise();
+pool.getConnection((err, connection) => {
+    if (err) {
+        console.error('Database connection failed: ' + err.stack);
+        return;
+    }
+    console.log('Connected to MAMP MySQL database successfully as id ' + connection.threadId);
+    connection.release();
+});

@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -12,3 +13,25 @@ export default defineConfig({
     // },
   },
 })
+=======
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          DEFAULT: '#2f8f1f',
+          dark: '#247217',
+        },
+        navy: '#0b1d3a',
+      },
+    },
+  },
+  plugins: [],
+}
+>>>>>>> Stashed changes

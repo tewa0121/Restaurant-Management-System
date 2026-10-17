@@ -1,3 +1,4 @@
+-- 0. RESTAURANT SETTINGS (one restaurant: key/value pairs)
 -- ======================================================
 -- RESTAURANT MANAGEMENT SYSTEM - COMPLETE DATABASE SCRIPT
 -- ======================================================
@@ -15,19 +16,18 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
+    avatar_url VARCHAR(255) NULL,
     is_active BOOLEAN DEFAULT TRUE,
     last_login TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-
 CREATE TABLE roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) UNIQUE NOT NULL,
     -- Admin, Manager, Waiter, Cashier, Kitchen Staff
     description TEXT
 );
-
 CREATE TABLE user_roles (
     user_id BIGINT NOT NULL,
     role_id INT NOT NULL,
@@ -40,7 +40,6 @@ CREATE TABLE user_roles (
     SET
         NULL
 );
-
 CREATE TABLE employees (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NULL,
@@ -55,13 +54,13 @@ CREATE TABLE employees (
     email VARCHAR(100),
     address TEXT,
     emergency_contact VARCHAR(100),
+    photo_url VARCHAR(255) NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE
     SET
         NULL
 );
-
 CREATE TABLE attendance (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
@@ -73,7 +72,6 @@ CREATE TABLE attendance (
     UNIQUE KEY (employee_id, date),
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
-
 CREATE TABLE shifts (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     employee_id BIGINT NOT NULL,
@@ -87,12 +85,12 @@ CREATE TABLE shifts (
     SET
         NULL
 );
-
 -- ======================================================
 -- 2. CUSTOMERS & SEATING (TABLE MANAGEMENT)
 -- ======================================================
 CREATE TABLE customers (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NULL UNIQUE, -- login account (Customer role); NULL for walk-in customers
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100),
@@ -102,13 +100,18 @@ CREATE TABLE customers (
     total_orders INT DEFAULT 0,
     total_spent DECIMAL(10, 2) DEFAULT 0.00,
     registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_vip BOOLEAN DEFAULT FALSE
+    is_vip BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
-
 CREATE TABLE tables (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     table_number VARCHAR(10) UNIQUE NOT NULL,
     capacity INT NOT NULL,
+    pos_x INT NOT NULL DEFAULT 0, -- floor-plan position
+    pos_y INT NOT NULL DEFAULT 0,
+    shape ENUM('square', 'round', 'rectangle') DEFAULT 'square',
+    section VARCHAR(50) NULL, -- Indoor, Patio, VIP ...
+    assigned_waiter_id BIGINT NULL, -- waiter responsible for this table (employees.id)
     status ENUM('available', 'reserved', 'occupied', 'cleaning') DEFAULT 'available',
     qr_code_url VARCHAR(255) NULL,
     parent_table_id BIGINT NULL,
@@ -117,7 +120,6 @@ CREATE TABLE tables (
     SET
         NULL
 );
-
 CREATE TABLE reservations (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
@@ -141,7 +143,6 @@ CREATE TABLE reservations (
     SET
         NULL
 );
-
 -- ======================================================
 -- 3. MENU ITEMS, RECIPES & MODIFIERS
 -- ======================================================
@@ -152,7 +153,6 @@ CREATE TABLE menu_categories (
     display_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE
 );
-
 CREATE TABLE menu_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     category_id INT NOT NULL,
@@ -166,7 +166,7 @@ CREATE TABLE menu_items (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES menu_categories(id)
 );
-
+-- Handles structural menu modifications (e.g., Add Extra Sauce, Extra Injera)
 CREATE TABLE menu_item_modifiers (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     menu_item_id BIGINT NOT NULL,
@@ -175,7 +175,6 @@ CREATE TABLE menu_item_modifiers (
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
 );
-
 -- ======================================================
 -- 4. ORDER ENTRY & LIVE OPERATIONS
 -- ======================================================
@@ -191,7 +190,6 @@ CREATE TABLE discounts (
     used_count INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE
 );
-
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_number VARCHAR(20) UNIQUE NOT NULL,
@@ -224,7 +222,7 @@ CREATE TABLE orders (
     SET
         NULL
 );
-
+-- Intermediary table allowing an active order ticket to span multiple split or merged tables
 CREATE TABLE order_tables (
     order_id BIGINT NOT NULL,
     table_id BIGINT NOT NULL,
@@ -232,7 +230,6 @@ CREATE TABLE order_tables (
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE
 );
-
 CREATE TABLE order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
@@ -244,7 +241,7 @@ CREATE TABLE order_items (
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
 );
-
+-- Tracks customization add-on variations selected by the customer during checkout
 CREATE TABLE order_item_modifiers (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_item_id BIGINT NOT NULL,
@@ -255,7 +252,6 @@ CREATE TABLE order_item_modifiers (
     FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
     FOREIGN KEY (modifier_id) REFERENCES menu_item_modifiers(id)
 );
-
 CREATE TABLE order_status_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
@@ -274,7 +270,6 @@ CREATE TABLE order_status_history (
     SET
         NULL
 );
-
 CREATE TABLE kitchen_queue (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL UNIQUE,
@@ -284,7 +279,6 @@ CREATE TABLE kitchen_queue (
     notified_waiter BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
-
 -- ======================================================
 -- 5. BILLING, INVOICES & PAYMENTS
 -- ======================================================
@@ -306,7 +300,6 @@ CREATE TABLE invoices (
     SET
         NULL
 );
-
 CREATE TABLE payments (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     invoice_id BIGINT NOT NULL,
@@ -327,7 +320,6 @@ CREATE TABLE payments (
     SET
         NULL
 );
-
 -- ======================================================
 -- 6. SUPPLIERS, RECIPES & INVENTORY MANAGEMENT
 -- ======================================================
@@ -340,7 +332,6 @@ CREATE TABLE suppliers (
     address TEXT,
     payment_terms VARCHAR(100)
 );
-
 CREATE TABLE ingredients (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
@@ -356,7 +347,6 @@ CREATE TABLE ingredients (
     SET
         NULL
 );
-
 CREATE TABLE menu_item_ingredients (
     menu_item_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
@@ -365,7 +355,7 @@ CREATE TABLE menu_item_ingredients (
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
 );
-
+-- Bridges ingredients used up when a customer selects a customized menu item option
 CREATE TABLE modifier_ingredients (
     modifier_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
@@ -374,7 +364,6 @@ CREATE TABLE modifier_ingredients (
     FOREIGN KEY (modifier_id) REFERENCES menu_item_modifiers(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
 );
-
 CREATE TABLE stock_movements (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     ingredient_id BIGINT NOT NULL,
@@ -389,7 +378,6 @@ CREATE TABLE stock_movements (
     SET
         NULL
 );
-
 CREATE TABLE purchase_orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     supplier_id BIGINT NOT NULL,
@@ -405,7 +393,7 @@ CREATE TABLE purchase_orders (
     SET
         NULL
 );
-
+-- Broken down items within a supply replenishment purchase order
 CREATE TABLE purchase_order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     purchase_order_id BIGINT NOT NULL,
@@ -416,7 +404,6 @@ CREATE TABLE purchase_order_items (
     FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
 );
-
 -- ======================================================
 -- 7. LOGISTICS, COMMUNICATIONS & AUDITS
 -- ======================================================
@@ -434,7 +421,6 @@ CREATE TABLE delivery_orders (
     SET
         NULL
 );
-
 CREATE TABLE delivery_tracking (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     delivery_order_id BIGINT NOT NULL,
@@ -450,7 +436,6 @@ CREATE TABLE delivery_tracking (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (delivery_order_id) REFERENCES delivery_orders(order_id) ON DELETE CASCADE
 );
-
 CREATE TABLE notifications (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
@@ -467,7 +452,6 @@ CREATE TABLE notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
 CREATE TABLE loyalty_points (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
@@ -478,7 +462,6 @@ CREATE TABLE loyalty_points (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
-
 CREATE TABLE feedback (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
@@ -494,7 +477,6 @@ CREATE TABLE feedback (
     SET
         NULL
 );
-
 CREATE TABLE system_logs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT,
@@ -508,6 +490,153 @@ CREATE TABLE system_logs (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE
     SET
         NULL
+);
+-- ======================================================
+-- 7B. ADDITIONS (required by the designs)
+-- ======================================================
+CREATE TABLE permissions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(100) UNIQUE NOT NULL, -- e.g. orders.create, reports.view
+    description TEXT NULL
+);
+CREATE TABLE role_permissions (
+    role_id INT NOT NULL,
+    permission_id INT NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+);
+CREATE TABLE customer_requests ( -- waiter "Customer Requests" (extra napkins, more water...)
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    table_id BIGINT NOT NULL,
+    order_id BIGINT NULL,
+    customer_id BIGINT NULL,
+    assigned_waiter_id BIGINT NULL,
+    request_text VARCHAR(255) NOT NULL,
+    status ENUM('new', 'in_progress', 'done') DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP NULL,
+    FOREIGN KEY (table_id) REFERENCES tables(id),
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    FOREIGN KEY (assigned_waiter_id) REFERENCES employees(id) ON DELETE SET NULL
+);
+CREATE TABLE customer_addresses ( -- customer "Address Book"
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    customer_id BIGINT NOT NULL,
+    label VARCHAR(50) NOT NULL, -- Home, Work
+    address_line TEXT NOT NULL,
+    city VARCHAR(100) NULL,
+    phone VARCHAR(20) NULL,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+CREATE TABLE favorites ( -- customer "Favorites"
+    customer_id BIGINT NOT NULL,
+    menu_item_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (customer_id, menu_item_id),
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
+);
+CREATE TABLE refunds ( -- cashier "Refunds" (manager approval)
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    payment_id BIGINT NOT NULL,
+    invoice_id BIGINT NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    requested_by BIGINT NOT NULL,
+    approved_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP NULL,
+    FOREIGN KEY (payment_id) REFERENCES payments(id),
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id),
+    FOREIGN KEY (requested_by) REFERENCES users(id),
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE TABLE password_reset_tokens ( -- "Forgot Password"
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    token_hash CHAR(64) NOT NULL, -- store a SHA-256 hash, never the raw token
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE messages ( -- top-bar "Messages"
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    sender_id BIGINT NOT NULL,
+    recipient_id BIGINT NOT NULL,
+    body TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ======================================================
+-- 7C. MORE ADDITIONS (waiter tables, sessions, cash drawer, performance)
+-- ======================================================
+CREATE TABLE table_assignments ( -- waiter "My Tables": who serves which table, how many guests
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    table_id BIGINT NOT NULL,
+    waiter_id BIGINT NOT NULL, -- employees.id
+    customer_id BIGINT NULL,   -- NULL for walk-in guests
+    guest_count INT NOT NULL DEFAULT 1,
+    seated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    released_at TIMESTAMP NULL, -- NULL = still seated
+    FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE,
+    FOREIGN KEY (waiter_id) REFERENCES employees(id),
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+);
+CREATE TABLE user_sessions ( -- secure login: active sessions, logout, revoke
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    token_id CHAR(36) NOT NULL UNIQUE, -- the JWT "jti"
+    ip_address VARCHAR(45),
+    user_agent VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    revoked_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE cash_sessions ( -- cashier "Daily Cash Report": open and close the cash drawer
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    cashier_id BIGINT NOT NULL, -- employees.id
+    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    opening_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    closed_at TIMESTAMP NULL,
+    counted_amount DECIMAL(10,2) NULL,  -- cash counted at closing
+    expected_amount DECIMAL(10,2) NULL, -- opening + cash payments - cash refunds
+    notes TEXT NULL,
+    FOREIGN KEY (cashier_id) REFERENCES employees(id)
+);
+CREATE TABLE employee_performance_reviews ( -- doc: "Performance records"
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    reviewed_by BIGINT NULL, -- users.id
+    review_date DATE NOT NULL,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comments TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+);
+-- OPTIONAL: only if you want dish ratings like "4.7 (320)" in the customer design
+CREATE TABLE menu_item_reviews (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    menu_item_id BIGINT NOT NULL,
+    customer_id BIGINT NOT NULL,
+    order_id BIGINT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
 );
 
 -- ======================================================

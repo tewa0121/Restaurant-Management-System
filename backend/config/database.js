@@ -13,7 +13,7 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-// ግንኙነቱን መፈተሽ
+
 pool.getConnection((err, connection) => {
     if (err) {
         console.error('Database connection failed: ' + err.stack);

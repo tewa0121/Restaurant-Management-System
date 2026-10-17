@@ -1,15 +1,10 @@
 -- 0. RESTAURANT SETTINGS (one restaurant: key/value pairs)
 -- ======================================================
-CREATE TABLE restaurant_settings (
-    setting_key VARCHAR(100) PRIMARY KEY, -- restaurant_name, address, phone, email, logo_url, currency, tax_rate, service_charge, receipt_footer
-    setting_value TEXT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-INSERT INTO restaurant_settings (setting_key, setting_value) VALUES
-    ('restaurant_name', 'My Restaurant'),
-    ('currency', 'ETB'),
-    ('tax_rate', '15'), -- percent; change to your real rate
-    ('delivery_fee', '0'); -- charged on delivery orders
+-- RESTAURANT MANAGEMENT SYSTEM - COMPLETE DATABASE SCRIPT
+-- ======================================================
+CREATE DATABASE IF NOT EXISTS restaurant_db;
+
+USE restaurant_db;
 
 -- ======================================================
 -- 1. SYSTEM ACCESS, AUTHENTICATION & HR
@@ -29,7 +24,8 @@ CREATE TABLE users (
 );
 CREATE TABLE roles (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) UNIQUE NOT NULL, -- Admin, Manager, Waiter, Cashier, Kitchen Staff
+    name VARCHAR(50) UNIQUE NOT NULL,
+    -- Admin, Manager, Waiter, Cashier, Kitchen Staff
     description TEXT
 );
 CREATE TABLE user_roles (
@@ -40,18 +36,20 @@ CREATE TABLE user_roles (
     PRIMARY KEY (user_id, role_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES roles(id),
-    FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE employees (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NULL, -- Linked if they need system access login
+    user_id BIGINT NULL,
     employee_code VARCHAR(20) UNIQUE NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
-    position VARCHAR(50) NOT NULL, -- Waiter, Cashier, Chef, etc.
+    position VARCHAR(50) NOT NULL,
     department VARCHAR(50),
     hire_date DATE NOT NULL,
-    salary DECIMAL(10,2),
+    salary DECIMAL(10, 2),
     phone VARCHAR(20),
     email VARCHAR(100),
     address TEXT,
@@ -59,7 +57,9 @@ CREATE TABLE employees (
     photo_url VARCHAR(255) NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE attendance (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -81,7 +81,9 @@ CREATE TABLE shifts (
     role ENUM('waiter', 'cashier', 'kitchen', 'manager') NOT NULL,
     assigned_by BIGINT,
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
-    FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE
+    SET
+        NULL
 );
 -- ======================================================
 -- 2. CUSTOMERS & SEATING (TABLE MANAGEMENT)
@@ -96,7 +98,7 @@ CREATE TABLE customers (
     address TEXT,
     loyalty_points INT DEFAULT 0,
     total_orders INT DEFAULT 0,
-    total_spent DECIMAL(10,2) DEFAULT 0.00,
+    total_spent DECIMAL(10, 2) DEFAULT 0.00,
     registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_vip BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -111,11 +113,12 @@ CREATE TABLE tables (
     section VARCHAR(50) NULL, -- Indoor, Patio, VIP ...
     assigned_waiter_id BIGINT NULL, -- waiter responsible for this table (employees.id)
     status ENUM('available', 'reserved', 'occupied', 'cleaning') DEFAULT 'available',
-    qr_code_url VARCHAR(255) NULL, 
-    parent_table_id BIGINT NULL, -- Self-reference column to handle combined/merged layouts
+    qr_code_url VARCHAR(255) NULL,
+    parent_table_id BIGINT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (parent_table_id) REFERENCES tables(id) ON DELETE SET NULL,
-    FOREIGN KEY (assigned_waiter_id) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (parent_table_id) REFERENCES tables(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE reservations (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -125,19 +128,28 @@ CREATE TABLE reservations (
     reservation_time TIME NOT NULL,
     guest_count INT NOT NULL,
     special_request TEXT,
-    status ENUM('pending', 'confirmed', 'seated', 'cancelled', 'no_show') DEFAULT 'pending',
-    created_by BIGINT, -- System user or manager who input it
+    status ENUM(
+        'pending',
+        'confirmed',
+        'seated',
+        'cancelled',
+        'no_show'
+    ) DEFAULT 'pending',
+    created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
     FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE
+    SET
+        NULL
 );
 -- ======================================================
 -- 3. MENU ITEMS, RECIPES & MODIFIERS
 -- ======================================================
 CREATE TABLE menu_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL, -- Breakfast, Lunch, Dinner, Drinks
+    name VARCHAR(50) NOT NULL,
+    -- Breakfast, Lunch, Dinner, Drinks
     display_order INT DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE
 );
@@ -146,7 +158,7 @@ CREATE TABLE menu_items (
     category_id INT NOT NULL,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    price DECIMAL(10,2) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
     image_url VARCHAR(255),
     is_available BOOLEAN DEFAULT TRUE,
     preparation_time_minutes INT DEFAULT 15,
@@ -159,7 +171,7 @@ CREATE TABLE menu_item_modifiers (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     menu_item_id BIGINT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    price_modifier DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    price_modifier DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     is_available BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE
 );
@@ -171,9 +183,7 @@ CREATE TABLE discounts (
     code VARCHAR(50) UNIQUE NOT NULL,
     description TEXT,
     discount_type ENUM('percentage', 'fixed_amount') NOT NULL,
-    value DECIMAL(10,2) NOT NULL,
-    min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-    first_order_only BOOLEAN DEFAULT FALSE,
+    value DECIMAL(10, 2) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     usage_limit INT DEFAULT 1,
@@ -183,21 +193,34 @@ CREATE TABLE discounts (
 CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_number VARCHAR(20) UNIQUE NOT NULL,
-    customer_id BIGINT NULL, -- Null for anonymous/walk-in guests
-    waiter_id BIGINT NULL,   -- Tracked to Employee ID for operations metrics
+    customer_id BIGINT NULL,
+    waiter_id BIGINT NULL,
     discount_id BIGINT NULL,
     order_type ENUM('dine_in', 'takeaway', 'delivery', 'online') NOT NULL,
-    status ENUM('pending', 'preparing', 'ready', 'served', 'completed', 'cancelled') DEFAULT 'pending',
-    subtotal DECIMAL(10,2) NOT NULL,
-    tax_amount DECIMAL(10,2) DEFAULT 0.00,
-    discount_amount DECIMAL(10,2) DEFAULT 0.00,
-    total_amount DECIMAL(10,2) NOT NULL,
+    status ENUM(
+        'pending',
+        'preparing',
+        'ready',
+        'served',
+        'completed',
+        'cancelled'
+    ) DEFAULT 'pending',
+    subtotal DECIMAL(10, 2) NOT NULL,
+    tax_amount DECIMAL(10, 2) DEFAULT 0.00,
+    discount_amount DECIMAL(10, 2) DEFAULT 0.00,
+    total_amount DECIMAL(10, 2) NOT NULL,
     notes TEXT,
     ordered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
-    FOREIGN KEY (waiter_id) REFERENCES employees(id) ON DELETE SET NULL,
-    FOREIGN KEY (discount_id) REFERENCES discounts(id) ON DELETE SET NULL
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE
+    SET
+        NULL,
+        FOREIGN KEY (waiter_id) REFERENCES employees(id) ON DELETE
+    SET
+        NULL,
+        FOREIGN KEY (discount_id) REFERENCES discounts(id) ON DELETE
+    SET
+        NULL
 );
 -- Intermediary table allowing an active order ticket to span multiple split or merged tables
 CREATE TABLE order_tables (
@@ -212,8 +235,8 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL,
     menu_item_id BIGINT NOT NULL,
     quantity INT NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,
-    subtotal DECIMAL(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    subtotal DECIMAL(10, 2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
     special_instructions TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
@@ -224,19 +247,28 @@ CREATE TABLE order_item_modifiers (
     order_item_id BIGINT NOT NULL,
     modifier_id BIGINT NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
-    unit_price DECIMAL(10,2) NOT NULL,
-    subtotal DECIMAL(10,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    subtotal DECIMAL(10, 2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
     FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
     FOREIGN KEY (modifier_id) REFERENCES menu_item_modifiers(id)
 );
 CREATE TABLE order_status_history (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
-    status ENUM('pending','preparing','ready','served','completed','cancelled') NOT NULL,
-    changed_by BIGINT, -- Points to the Employee ID who updated the KDS/POS workflow
+    status ENUM(
+        'pending',
+        'preparing',
+        'ready',
+        'served',
+        'completed',
+        'cancelled'
+    ) NOT NULL,
+    changed_by BIGINT,
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (changed_by) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (changed_by) REFERENCES employees(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE kitchen_queue (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -252,31 +284,41 @@ CREATE TABLE kitchen_queue (
 -- ======================================================
 CREATE TABLE invoices (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    order_id BIGINT NOT NULL, -- Dropped UNIQUE constraint to cleanly facilitate split billing logic
+    order_id BIGINT NOT NULL,
     invoice_number VARCHAR(20) UNIQUE NOT NULL,
-    subtotal DECIMAL(10,2) NOT NULL,
-    tax DECIMAL(10,2) NOT NULL,
-    discount DECIMAL(10,2) DEFAULT 0.00,
-    total DECIMAL(10,2) NOT NULL,
-    paid_amount DECIMAL(10,2) DEFAULT 0.00,
-    balance DECIMAL(10,2) GENERATED ALWAYS AS (total - paid_amount) STORED,
-    status ENUM('unpaid', 'held', 'partially_paid', 'paid', 'refunded') DEFAULT 'unpaid',
-    generated_by BIGINT, -- Cashier / Employee ID
+    subtotal DECIMAL(10, 2) NOT NULL,
+    tax DECIMAL(10, 2) NOT NULL,
+    discount DECIMAL(10, 2) DEFAULT 0.00,
+    total DECIMAL(10, 2) NOT NULL,
+    paid_amount DECIMAL(10, 2) DEFAULT 0.00,
+    balance DECIMAL(10, 2) GENERATED ALWAYS AS (total - paid_amount) STORED,
+    status ENUM('unpaid', 'partially_paid', 'paid', 'refunded') DEFAULT 'unpaid',
+    generated_by BIGINT,
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (generated_by) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (generated_by) REFERENCES employees(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE payments (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     invoice_id BIGINT NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    payment_method ENUM('cash', 'card', 'mobile_banking', 'telebirr', 'cbe_birr') NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    payment_method ENUM(
+        'cash',
+        'card',
+        'mobile_banking',
+        'telebirr',
+        'cbe_birr'
+    ) NOT NULL,
     transaction_id VARCHAR(100),
     payment_status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
-    received_by BIGINT, -- Cashier / Employee ID
+    received_by BIGINT,
     paid_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
-    FOREIGN KEY (received_by) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (received_by) REFERENCES employees(id) ON DELETE
+    SET
+        NULL
 );
 -- ======================================================
 -- 6. SUPPLIERS, RECIPES & INVENTORY MANAGEMENT
@@ -293,20 +335,22 @@ CREATE TABLE suppliers (
 CREATE TABLE ingredients (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
-    unit VARCHAR(20) NOT NULL, -- kg, liter, piece, bags
-    current_stock DECIMAL(10,2) NOT NULL DEFAULT 0,
-    min_stock_level DECIMAL(10,2) NOT NULL,
-    max_stock_level DECIMAL(10,2),
-    cost_per_unit DECIMAL(10,4) NOT NULL,
-    image_url VARCHAR(255) NULL,
+    unit VARCHAR(20) NOT NULL,
+    -- kg, liter, piece, bags
+    current_stock DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    min_stock_level DECIMAL(10, 2) NOT NULL,
+    max_stock_level DECIMAL(10, 2),
+    cost_per_unit DECIMAL(10, 4) NOT NULL,
     supplier_id BIGINT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE menu_item_ingredients (
     menu_item_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
-    quantity_required DECIMAL(10,2) NOT NULL, -- Quantity used per serving
+    quantity_required DECIMAL(10, 2) NOT NULL,
     PRIMARY KEY (menu_item_id, ingredient_id),
     FOREIGN KEY (menu_item_id) REFERENCES menu_items(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
@@ -315,7 +359,7 @@ CREATE TABLE menu_item_ingredients (
 CREATE TABLE modifier_ingredients (
     modifier_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
-    quantity_required DECIMAL(10,2) NOT NULL,
+    quantity_required DECIMAL(10, 2) NOT NULL,
     PRIMARY KEY (modifier_id, ingredient_id),
     FOREIGN KEY (modifier_id) REFERENCES menu_item_modifiers(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
@@ -324,13 +368,15 @@ CREATE TABLE stock_movements (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     ingredient_id BIGINT NOT NULL,
     movement_type ENUM('purchase', 'usage', 'adjustment', 'return') NOT NULL,
-    quantity DECIMAL(10,2) NOT NULL,
+    quantity DECIMAL(10, 2) NOT NULL,
     reference_id VARCHAR(100),
     note TEXT,
-    created_by BIGINT, -- Employee ID managing store stock
+    created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (created_by) REFERENCES employees(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE purchase_orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -339,20 +385,22 @@ CREATE TABLE purchase_orders (
     order_date DATE NOT NULL,
     expected_delivery DATE,
     status ENUM('draft', 'sent', 'received', 'cancelled') DEFAULT 'draft',
-    total_amount DECIMAL(10,2) NOT NULL,
-    received_by BIGINT, -- Employee ID receiving shipment
+    total_amount DECIMAL(10, 2) NOT NULL,
+    received_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
-    FOREIGN KEY (received_by) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (received_by) REFERENCES employees(id) ON DELETE
+    SET
+        NULL
 );
 -- Broken down items within a supply replenishment purchase order
 CREATE TABLE purchase_order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     purchase_order_id BIGINT NOT NULL,
     ingredient_id BIGINT NOT NULL,
-    quantity_ordered DECIMAL(10,2) NOT NULL,
-    quantity_received DECIMAL(10,2) DEFAULT 0.00,
-    unit_cost DECIMAL(10,4) NOT NULL,
+    quantity_ordered DECIMAL(10, 2) NOT NULL,
+    quantity_received DECIMAL(10, 2) DEFAULT 0.00,
+    unit_cost DECIMAL(10, 4) NOT NULL,
     FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
 );
@@ -365,27 +413,41 @@ CREATE TABLE delivery_orders (
     delivery_contact_phone VARCHAR(20) NOT NULL,
     delivery_instructions TEXT,
     assigned_driver_id BIGINT NULL,
-    estimated_time INT NULL, 
+    estimated_time INT NULL,
     actual_delivered_at TIMESTAMP NULL,
-    delivery_fee DECIMAL(10,2) DEFAULT 0.00,
+    delivery_fee DECIMAL(10, 2) DEFAULT 0.00,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (assigned_driver_id) REFERENCES employees(id) ON DELETE SET NULL
+    FOREIGN KEY (assigned_driver_id) REFERENCES employees(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE delivery_tracking (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     delivery_order_id BIGINT NOT NULL,
-    status ENUM('assigned', 'picked_up', 'on_the_way', 'delivered', 'failed') NOT NULL,
-    location_lat DECIMAL(10,8),
-    location_lng DECIMAL(11,8),
+    status ENUM(
+        'assigned',
+        'picked_up',
+        'on_the_way',
+        'delivered',
+        'failed'
+    ) NOT NULL,
+    location_lat DECIMAL(10, 8),
+    location_lng DECIMAL(11, 8),
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (delivery_order_id) REFERENCES delivery_orders(order_id) ON DELETE CASCADE
 );
 CREATE TABLE notifications (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT NOT NULL, -- Linked to core account user
+    user_id BIGINT NOT NULL,
     title VARCHAR(100) NOT NULL,
     message TEXT NOT NULL,
-    type ENUM('order', 'reservation', 'inventory', 'payment', 'system') DEFAULT 'system',
+    type ENUM(
+        'order',
+        'reservation',
+        'inventory',
+        'payment',
+        'system'
+    ) DEFAULT 'system',
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -395,7 +457,7 @@ CREATE TABLE loyalty_points (
     customer_id BIGINT NOT NULL,
     points INT NOT NULL,
     source ENUM('order', 'promotion', 'adjustment') NOT NULL,
-    reference_id BIGINT, 
+    reference_id BIGINT,
     expiry_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
@@ -404,11 +466,16 @@ CREATE TABLE feedback (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     customer_id BIGINT NOT NULL,
     order_id BIGINT NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
+    rating INT CHECK (
+        rating BETWEEN 1
+        AND 5
+    ),
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE
+    SET
+        NULL
 );
 CREATE TABLE system_logs (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -420,7 +487,9 @@ CREATE TABLE system_logs (
     new_value JSON,
     ip_address VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE
+    SET
+        NULL
 );
 -- ======================================================
 -- 7B. ADDITIONS (required by the designs)
@@ -574,35 +643,33 @@ CREATE TABLE menu_item_reviews (
 -- 8. OPERATIONAL PERFORMANCE INDEXES
 -- ======================================================
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_employees_user ON employees(user_id);
-CREATE INDEX idx_orders_customer ON orders(customer_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_ordered_at ON orders(ordered_at);
-CREATE INDEX idx_order_items_order ON order_items(order_id);
-CREATE INDEX idx_reservations_date ON reservations(reservation_date);
-CREATE INDEX idx_reservations_table ON reservations(table_id);
-CREATE INDEX idx_invoices_order ON invoices(order_id);
-CREATE INDEX idx_payments_invoice ON payments(invoice_id);
-CREATE INDEX idx_stock_movements_ingredient ON stock_movements(ingredient_id);
-CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
-CREATE INDEX idx_feedback_customer ON feedback(customer_id);
-CREATE INDEX idx_loyalty_customer ON loyalty_points(customer_id);
-CREATE INDEX idx_po_items_po ON purchase_order_items(purchase_order_id);
-CREATE INDEX idx_customer_requests_status ON customer_requests(status);
-CREATE INDEX idx_messages_recipient ON messages(recipient_id, is_read);
-CREATE INDEX idx_password_reset_user ON password_reset_tokens(user_id);
-CREATE INDEX idx_table_assignments_active ON table_assignments(table_id, released_at);
-CREATE INDEX idx_user_sessions_user ON user_sessions(user_id, revoked_at);
-CREATE INDEX idx_reviews_item ON menu_item_reviews(menu_item_id);
 
--- ======================================================
--- SEED DATA (roles; demo users are created by backend/scripts/seed.js)
--- ======================================================
-INSERT INTO roles (name, description) VALUES
-    ('Admin', 'Full system access'),
-    ('Manager', 'Restaurant operations, analytics, inventory, employees'),
-    ('Waiter', 'Tables, orders, customer requests'),
-    ('Cashier', 'Billing, payments, receipts, refunds'),
-    ('Kitchen Staff', 'Incoming orders and preparation status'),
-    ('Customer', 'Online ordering portal');
+CREATE INDEX idx_users_username ON users(username);
+
+CREATE INDEX idx_employees_user ON employees(user_id);
+
+CREATE INDEX idx_orders_customer ON orders(customer_id);
+
+CREATE INDEX idx_orders_status ON orders(status);
+
+CREATE INDEX idx_orders_ordered_at ON orders(ordered_at);
+
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+
+CREATE INDEX idx_reservations_date ON reservations(reservation_date);
+
+CREATE INDEX idx_reservations_table ON reservations(table_id);
+
+CREATE INDEX idx_invoices_order ON invoices(order_id);
+
+CREATE INDEX idx_payments_invoice ON payments(invoice_id);
+
+CREATE INDEX idx_stock_movements_ingredient ON stock_movements(ingredient_id);
+
+CREATE INDEX idx_notifications_user_read ON notifications(user_id, is_read);
+
+CREATE INDEX idx_feedback_customer ON feedback(customer_id);
+
+CREATE INDEX idx_loyalty_customer ON loyalty_points(customer_id);
+
+CREATE INDEX idx_po_items_po ON purchase_order_items(purchase_order_id);

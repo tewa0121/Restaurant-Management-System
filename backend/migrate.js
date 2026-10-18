@@ -1,24 +1,30 @@
-const fs = require('fs');
-const mysql = require('mysql2');
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const mysql = require('mysql2/promise');
 
-const connection = mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 8889,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'root',
-    multipleStatements: true // በአንድ ጊዜ ብዙ SQL ትዕዛዞችን ለማስኬድ
-});
+// This matches your file name exactly
+const SQL_FILE = path.join(__dirname, 'database.sql');
 
-const sql = fs.readFileSync('./database.sql', 'utf8');
+(async () => {
+  const sql = fs.readFileSync(SQL_FILE, 'utf8');
 
-connection.connect((err) => {
-    if (err) throw err;
-    console.log("Connected to MAMP MySQL server...");
+  const conn = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    multipleStatements: true // <--- THIS IS THE CRITICAL LINE
+  });
 
-    connection.query(sql, (err, results) => {
-        if (err) throw err;
-        console.log("Database 'restaurant_db' and all tables created successfully in MAMP!");
-        connection.end();
-    });
-});
+  console.log('Connected to MySQL server...');
+
+  try {
+    await conn.query(sql);
+    console.log('Migration successful! All tables and indexes created.');
+  } catch (err) {
+    console.error('Migration failed:', err.sqlMessage || err.message);
+  } finally {
+    await conn.end();
+  }
+})();

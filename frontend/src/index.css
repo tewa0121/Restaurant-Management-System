@@ -2,8 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-slate-50 text-slate-800 antialiased dark:bg-slate-900 dark:text-slate-100;
-  }
+/* Reset body to avoid unexpected margins */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #F8F9FA;
+}
+
+/* Fix for browser autofill making inputs blue */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #1f2937 !important;
 }

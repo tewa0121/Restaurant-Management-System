@@ -1,20 +1,10 @@
 // src/pages/auth/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ShieldCheck, 
-  Clock, 
-  TrendingUp, 
-  Smartphone 
-} from 'lucide-react';
-import { mockLogin } from '../../services/mockAdapter';
-import { useAuth } from '../../hooks/useAuth';
-import LanguageSelector from '../../components/common/LanguageSelector';
-import Button from '../../components/common/Button';
+import { useAuth } from '../../context/AuthContext';
+
+// IMPORT THE EXACT IMAGE FROM YOUR FOLDER
+import loginImage from '../../assets/food-placeholders/login.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -58,14 +48,56 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans overflow-x-hidden">
-      {/* Left Side: Using object-cover to completely fill the side without black bars */}
-      <div className="w-full lg:w-1/2 min-h-[350px] lg:min-h-screen relative overflow-hidden shrink-0">
-        <img 
-          src="/public/assets/food-placeholders/login.png" 
-          alt="RestoManager Overview" 
-          className="w-full h-full object-cover absolute inset-0"
+    <div className="min-h-screen flex font-sans bg-white">
+      
+      {/* =============== LEFT SIDE (IMAGE + BRANDING) =============== */}
+      <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden bg-gray-900">
+        
+        {/* Background Image - Absolute positioned */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${loginImage})` }}
         />
+        
+        {/* Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/30" />
+
+        {/* Content Container - Centered Absolutely */}
+        <div className="relative z-10 flex flex-col items-center justify-center w-full px-16 text-center">
+          
+          {/* Chef Hat Logo */}
+          <div className="w-20 h-20 rounded-full border-[3px] border-green-500 flex items-center justify-center mb-6">
+            <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a4 4 0 00-4 4v.5A4.5 4.5 0 004.5 12c0 2 1.5 3.5 3.5 4v2h8v-2c2-.5 3.5-2 3.5-4A4.5 4.5 0 0016 7.5V7a4 4 0 00-4-4z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2 2 2-2m-4 6h4" />
+            </svg>
+          </div>
+
+          {/* Brand Name */}
+          <h1 className="text-[46px] font-bold tracking-tight text-white mb-2">
+            Resto<span className="text-green-500">Manager</span>
+          </h1>
+          <p className="text-gray-300 text-[18px] mb-8">Restaurant Management System</p>
+
+          {/* Divider with Chef Hat */}
+          <div className="flex items-center gap-4 mb-8 w-64">
+            <div className="h-[1px] bg-green-500/50 flex-1" />
+            <svg className="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3a4 4 0 00-4 4v.5A4.5 4.5 0 004.5 12c0 2 1.5 3.5 3.5 4v2h8v-2c2-.5 3.5-2 3.5-4A4.5 4.5 0 0016 7.5V7a4 4 0 00-4-4z" />
+            </svg>
+            <div className="h-[1px] bg-green-500/50 flex-1" />
+          </div>
+
+          {/* Main Tagline */}
+          <h2 className="text-[40px] font-bold text-white leading-[1.15] mb-5">
+            Manage your restaurant <br />
+            <span className="text-green-500">smarter and faster</span>
+          </h2>
+
+          <p className="text-gray-300 text-[16px] leading-relaxed max-w-lg">
+            All-in-one solution to manage orders, tables, menu, staff, inventory and more.
+          </p>
+        </div>
       </div>
 
       {/* Right Side: Panel with Language Selector, White Card Form, and Bottom Badges */}

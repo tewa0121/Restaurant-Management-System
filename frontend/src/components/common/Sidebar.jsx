@@ -1,126 +1,132 @@
-// src/components/common/Sidebar.jsx
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  ShoppingBag, 
-  Utensils, 
-  Calendar, 
-  BookOpen, 
-  Package, 
-  Users, 
-  UserCheck, 
-  Truck, 
-  FileText, 
-  TrendingUp, 
-  BarChart2, 
-  Settings, 
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Utensils,
+  Table,
+  Calendar,
+  BookOpen,
+  Package,
+  CreditCard,
+  BarChart3,
+  Settings,
+  LogOut,
+  ChefHat,
+  ClipboardList,
+  Bell,
+  Users,
+  UserCheck,
+  Truck,
+  FileText,
+  TrendingUp,
   History,
-  ChevronRight
 } from 'lucide-react';
 
 export default function Sidebar() {
-  const menuSections = [
-    {
-      title: 'OPERATIONS',
-      items: [
-        { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
-        { label: 'Orders', path: '/manager/orders', icon: ShoppingBag },
-        { label: 'Table Management', path: '/manager/table-management', icon: Utensils },
-        { label: 'Reservations', path: '/manager/reservations', icon: Calendar },
-        { label: 'Menu Management', path: '/manager/menu-management', icon: BookOpen },
-        { label: 'Inventory Management', path: '/manager/inventory-management', icon: Package },
-      ]
-    },
-    {
-      title: 'MANAGEMENT',
-      items: [
-        { label: 'Employees', path: '/manager/employees', icon: Users },
-        { label: 'Customers', path: '/manager/customers', icon: UserCheck },
-        { label: 'Suppliers', path: '/manager/suppliers', icon: Truck },
-      ]
-    },
-    {
-      title: 'REPORTS & ANALYTICS',
-      items: [
-        { label: 'Reports', path: '/manager/reports', icon: FileText },
-        { label: 'Sales & Revenue', path: '/manager/sales-and-revenue', icon: TrendingUp },
-        { label: 'Analytics', path: '/manager/analytics', icon: BarChart2 },
-      ]
-    },
-    {
-      title: 'SYSTEM',
-      items: [
-        { label: 'Settings', path: '/manager/settings', icon: Settings },
-        { label: 'Activity Log', path: '/manager/activity-log', icon: History },
-      ]
-    }
-  ];
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const role = user.role || 'Restaurant Manager';
+
+  const menus = {
+    'Super Administrator': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+      { name: 'Users & Roles', icon: Users, path: '/admin/users' },
+      { name: 'Restaurants', icon: Utensils, path: '/admin/restaurants' },
+      { name: 'Settings', icon: Settings, path: '/admin/settings' },
+    ],
+    Admin: [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+      { name: 'Users & Roles', icon: Users, path: '/admin/users' },
+      { name: 'Restaurants', icon: Utensils, path: '/admin/restaurants' },
+      { name: 'Settings', icon: Settings, path: '/admin/settings' },
+    ],
+    'Restaurant Manager': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/manager/dashboard' },
+      { name: 'Orders', icon: ShoppingBag, path: '/manager/orders' },
+      { name: 'Table Management', icon: Table, path: '/manager/table-management' },
+      { name: 'Reservations', icon: Calendar, path: '/manager/reservations' },
+      { name: 'Menu Management', icon: BookOpen, path: '/manager/menu-management' },
+      { name: 'Inventory Management', icon: Package, path: '/manager/inventory-management' },
+      { name: 'Employees', icon: Users, path: '/manager/employees' },
+      { name: 'Customers', icon: UserCheck, path: '/manager/customers' },
+      { name: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
+      { name: 'Reports', icon: FileText, path: '/manager/reports' },
+      { name: 'Sales & Revenue', icon: TrendingUp, path: '/manager/sales-and-revenue' },
+      { name: 'Analytics', icon: BarChart3, path: '/manager/analytics' },
+      { name: 'Settings', icon: Settings, path: '/manager/settings' },
+      { name: 'Activity Log', icon: History, path: '/manager/activity-log' },
+    ],
+    Waiter: [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/waiter/dashboard' },
+      { name: 'My Tables', icon: Table, path: '/waiter/tables' },
+      { name: 'Orders', icon: ClipboardList, path: '/waiter/orders' },
+      { name: 'Customer Requests', icon: Bell, path: '/waiter/requests' },
+    ],
+    Cashier: [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/cashier/dashboard' },
+      { name: 'Active Bills', icon: ClipboardList, path: '/cashier/bills' },
+      { name: 'Payment History', icon: CreditCard, path: '/cashier/history' },
+    ],
+    'Kitchen Staff': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/kitchen/dashboard' },
+      { name: 'Incoming Orders', icon: ClipboardList, path: '/kitchen/incoming' },
+      { name: 'In Progress', icon: ChefHat, path: '/kitchen/progress' },
+    ],
+  };
+
+  const currentMenu = menus[role] || menus['Restaurant Manager'];
 
   return (
-    <aside className="w-64 bg-[#0F172A] text-slate-300 flex flex-col h-screen shrink-0 border-r border-slate-800">
-      {/* Brand Header */}
-      <div className="p-5 flex items-center gap-3 border-b border-slate-800/80">
-        <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-emerald-500/20">
-          <Utensils className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="font-extrabold text-white text-base leading-none">RestoManager</h1>
-          <p className="text-[10px] text-slate-400 mt-1">Restaurant Management System</p>
+    <aside className="w-64 bg-[#0B1220] min-h-screen flex flex-col text-gray-300">
+      <div className="h-16 flex items-center px-6 border-b border-gray-800">
+        <div className="flex items-center gap-2 text-white font-bold text-lg">
+          <div className="bg-green-500 p-1.5 rounded-lg">
+            <ChefHat size={20} className="text-white" />
+          </div>
+          RestoAdmin
         </div>
       </div>
 
-      {/* Scrollable Navigation */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
-        {menuSections.map((section) => (
-          <div key={section.title} className="space-y-1">
-            <h3 className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              {section.title}
-            </h3>
-            <div className="space-y-1 pt-1">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                        isActive
-                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
-                          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                      }`
-                    }
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span>{item.label}</span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 opacity-40" />
-                  </NavLink>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto py-4">
+        <ul className="space-y-1">
+          {currentMenu.map((item) => (
+            <li key={item.name}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-6 py-2.5 transition-colors ${
+                    isActive
+                      ? 'bg-green-600 text-white border-r-4 border-white'
+                      : 'hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <item.icon size={18} />
+                <span className="text-sm font-medium">{item.name}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Bottom Profile Footer */}
-      <div className="p-4 border-t border-slate-800/80 bg-[#0B1120]">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <img 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" 
-              alt="Manager Avatar" 
-              className="w-9 h-9 rounded-full object-cover border-2 border-emerald-500"
-            />
-            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full absolute bottom-0 right-0 border-2 border-[#0B1120]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-white truncate">John Manager</h4>
-            <p className="text-[10px] text-slate-400 truncate">Restaurant Manager</p>
-          </div>
+      <div className="p-4 border-t border-gray-800">
+        <div className="mb-3 px-2">
+          <p className="text-sm font-semibold text-white truncate">
+            {user.name || 'User'}
+          </p>
+          <p className="text-xs text-gray-400 truncate">{role}</p>
         </div>
+        <button
+          onClick={() => {
+            localStorage.clear();
+            window.location.href = '/login';
+          }}
+          className="flex items-center gap-3 px-6 py-2 w-full text-left text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors rounded-lg"
+        >
+          <LogOut size={18} />
+          <span className="text-sm font-medium">Logout</span>
+        </button>
       </div>
     </aside>
   );

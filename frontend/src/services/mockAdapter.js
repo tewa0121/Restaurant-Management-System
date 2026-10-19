@@ -25,10 +25,10 @@ export const getAdminDashboardData = () => {
     stats: {
       totalOrders:     { value: "1,248",    change: "+12.5%", trend: "up" },
       todayRevenue:    { value: "$4,325.50",change: "+8.3%",  trend: "up" },
-      availableTables: { value: "24",       change: "+5",     trend: "up" },
+      availableTables: { value: "24",       change: "+5",    trend: "up" },
       totalCustomers:  { value: "856",      change: "+11.7%", trend: "up" },
-      pendingOrders:   { value: "18",       change: "-3",     trend: "down" },
-      inventoryAlerts: { value: "7",        change: "-2",     trend: "down" }
+      pendingOrders:   { value: "18",       change: "-3",    trend: "down" },
+      inventoryAlerts: { value: "7",        change: "-2",    trend: "down" }
     },
     salesOverview: [
       { name: "Mon", sales: 1200 }, { name: "Tue", sales: 2100 }, { name: "Wed", sales: 1800 },
@@ -42,11 +42,11 @@ export const getAdminDashboardData = () => {
     ],
     revenueTotal: "$4,325.50",
     recentOrders: [
-      { id: "ORD-1250", customer: "John Smith",     table: "Table 5",  items: 3, amount: 45.50, status: "Completed", time: "10:30 AM" },
-      { id: "ORD-1249", customer: "Sarah Johnson",  table: "Table 12", items: 5, amount: 78.20, status: "Preparing", time: "10:25 AM" },
-      { id: "ORD-1248", customer: "Michael Brown",  table: "Table 3",  items: 2, amount: 32.00, status: "Pending",   time: "10:20 AM" },
-      { id: "ORD-1247", customer: "Emily Davis",    table: "Table 7",  items: 4, amount: 67.80, status: "Served",    time: "10:15 AM" },
-      { id: "ORD-1246", customer: "David Wilson",   table: "Table 1",  items: 3, amount: 29.40, status: "Completed", time: "10:10 AM" }
+      { id: "ORD-1250", customer: "John Smith",    table: "Table 5",  items: 3, amount: 45.50, status: "Completed", time: "10:30 AM" },
+      { id: "ORD-1249", customer: "Sarah Johnson", table: "Table 12", items: 5, amount: 78.20, status: "Preparing", time: "10:25 AM" },
+      { id: "ORD-1248", customer: "Michael Brown", table: "Table 3",  items: 2, amount: 32.00, status: "Pending",   time: "10:20 AM" },
+      { id: "ORD-1247", customer: "Emily Davis",   table: "Table 7",  items: 4, amount: 67.80, status: "Served",    time: "10:15 AM" },
+      { id: "ORD-1246", customer: "David Wilson",  table: "Table 1",  items: 3, amount: 29.40, status: "Completed", time: "10:10 AM" }
     ],
     systemOverview: {
       totalUsers: 56, totalRestaurants: 3, systemStatus: "Operational", storageUsage: "67%", activeSessions: 23
@@ -55,8 +55,8 @@ export const getAdminDashboardData = () => {
       item: i.name, status: "Low Stock", quantity: `${i.current_stock} ${i.unit} left`, icon: i.image_url
     })),
     systemActivity: [
-      { title: "New user registered", desc: "Waiter - John Doe",       time: "2 min ago",  type: "user"    },
-      { title: "New order received",  desc: "Order #ORD-1251",         time: "5 min ago",  type: "order"   },
+      { title: "New user registered", desc: "Waiter - John Doe",     time: "2 min ago",  type: "user"    },
+      { title: "New order received",  desc: "Order #ORD-1251",        time: "5 min ago",  type: "order"   },
       { title: "Payment received",    desc: "$78.20 from Order #1249", time: "10 min ago", type: "payment" },
       { title: "Low stock alert",     desc: "Tomato is running low",   time: "15 min ago", type: "alert"   }
     ]
@@ -90,11 +90,11 @@ export const getCashierDashboardData = () => {
     ],
     totalReceived: "$4,200.00",
     recentBills: [
-      { id: "BILL-152", table: "Table 5",  customer: "John Smith",    amount: 45.50, method: "Card",           status: "Paid",    time: "10:30 AM" },
-      { id: "BILL-151", table: "Table 12", customer: "Sarah Johnson", amount: 78.20, method: "Cash",           status: "Paid",    time: "10:25 AM" },
+      { id: "BILL-152", table: "Table 5",  customer: "John Smith",    amount: 45.50, method: "Card",          status: "Paid",    time: "10:30 AM" },
+      { id: "BILL-151", table: "Table 12", customer: "Sarah Johnson", amount: 78.20, method: "Cash",          status: "Paid",    time: "10:25 AM" },
       { id: "BILL-150", table: "Table 3",  customer: "Michael Brown", amount: 32.00, method: "Mobile Banking", status: "Paid",    time: "10:20 AM" },
-      { id: "BILL-149", table: "Table 7",  customer: "Emily Davis",   amount: 67.80, method: "Card",           status: "Paid",    time: "10:15 AM" },
-      { id: "BILL-148", table: "Table 1",  customer: "David Wilson",  amount: 29.40, method: "Cash",           status: "Pending", time: "10:10 AM" }
+      { id: "BILL-149", table: "Table 7",  customer: "Emily Davis",   amount: 67.80, method: "Card",          status: "Paid",    time: "10:15 AM" },
+      { id: "BILL-148", table: "Table 1",  customer: "David Wilson",  amount: 29.40, method: "Cash",          status: "Pending", time: "10:10 AM" }
     ],
     pendingPayments: [
       { id: "BILL-154", table: "Table 8",  amount: 54.30, time: "5 min ago"  },
@@ -152,9 +152,9 @@ export const getKitchenDashboardData = () => {
       { id: "ORD-1236", table: "Table 14", items: 3, started: "9:50 AM",  stage: "Main Course", progress: 30 }
     ],
     kitchenAlerts: [
-      { type: "alert",   title: "Low stock: Chicken Breast", detail: "Only 1.5 kg left",       time: "10 min ago" },
+      { type: "alert",   title: "Low stock: Chicken Breast", detail: "Only 1.5 kg left",    time: "10 min ago" },
       { type: "alert",   title: "Low stock: Cooking Oil",    detail: "Only 1 L left",          time: "20 min ago" },
-      { type: "warning", title: "Order #ORD-1250 is waiting",detail: "for 15 minutes",         time: "25 min ago" },
+      { type: "warning", title: "Order #ORD-1250 is waiting",detail: "for 15 minutes",       time: "25 min ago" },
       { type: "info",    title: "New order received",        detail: "Order #ORD-1251 (Table 6)", time: "30 min ago" }
     ],
     todaySummary: {
@@ -185,10 +185,10 @@ export const getWaiterDashboardData = () => {
       newRequests:     { value: "3",  sub: "From Tables" }
     },
     myTables: [
-      { table: "Table 5",  guests: 4, status: "Ordering",       lastOrder: "10:20 AM" },
+      { table: "Table 5",  guests: 4, status: "Ordering",      lastOrder: "10:20 AM" },
       { table: "Table 7",  guests: 2, status: "Food Preparing", lastOrder: "10:18 AM" },
       { table: "Table 12", guests: 6, status: "Ready to Serve", lastOrder: "10:15 AM" },
-      { table: "Table 3",  guests: 3, status: "Ordering",       lastOrder: "10:10 AM" },
+      { table: "Table 3",  guests: 3, status: "Ordering",      lastOrder: "10:10 AM" },
       { table: "Table 15", guests: 2, status: "Food Preparing", lastOrder: "10:08 AM" },
       { table: "Table 8",  guests: 5, status: "Ready to Serve", lastOrder: "10:05 AM" }
     ],
@@ -231,12 +231,12 @@ export const getWaiterDashboardData = () => {
 export const getManagerDashboardData = () => {
   return {
     stats: {
-      totalOrders:      { value: "128",       change: "+15.6%", trend: "up" },
-      todayRevenue:     { value: "$4,325.50", change: "+12.3%", trend: "up" },
-      availableTables:  { value: "24 / 36",   change: "+5",     trend: "up" },
-      pendingOrders:    { value: "18",        change: "-3",     trend: "down" },
-      reservationsToday:{ value: "12",        change: "+2",     trend: "up" },
-      lowStockItems:    { value: "7",         change: "",       trend: "neutral" }
+      totalOrders:       { value: "128",       change: "+15.6%", trend: "up" },
+      todayRevenue:      { value: "$4,325.50", change: "+12.3%", trend: "up" },
+      availableTables:   { value: "24 / 36",   change: "+5",     trend: "up" },
+      pendingOrders:     { value: "18",        change: "-3",     trend: "down" },
+      reservationsToday: { value: "12",        change: "+2",     trend: "up" },
+      lowStockItems:     { value: "7",         change: "",       trend: "neutral" }
     },
     salesOverview: [
       { name: "Mon", sales: 1200 }, { name: "Tue", sales: 2100 }, { name: "Wed", sales: 1800 },
@@ -297,7 +297,7 @@ export const getManagerDashboardData = () => {
 export const getCustomerPortalData = () => {
   return {
     categories: [
-      { id: 1, name: "Breakfast",  icon: "🍳" }, { id: 2, name: "Lunch",     icon: "🍲" },
+      { id: 1, name: "Breakfast",  icon: "🍳" }, { id: 2, name: "Lunch",    icon: "🍲" },
       { id: 3, name: "Dinner",     icon: "🍽️" }, { id: 4, name: "Appetizers",icon: "🍟" },
       { id: 5, name: "Drinks",     icon: "🥤" }, { id: 6, name: "Desserts",  icon: "🍰" },
       { id: 7, name: "Salads",     icon: "🥗" }
@@ -315,5 +315,27 @@ export const getCustomerPortalData = () => {
       { id: 7, name: "Chocolate Lava Cake", price: 5.99,  quantity: 1, image_url: "/assets/food-placeholders/food-chocolate-cake.png" }
     ],
     cartTotals: { subtotal: 32.96, deliveryFee: 2.99, tax: 2.88, total: 38.83 }
+  };
+};
+
+// ============================================================================
+// TEAM-SAFE COMPATIBILITY EXPORTS (Added to prevent breaking team components)
+// ============================================================================
+export const mockGetMenu = () => mockDatabase.menu_items || [];
+export const mockGetTables = () => [
+  { id: 1, number: '1', capacity: 4, status: 'available', zone: 'Main Hall' },
+  { id: 2, number: '2', capacity: 2, status: 'occupied', zone: 'Main Hall' },
+  { id: 3, number: '3', capacity: 6, status: 'reserved', zone: 'VIP Lounge' },
+  { id: 4, number: '4', capacity: 4, status: 'available', zone: 'Main Hall' },
+  { id: 5, number: '5', capacity: 8, status: 'occupied', zone: 'Terrace' },
+  { id: 6, number: '6', capacity: 2, status: 'available', zone: 'Terrace' },
+];
+export const mockGetStaff = () => mockDatabase.users || [];
+export const mockGetOrders = () => getAdminDashboardData().recentOrders;
+export const mockCreateOrder = (orderData) => {
+  return { 
+    success: true, 
+    orderId: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+    message: 'Order created successfully.'
   };
 };

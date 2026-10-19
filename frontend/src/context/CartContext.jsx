@@ -1,10 +1,6 @@
+import React, { createContext, useContext, useState } from 'react';
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-} from 'react';
-
+// Keep CartContext internal to prevent Vite Fast Refresh warnings
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
@@ -34,18 +30,21 @@ export function CartProvider({ children }) {
     );
   };
 
-  const updateQuantity = (productId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-
+  const updateQuantity = (productId, deltaOrQuantity) => {
     setCartItems((currentItems) =>
-      currentItems.map((item) =>
-        item.id === productId
-          ? { ...item, quantity }
-          : item
-      )
+      currentItems
+        .map((item) => {
+          if (item.id === productId) {
+            const newQuantity =
+              deltaOrQuantity === 1 || deltaOrQuantity === -1
+                ? item.quantity + deltaOrQuantity
+                : deltaOrQuantity;
+
+            return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
+          }
+          return item;
+        })
+        .filter(Boolean)
     );
   };
 
@@ -64,6 +63,11 @@ export function CartProvider({ children }) {
     0
   );
 
+  const totals = {
+    subtotal: cartTotal,
+    deliveryFee: cartTotal > 0 ? 5.00 : 0.00,
+  };
+
   const value = {
     cartItems,
     items: cartItems,
@@ -73,6 +77,7 @@ export function CartProvider({ children }) {
     clearCart,
     cartCount,
     cartTotal,
+    totals,
     totalItems: cartCount,
     totalPrice: cartTotal,
   };
@@ -95,5 +100,3 @@ export function useCart() {
 
   return context;
 }
-
-export default CartContext;

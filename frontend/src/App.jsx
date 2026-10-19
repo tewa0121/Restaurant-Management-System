@@ -11,38 +11,30 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CartProvider } from './context/CartContext';
-
-import Login from './pages/auth/Login';
-import SignUp from './pages/auth/SignUp';
-import ForgotPassword from './pages/auth/ForgotPassword';
-
-import AdminLayout from './components/layout/AdminLayout';
-import CashierLayout from './components/layout/CashierLayout';
-import KitchenLayout from './components/layout/KitchenLayout';
+import Home from './pages/customer/Home';
+// --- LAYOUTS ---
+import DashboardLayout from './components/layout/DashboardLayout';
 import ManagerLayout from './components/layout/ManagerLayout';
 import WaiterLayout from './components/layout/WaiterLayout';
 import CustomerLayout from './components/layout/CustomerLayout';
 
-import AdminDashboard from './pages/admin/Dashboard';
-import UsersAndRoles from './pages/admin/UsersAndRoles';
-import AdminMenuManagement from './pages/admin/MenuManagement';
-import AdminTableManagement from './pages/admin/TableManagement';
-import OrderManagement from './pages/admin/OrderManagement';
-import ReservationManagement from './pages/admin/ReservationManagement';
-import CustomerManagement from './pages/admin/CustomerManagement';
-import EmployeeManagement from './pages/admin/EmployeeManagement';
-import AdminInventoryManagement from './pages/admin/InventoryManagement';
-import ReportsAndAnalytics from './pages/admin/ReportsAndAnalytics';
-import DeliveryManagement from './pages/admin/DeliveryManagement';
-import LogsAndActivity from './pages/admin/LogsAndActivity';
-import PaymentManagement from './pages/admin/PaymentManagement';
-import Restaurants from './pages/admin/Restaurants';
-import Settings from './pages/admin/Settings';
-import SupplierManagement from './pages/admin/SupplierManagement';
+// --- PAGES ---
+import Login from './pages/auth/Login';
+import ManagerDashboard from './pages/manager/ManagerDashboard'; 
 
-import CashierDashboard from './pages/cashier/Dashboard';
-import KitchenDashboard from './pages/kitchen/Dashboard';
-import WaiterDashboard from './pages/waiter/Dashboard';
+// Customer Pages
+import CustomerHome from './pages/customer/Home';
+import BrowseMenu from './pages/customer/BrowseMenu';
+import Categories from './pages/customer/Categories';
+import OffersAndDeals from './pages/customer/OffersAndDeals';
+import MyOrders from './pages/customer/MyOrders';
+import Favorites from './pages/customer/Favorites';
+import TrackOrder from './pages/customer/TrackOrder';
+import Profile from './pages/customer/Profile';
+import AddressBook from './pages/customer/AddressBook';
+import HelpSupport from './pages/customer/HelpSupport';
+import Cart from './pages/customer/Cart';
+import Checkout from './pages/customer/Checkout';
 
 import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerOrders from './pages/manager/Orders';
@@ -59,9 +51,43 @@ import ManagerAnalytics from './pages/manager/Analytics';
 import ManagerSettings from './pages/manager/Settings';
 import ManagerActivityLog from './pages/manager/ActivityLog';
 
-import Home from './pages/customer/Home';
-import Checkout from './pages/customer/Checkout';
-import Cart from './pages/customer/Cart';
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* 1. Login */}
+      <Route path="/login" element={<Login />} />
+
+      {/* 2. Customer Routes (All inside CustomerLayout) */}
+      <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
+      <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
+      <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
+      <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
+      <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
+      <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
+      <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
+      <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
+      <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
+      <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
+      <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
+      <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
+
+      {/* 3. Manager Route */}
+      <Route path="/manager" element={
+        <ProtectedRoute allowedRoles={['Restaurant Manager']}>
+          <ManagerLayout>
+            <ManagerDashboard />
+          </ManagerLayout>
+        </ProtectedRoute>
+      } />
+
+      {/* 4. Default Redirects */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      
+      {/* Catch-all for unknown routes */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes> 
+  );
+}
 
 function App() {
   return (

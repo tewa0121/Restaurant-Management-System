@@ -1,69 +1,125 @@
 // src/components/common/Sidebar.jsx
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  ShoppingBag, 
+  Utensils, 
+  Calendar, 
+  BookOpen, 
+  Package, 
+  Users, 
+  UserCheck, 
+  Truck, 
+  FileText, 
+  TrendingUp, 
+  BarChart2, 
+  Settings, 
+  History,
+  ChevronRight
+} from 'lucide-react';
 
-// ... (keep the menuItems object and Icon component from my previous response here)
-
-export default function Sidebar({ isOpen, setIsOpen, role = 'Super Administrator' }) {
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  
-  const currentMenu = menuItems[role] || menuItems['Super Administrator'];
-  const brandName = role === 'Kitchen Staff' ? 'Kitchen' 
-                  : role === 'Cashier' ? 'Cashier' 
-                  : role === 'Waiter' ? 'Waiter' 
-                  : role === 'Restaurant Manager' ? 'Manager' 
-                  : 'Admin';
+export default function Sidebar() {
+  const menuSections = [
+    {
+      title: 'OPERATIONS',
+      items: [
+        { label: 'Dashboard', path: '/manager/dashboard', icon: LayoutDashboard },
+        { label: 'Orders', path: '/manager/orders', icon: ShoppingBag },
+        { label: 'Table Management', path: '/manager/table-management', icon: Utensils },
+        { label: 'Reservations', path: '/manager/reservations', icon: Calendar },
+        { label: 'Menu Management', path: '/manager/menu-management', icon: BookOpen },
+        { label: 'Inventory Management', path: '/manager/inventory-management', icon: Package },
+      ]
+    },
+    {
+      title: 'MANAGEMENT',
+      items: [
+        { label: 'Employees', path: '/manager/employees', icon: Users },
+        { label: 'Customers', path: '/manager/customers', icon: UserCheck },
+        { label: 'Suppliers', path: '/manager/suppliers', icon: Truck },
+      ]
+    },
+    {
+      title: 'REPORTS & ANALYTICS',
+      items: [
+        { label: 'Reports', path: '/manager/reports', icon: FileText },
+        { label: 'Sales & Revenue', path: '/manager/sales-and-revenue', icon: TrendingUp },
+        { label: 'Analytics', path: '/manager/analytics', icon: BarChart2 },
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { label: 'Settings', path: '/manager/settings', icon: Settings },
+        { label: 'Activity Log', path: '/manager/activity-log', icon: History },
+      ]
+    }
+  ];
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0f0a2e] text-white flex flex-col transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-      
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-        <div className="w-10 h-10 rounded-full border border-green-500 flex items-center justify-center text-green-500">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3a4 4 0 00-4 4v.5A4.5 4.5 0 004.5 12c0 2 1.5 3.5 3.5 4v2h8v-2c2-.5 3.5-2 3.5-4A4.5 4.5 0 0016 7.5V7a4 4 0 00-4-4z" /></svg>
+    <aside className="w-64 bg-[#0F172A] text-slate-300 flex flex-col h-screen shrink-0 border-r border-slate-800">
+      {/* Brand Header */}
+      <div className="p-5 flex items-center gap-3 border-b border-slate-800/80">
+        <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-emerald-500/20">
+          <Utensils className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="font-bold text-lg leading-tight">Resto<span className="text-green-500">{brandName}</span></h2>
-          <p className="text-[10px] text-gray-400">Restaurant Management System</p>
+          <h1 className="font-extrabold text-white text-base leading-none">RestoManager</h1>
+          <p className="text-[10px] text-slate-400 mt-1">Restaurant Management System</p>
         </div>
       </div>
 
-      {/* Menu */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {currentMenu.map((item, idx) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={idx}
-              to={item.path}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive 
-                  ? 'bg-[#272056] text-white border-l-4 border-green-500' 
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon name={item.icon} />
-                <span>{item.name}</span>
-              </div>
-              {item.hasArrow && <span className="text-gray-500">›</span>}
-            </Link>
-          );
-        })}
+      {/* Scrollable Navigation */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-800">
+        {menuSections.map((section) => (
+          <div key={section.title} className="space-y-1">
+            <h3 className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              {section.title}
+            </h3>
+            <div className="space-y-1 pt-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                      }`
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{item.label}</span>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 opacity-40" />
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Profile */}
-      <div className="p-4 border-t border-white/10">
+      {/* Bottom Profile Footer */}
+      <div className="p-4 border-t border-slate-800/80 bg-[#0B1120]">
         <div className="flex items-center gap-3">
-          <img src={user?.avatar} alt="User" className="w-10 h-10 rounded-full bg-gray-700 border-2 border-green-500 object-cover" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate text-white">{user?.name}</p>
-            <p className="text-xs text-gray-400 truncate">{user?.role}</p>
+          <div className="relative">
+            <img 
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" 
+              alt="Manager Avatar" 
+              className="w-9 h-9 rounded-full object-cover border-2 border-emerald-500"
+            />
+            <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full absolute bottom-0 right-0 border-2 border-[#0B1120]" />
           </div>
-          <button onClick={logout} className="text-gray-400 hover:text-white transition" title="Logout">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          </button>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-xs font-bold text-white truncate">John Manager</h4>
+            <p className="text-[10px] text-slate-400 truncate">Restaurant Manager</p>
+          </div>
         </div>
       </div>
     </aside>

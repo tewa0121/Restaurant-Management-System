@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -7,36 +6,50 @@ import {
   Navigate,
 } from 'react-router-dom';
 
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CartProvider } from './context/CartContext';
-import Home from './pages/customer/Home';
+
 // --- LAYOUTS ---
-import DashboardLayout from './components/layout/DashboardLayout';
+import AdminLayout from './components/layout/AdminLayout';
+import CashierLayout from './components/layout/CashierLayout';
+import KitchenLayout from './components/layout/KitchenLayout';
 import ManagerLayout from './components/layout/ManagerLayout';
 import WaiterLayout from './components/layout/WaiterLayout';
 import CustomerLayout from './components/layout/CustomerLayout';
 
 // --- PAGES ---
 import Login from './pages/auth/Login';
-import ManagerDashboard from './pages/manager/ManagerDashboard'; 
+import SignUp from './pages/auth/SignUp';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
-// Customer Pages
-import CustomerHome from './pages/customer/Home';
-import BrowseMenu from './pages/customer/BrowseMenu';
-import Categories from './pages/customer/Categories';
-import OffersAndDeals from './pages/customer/OffersAndDeals';
-import MyOrders from './pages/customer/MyOrders';
-import Favorites from './pages/customer/Favorites';
-import TrackOrder from './pages/customer/TrackOrder';
-import Profile from './pages/customer/Profile';
-import AddressBook from './pages/customer/AddressBook';
-import HelpSupport from './pages/customer/HelpSupport';
-import Cart from './pages/customer/Cart';
-import Checkout from './pages/customer/Checkout';
+// Admin Pages (Mapped to your folder structure)
+import AdminDashboard from './pages/admin/Dashboard';
+import UsersAndRoles from './pages/admin/UsersAndRoles';
+import AdminMenuManagement from './pages/admin/MenuManagement';
+import AdminTableManagement from './pages/admin/TableManagement';
+import OrderManagement from './pages/admin/OrderManagement';
+import ReservationManagement from './pages/admin/ReservationManagement';
+import CustomerManagement from './pages/admin/CustomerManagement';
+import EmployeeManagement from './pages/admin/EmployeeManagement';
+import AdminInventoryManagement from './pages/admin/InventoryManagement';
+import SupplierManagement from './pages/admin/SupplierManagement';
+import DeliveryManagement from './pages/admin/DeliveryManagement';
+import PaymentManagement from './pages/admin/PaymentManagement';
+import ReportsAndAnalytics from './pages/admin/ReportsAndAnalytics';
+import LogsAndActivity from './pages/admin/LogsAndActivity';
+import Restaurants from './pages/admin/Restaurants';
+import Settings from './pages/admin/Settings';
 
-import ManagerDashboard from './pages/manager/Dashboard';
+// Cashier Pages
+import CashierDashboard from './pages/cashier/Dashboard';
+
+// Kitchen Pages
+import KitchenDashboard from './pages/kitchen/Dashboard';
+
+// Manager Pages
+import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerOrders from './pages/manager/Orders';
 import ManagerTableManagement from './pages/manager/TableManagement';
 import ManagerInventoryManagement from './pages/manager/InventoryManagement';
@@ -51,45 +64,32 @@ import ManagerAnalytics from './pages/manager/Analytics';
 import ManagerSettings from './pages/manager/Settings';
 import ManagerActivityLog from './pages/manager/ActivityLog';
 
-function AppRoutes() {
-  return (
-    <Routes>
-      {/* 1. Login */}
-      <Route path="/login" element={<Login />} />
+// Waiter Pages
+import WaiterDashboard from './pages/waiter/Dashboard';
 
-      {/* 2. Customer Routes (All inside CustomerLayout) */}
-      <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
-      <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
-      <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
-      <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
-      <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
-      <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
-      <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
-      <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
-      <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
-      <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
-      <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
-      <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
+// Customer Pages
+import Home from './pages/customer/Home';
+import BrowseMenu from './pages/customer/BrowseMenu';
+import Categories from './pages/customer/Categories';
+import OffersAndDeals from './pages/customer/OffersAndDeals';
+import MyOrders from './pages/customer/MyOrders';
+import Favorites from './pages/customer/Favorites';
+import TrackOrder from './pages/customer/TrackOrder';
+import Profile from './pages/customer/Profile';
+import AddressBook from './pages/customer/AddressBook';
+import HelpSupport from './pages/customer/HelpSupport';
+import Cart from './pages/customer/Cart';
+import Checkout from './pages/customer/Checkout';
 
-      {/* 3. Manager Route */}
-      <Route path="/manager" element={
-        <ProtectedRoute allowedRoles={['Restaurant Manager']}>
-          <ManagerLayout>
-            <ManagerDashboard />
-          </ManagerLayout>
-        </ProtectedRoute>
-      } />
-
-      {/* 4. Default Redirects */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      
-      {/* Catch-all for unknown routes */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes> 
-  );
+// --- AUTH GUARD ---
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/login" replace />;
+  return children;
 }
 
-function App() {
+export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -102,14 +102,15 @@ function App() {
               }}
             >
               <Routes>
+                {/* Default Redirects */}
                 <Route path="/" element={<Navigate to="/login" replace />} />
 
-                {/* Public authentication */}
+                {/* Public Authentication */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Admin */}
+                {/* Admin Routes */}
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
@@ -130,20 +131,24 @@ function App() {
                   <Route path="settings" element={<Settings />} />
                 </Route>
 
-                {/* Cashier */}
+                {/* Cashier Routes */}
                 <Route path="/cashier" element={<CashierLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<CashierDashboard />} />
                 </Route>
 
-                {/* Kitchen */}
+                {/* Kitchen Routes */}
                 <Route path="/kitchen" element={<KitchenLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<KitchenDashboard />} />
                 </Route>
 
-                {/* Manager */}
-                <Route path="/manager" element={<ManagerLayout />}>
+                {/* Manager Routes */}
+                <Route path="/manager" element={
+                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'Admin']}>
+                    <ManagerLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<ManagerDashboard />} />
                   <Route path="orders" element={<ManagerOrders />} />
@@ -161,38 +166,27 @@ function App() {
                   <Route path="activity-log" element={<ManagerActivityLog />} />
                 </Route>
 
-                {/* Waiter */}
+                {/* Waiter Routes */}
                 <Route path="/waiter" element={<WaiterLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<WaiterDashboard />} />
                 </Route>
 
-                {/* Customer */}
-                <Route
-                  path="/customer"
-                  element={
-                    <CustomerLayout>
-                      <Home />
-                    </CustomerLayout>
-                  }
-                />
-                <Route
-                  path="/customer/cart"
-                  element={
-                    <CustomerLayout>
-                      <Cart />
-                    </CustomerLayout>
-                  }
-                />
-                <Route
-                  path="/customer/checkout"
-                  element={
-                    <CustomerLayout>
-                      <Checkout />
-                    </CustomerLayout>
-                  }
-                />
+                {/* Customer Routes */}
+                <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
+                <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
+                <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
+                <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
+                <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
+                <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
+                <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
+                <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
+                <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
+                <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
+                <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
+                <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
 
+                {/* Catch-all for unknown routes */}
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </Router>
@@ -202,5 +196,3 @@ function App() {
     </AuthProvider>
   );
 }
-
-export default App;

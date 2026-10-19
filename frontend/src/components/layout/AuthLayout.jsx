@@ -1,101 +1,67 @@
 import React from 'react';
-import LanguageSelector from '../common/LanguageSelector.jsx';
-import ThemeSwitcher from '../common/ThemeSwitcher.jsx';
-import Icon from '../common/Icon.jsx';
-import loginBg from '../../assets/food-placeholders/login.png'; // Updated correct relative path
+import { ShieldCheck, Headphones, BarChart3, Smartphone } from 'lucide-react';
 
-export default function AuthLayout({ title, subtitle, children }) {
+export default function AuthLayout({ children }) {
   return (
-    <div className="flex min-h-screen w-full bg-white text-slate-900">
-      {/* Left Side: Dark background with restaurant photo */}
-      <div className="relative hidden lg:flex lg:w-5/12 flex-col justify-between p-12 text-white bg-slate-900 overflow-hidden">
-        {/* Background Image */}
+    <div className="flex min-h-screen bg-gray-50 font-sans">
+      
+      {/* LEFT SIDE - Image & Branding */}
+      <div className="hidden lg:flex w-1/2 relative bg-gray-900 flex-col justify-between overflow-hidden">
+        
+        {/* 👇 FIXED: Point to your actual public image path */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay"
-          style={{ backgroundImage: `url(${loginBg})` }}
+          className="absolute inset-0 bg-cover bg-center opacity-40"
+          style={{ backgroundImage: "url('/food-placeholders/login.png')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/80 to-slate-900/40" />
-
-        {/* Top Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="grid h-12 w-12 place-items-center rounded-full border-2 border-brand bg-slate-900/80">
-            <Icon name="shield" size={24} />
+        
+        <div className="relative z-10 p-12 flex flex-col items-center text-center mt-10">
+          <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center mb-6">
+            <span className="text-3xl text-white font-bold">R</span>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              Resto<span className="text-brand">Manager</span>
-            </h1>
-            <p className="text-xs text-slate-400">Restaurant Management System</p>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Resto<span className="text-green-500">Manager</span>
+          </h1>
+          <p className="text-gray-300 tracking-widest text-sm uppercase">Restaurant Management System</p>
+          
+          <div className="mt-16">
+            <h2 className="text-3xl font-bold text-white leading-tight">
+              Manage your restaurant<br />
+              <span className="text-green-400">smarter and faster</span>
+            </h2>
+            <p className="text-gray-300 mt-4 max-w-md mx-auto">
+              All-in-one solution to manage orders, tables, menu, staff, inventory and more.
+            </p>
           </div>
         </div>
 
-        {/* Center Content */}
-        <div className="relative z-10 my-auto space-y-4 py-8">
-          <div className="inline-block h-0.5 w-16 bg-brand mb-2" />
-          <h2 className="text-4xl font-extrabold leading-tight tracking-tight">
-            Manage your restaurant <span className="text-brand">smarter</span> and faster
-          </h2>
-          <p className="text-sm text-slate-300 max-w-md">
-            All-in-one solution to manage orders, tables, menu, staff, inventory and more.
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="relative z-10 text-xs text-slate-400">
-          &copy; 2026 RestoManager. All rights reserved.
+        {/* Bottom Features */}
+        <div className="relative z-10 p-12 grid grid-cols-4 gap-4 text-center border-t border-white/10 bg-black/30 backdrop-blur-sm">
+          <div className="flex flex-col items-center">
+            <ShieldCheck className="text-green-400 mb-2" size={24} />
+            <span className="text-white text-xs font-semibold">Secure & Reliable</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <Headphones className="text-green-400 mb-2" size={24} />
+            <span className="text-white text-xs font-semibold">24/7 Support</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <BarChart3 className="text-green-400 mb-2" size={24} />
+            <span className="text-white text-xs font-semibold">Powerful Analytics</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <Smartphone className="text-green-400 mb-2" size={24} />
+            <span className="text-white text-xs font-semibold">Access Anywhere</span>
+          </div>
         </div>
       </div>
 
-      {/* Right Side: Clean White Background for Login Form (Forced Light Mode) */}
-      <div className="flex flex-1 flex-col justify-between bg-white px-6 py-8 text-slate-900 lg:px-16 lg:py-10">
-        {/* Top Controls: Language & Theme Switcher */}
-        <div className="flex justify-end items-center gap-4">
-          <LanguageSelector />
-          <ThemeSwitcher />
-        </div>
-
-        {/* Login Form Container */}
-        <div className="mx-auto w-full max-w-md my-auto py-8">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900">{title}</h2>
-            {subtitle && <p className="mt-2 text-sm text-slate-600">{subtitle}</p>}
-          </div>
-
+      {/* RIGHT SIDE - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
+        <div className="w-full max-w-md">
           {children}
         </div>
-
-        {/* Bottom Feature Badges */}
-        <div className="grid grid-cols-4 gap-4 border-t border-slate-100 pt-6 text-center text-xs text-slate-600">
-          <div className="space-y-1">
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-brand">
-              <Icon name="shield" size={16} />
-            </div>
-            <p className="font-semibold text-slate-800">Secure & Reliable</p>
-            <p className="text-[10px] text-slate-500">Your data is safe</p>
-          </div>
-          <div className="space-y-1">
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-brand">
-              <Icon name="clock" size={16} />
-            </div>
-            <p className="font-semibold text-slate-800">24/7 Support</p>
-            <p className="text-[10px] text-slate-500">We're here to help</p>
-          </div>
-          <div className="space-y-1">
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-brand">
-              <Icon name="chart" size={16} />
-            </div>
-            <p className="font-semibold text-slate-800">Powerful Analytics</p>
-            <p className="text-[10px] text-slate-500">Make data-driven</p>
-          </div>
-          <div className="space-y-1">
-            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-brand">
-              <Icon name="device" size={16} />
-            </div>
-            <p className="font-semibold text-slate-800">Access Anywhere</p>
-            <p className="text-[10px] text-slate-500">Use on any device</p>
-          </div>
-        </div>
       </div>
+
     </div>
   );
 }

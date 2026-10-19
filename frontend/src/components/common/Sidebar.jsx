@@ -1,70 +1,97 @@
-// src/components/common/Sidebar.jsx
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+// frontend/src/components/common/Sidebar.jsx
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, Users, Utensils, Table, ShoppingBag, Calendar, 
+  Package, CreditCard, BarChart3, Settings, LogOut, ChefHat, 
+  ClipboardList, Bell
+} from 'lucide-react';
 
-// ... (keep the menuItems object and Icon component from my previous response here)
+export default function Sidebar() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const role = user.role || 'Restaurant Manager';
 
-export default function Sidebar({ isOpen, setIsOpen, role = 'Super Administrator' }) {
-  const { user, logout } = useAuth();
-  const location = useLocation();
-  
-  const currentMenu = menuItems[role] || menuItems['Super Administrator'];
-  const brandName = role === 'Kitchen Staff' ? 'Kitchen' 
-                  : role === 'Cashier' ? 'Cashier' 
-                  : role === 'Waiter' ? 'Waiter' 
-                  : role === 'Restaurant Manager' ? 'Manager' 
-                  : 'Admin';
+  // Define menus based on your UI designs
+  const menus = {
+    'Super Administrator': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+      { name: 'Users & Roles', icon: Users, path: '/admin/users' },
+      { name: 'Restaurants', icon: Utensils, path: '/admin/restaurants' },
+      { name: 'Settings', icon: Settings, path: '/admin/settings' },
+    ],
+    'Restaurant Manager': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/manager/dashboard' },
+      { name: 'Orders', icon: ShoppingBag, path: '/manager/orders' },
+      { name: 'Table Management', icon: Table, path: '/manager/tables' },
+      { name: 'Menu Management', icon: Utensils, path: '/manager/menu' },
+      { name: 'Inventory', icon: Package, path: '/manager/inventory' },
+      { name: 'Employees', icon: Users, path: '/manager/employees' },
+      { name: 'Reports', icon: BarChart3, path: '/manager/reports' },
+    ],
+    'Waiter': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/waiter/dashboard' },
+      { name: 'My Tables', icon: Table, path: '/waiter/tables' },
+      { name: 'Orders', icon: ClipboardList, path: '/waiter/orders' },
+      { name: 'Customer Requests', icon: Bell, path: '/waiter/requests' },
+    ],
+    'Cashier': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/cashier/dashboard' },
+      { name: 'Active Bills', icon: ClipboardList, path: '/cashier/bills' },
+      { name: 'Payment History', icon: CreditCard, path: '/cashier/history' },
+    ],
+    'Kitchen Staff': [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/kitchen/dashboard' },
+      { name: 'Incoming Orders', icon: ClipboardList, path: '/kitchen/incoming' },
+      { name: 'In Progress', icon: ChefHat, path: '/kitchen/progress' },
+    ],
+  };
+
+  const currentMenu = menus[role] || menus['Restaurant Manager'];
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0f0a2e] text-white flex flex-col transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-      
+    <aside className="w-64 bg-[#0B1220] min-h-screen flex flex-col text-gray-300">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-        <div className="w-10 h-10 rounded-full border border-green-500 flex items-center justify-center text-green-500">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3a4 4 0 00-4 4v.5A4.5 4.5 0 004.5 12c0 2 1.5 3.5 3.5 4v2h8v-2c2-.5 3.5-2 3.5-4A4.5 4.5 0 0016 7.5V7a4 4 0 00-4-4z" /></svg>
-        </div>
-        <div>
-          <h2 className="font-bold text-lg leading-tight">Resto<span className="text-green-500">{brandName}</span></h2>
-          <p className="text-[10px] text-gray-400">Restaurant Management System</p>
+      <div className="h-16 flex items-center px-6 border-b border-gray-800">
+        <div className="flex items-center gap-2 text-white font-bold text-lg">
+          <div className="bg-green-500 p-1.5 rounded-lg">
+            <ChefHat size={20} className="text-white" />
+          </div>
+          RestoAdmin
         </div>
       </div>
 
       {/* Menu */}
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {currentMenu.map((item, idx) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={idx}
-              to={item.path}
-              className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive 
-                  ? 'bg-[#272056] text-white border-l-4 border-green-500' 
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Icon name={item.icon} />
-                <span>{item.name}</span>
-              </div>
-              {item.hasArrow && <span className="text-gray-500">›</span>}
-            </Link>
-          );
-        })}
+      <div className="flex-1 overflow-y-auto py-4">
+        <ul className="space-y-1">
+          {currentMenu.map((item) => (
+            <li key={item.name}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-6 py-2.5 transition-colors ${
+                    isActive 
+                      ? 'bg-green-600 text-white border-r-4 border-white' 
+                      : 'hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <item.icon size={18} />
+                <span className="text-sm font-medium">{item.name}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* Profile */}
-      <div className="p-4 border-t border-white/10">
-        <div className="flex items-center gap-3">
-          <img src={user?.avatar} alt="User" className="w-10 h-10 rounded-full bg-gray-700 border-2 border-green-500 object-cover" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate text-white">{user?.name}</p>
-            <p className="text-xs text-gray-400 truncate">{user?.role}</p>
-          </div>
-          <button onClick={logout} className="text-gray-400 hover:text-white transition" title="Logout">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-          </button>
-        </div>
+      {/* Logout */}
+      <div className="p-4 border-t border-gray-800">
+        <button 
+          onClick={() => { localStorage.clear(); window.location.href = '/login'; }}
+          className="flex items-center gap-3 px-6 py-2 w-full text-left text-red-400 hover:text-red-300 hover:bg-gray-800 transition-colors rounded-lg"
+        >
+          <LogOut size={18} />
+          <span className="text-sm font-medium">Logout</span>
+        </button>
       </div>
     </aside>
   );

@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-// IMPORT THE EXACT IMAGE FROM YOUR FOLDER
-import loginImage from '../../assets/food-placeholders/login.png';
+// ❌ REMOVED: import loginImage from '../../assets/food-placeholders/login.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -40,10 +39,10 @@ export default function Login() {
       {/* =============== LEFT SIDE (IMAGE + BRANDING) =============== */}
       <div className="hidden lg:flex lg:w-[60%] relative overflow-hidden bg-gray-900">
         
-        {/* Background Image - Absolute positioned */}
+        {/* 👇 FIXED: Use the path from public folder */}
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${loginImage})` }}
+          style={{ backgroundImage: "url('/food-placeholders/login.png')" }}
         />
         
         {/* Dark Gradient Overlay */}

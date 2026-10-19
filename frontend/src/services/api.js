@@ -1,31 +1,33 @@
-import axios from 'axios';
+// src/services/api.js
+import { initialMenuItems, initialUsers, initialTables, initialOrders } from './mockData';
 
-export const tokenStore = {
-  get: () => localStorage.getItem('rms_token') || sessionStorage.getItem('rms_token'),
-  set: (token, remember) => {
-    if (remember) {
-      localStorage.setItem('rms_token', token);
-    } else {
-      sessionStorage.setItem('rms_token', token);
-    }
+// Helper to simulate asynchronous API delay
+const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const apiService = {
+  // Menu API
+  getMenuItems: async () => {
+    await delay();
+    const stored = localStorage.getItem('resto_menu');
+    return stored ? JSON.parse(stored) : initialMenuItems;
   },
-  clear: () => {
-    localStorage.removeItem('rms_token');
-    sessionStorage.removeItem('rms_token');
+  saveMenuItems: async (items) => {
+    await delay();
+    localStorage.setItem('resto_menu', JSON.stringify(items));
+    return items;
+  },
+
+  // Users API
+  getUsers: async () => {
+    await delay();
+    const stored = localStorage.getItem('resto_users');
+    return stored ? JSON.parse(stored) : initialUsers;
+  },
+
+  // Orders API
+  getOrders: async () => {
+    await delay();
+    const stored = localStorage.getItem('resto_orders');
+    return stored ? JSON.parse(stored) : initialOrders;
   },
 };
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  headers: { 'Content-Type': 'application/json' },
-});
-
-api.interceptors.request.use((config) => {
-  const token = tokenStore.get();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-export default api;

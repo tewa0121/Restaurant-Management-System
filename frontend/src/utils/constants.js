@@ -1,10 +1,25 @@
-// true = screens use src/mocks (no backend needed). false = real API.
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+// src/utils/constants.js
 
-export const ROLE_PRIORITY = ['admin', 'manager', 'cashier', 'waiter', 'kitchen', 'customer'];
-
-// Database role names -> route keys.
-export const normalizeRole = (name = '') => {
-  const n = name.toLowerCase();
-  return n.startsWith('kitchen') ? 'kitchen' : n;
+export const ORDER_STATUSES = {
+  PENDING: 'Pending',
+  PREPARING: 'Preparing',
+  READY: 'Ready',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
 };
+
+export const USER_ROLES = {
+  SUPER_ADMIN: 'Super Administrator',
+  MANAGER: 'Manager',
+  CASHIER: 'Cashier',
+  WAITER: 'Waiter',
+  KITCHEN: 'Kitchen Staff',
+};
+
+export const PAYMENT_METHODS = {
+  CASH: 'Cash',
+  CARD: 'Card',
+  MOBILE_MONEY: 'Mobile Money',
+};
+
+export const MENU_CATEGORIES = ['All', 'Food', 'Drinks', 'Desserts', 'Offers'];

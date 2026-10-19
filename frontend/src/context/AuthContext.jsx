@@ -1,49 +1,44 @@
 // src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react';
-import { mockLogin } from '../services/mockAdapter';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
 
-  // On page load, check if a user is already logged in
   useEffect(() => {
-    const savedUser = localStorage.getItem('resto_user');
-    const token = localStorage.getItem('resto_token');
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
+    const savedToken = localStorage.getItem('token');
+    if (savedToken) {
+      setToken(savedToken);
+      // You can decode the JWT or fetch user profile from backend API here
     }
-    setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
-    try {
-      const response = await mockLogin(email, password);
-      
-      // Save to state and local storage
-      setUser(response.user);
-      localStorage.setItem('resto_token', response.token);
-      localStorage.setItem('resto_user', JSON.stringify(response.user));
-      
-      return { success: true, user: response.user };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
+  const login = (userData, userToken) => {
+    setUser(userData);
+    setToken(userToken);
+    localStorage.setItem('token', userToken);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('resto_token');
-    localStorage.removeItem('resto_user');
+    setToken(null);
+    localStorage.removeItem('token');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, token, login, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+// Custom hook to consume AuthContext safely
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

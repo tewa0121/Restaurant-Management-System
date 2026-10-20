@@ -44,9 +44,44 @@ import Settings from './pages/admin/Settings';
 
 // Cashier Pages
 import CashierDashboard from './pages/cashier/Dashboard';
+import * as NewBillModule from './pages/cashier/NewBill';
+import * as ActiveBillsModule from './pages/cashier/ActiveBills';
+import * as HoldBillsModule from './pages/cashier/HoldBills';
+import * as OrderHistoryModule from './pages/cashier/OrderHistory';
+import * as PaymentHistoryModule from './pages/cashier/PaymentHistory';
+import * as RefundsModule from './pages/cashier/Refunds';
+import * as ReceiptsModule from './pages/cashier/Receipts';
+import * as SalesSummaryModule from './pages/cashier/SalesSummary';
+import * as DailyCashReportModule from './pages/cashier/DailyCashReport';
+import * as CustomersModule from './pages/cashier/Customers';
+import * as CashierSettingsModule from './pages/cashier/Settings';
+
+// Safe component resolver to handle both default and named exports transparently
+const getComp = (mod, name) => mod.default || mod[name] || (() => <div className="p-6">Page Loaded</div>);
+
+const NewBill = getComp(NewBillModule, 'NewBill');
+const ActiveBills = getComp(ActiveBillsModule, 'ActiveBills');
+const HoldBills = getComp(HoldBillsModule, 'HoldBills');
+const OrderHistory = getComp(OrderHistoryModule, 'OrderHistory');
+const PaymentHistory = getComp(PaymentHistoryModule, 'PaymentHistory');
+const Refunds = getComp(RefundsModule, 'Refunds');
+const Receipts = getComp(ReceiptsModule, 'Receipts');
+const SalesSummary = getComp(SalesSummaryModule, 'SalesSummary');
+const DailyCashReport = getComp(DailyCashReportModule, 'DailyCashReport');
+const Customers = getComp(CustomersModule, 'Customers');
+const CashierSettings = getComp(CashierSettingsModule, 'CashierSettings');
 
 // Kitchen Pages
 import KitchenDashboard from './pages/kitchen/Dashboard';
+import IncomingOrders from './pages/kitchen/IncomingOrders';
+import InProgressOrders from './pages/kitchen/InProgressOrders';
+import ReadyToServe from './pages/kitchen/ReadyToServe';
+import CompletedOrders from './pages/kitchen/CompletedOrders';
+import Ingredients from './pages/kitchen/Ingredients';
+import StockAlerts from './pages/kitchen/StockAlerts';
+import KitchenReports from './pages/kitchen/KitchenReports';
+import Performance from './pages/kitchen/Performance';
+import KitchenSettings from './pages/kitchen/Settings';
 
 // Manager Pages
 import ManagerDashboard from './pages/manager/ManagerDashboard';
@@ -85,7 +120,9 @@ import Checkout from './pages/customer/Checkout';
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/login" replace />;
+  if (allowedRoles && !allowedRoles.some(role => role.toLowerCase() === String(user.role).toLowerCase())) {
+    return <Navigate to="/login" replace />;
+  }
   return children;
 }
 
@@ -135,17 +172,37 @@ export default function App() {
                 <Route path="/cashier" element={<CashierLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<CashierDashboard />} />
+                  <Route path="new-bill" element={<NewBill />} />
+                  <Route path="active-bills" element={<ActiveBills />} />
+                  <Route path="hold-bills" element={<HoldBills />} />
+                  <Route path="order-history" element={<OrderHistory />} />
+                  <Route path="payment-history" element={<PaymentHistory />} />
+                  <Route path="refunds" element={<Refunds />} />
+                  <Route path="receipts" element={<Receipts />} />
+                  <Route path="sales-summary" element={<SalesSummary />} />
+                  <Route path="daily-cash-report" element={<DailyCashReport />} />
+                  <Route path="customers" element={<Customers />} />
+                  <Route path="settings" element={<CashierSettings />} />
                 </Route>
 
                 {/* Kitchen Routes */}
                 <Route path="/kitchen" element={<KitchenLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<KitchenDashboard />} />
+                  <Route path="incoming-orders" element={<IncomingOrders />} />
+                  <Route path="in-progress" element={<InProgressOrders />} />
+                  <Route path="ready-to-serve" element={<ReadyToServe />} />
+                  <Route path="completed-orders" element={<CompletedOrders />} />
+                  <Route path="ingredients" element={<Ingredients />} />
+                  <Route path="stock-alerts" element={<StockAlerts />} />
+                  <Route path="reports" element={<KitchenReports />} />
+                  <Route path="performance" element={<Performance />} />
+                  <Route path="settings" element={<KitchenSettings />} />
                 </Route>
 
                 {/* Manager Routes */}
                 <Route path="/manager" element={
-                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'Admin']}>
+                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}>
                     <ManagerLayout />
                   </ProtectedRoute>
                 }>

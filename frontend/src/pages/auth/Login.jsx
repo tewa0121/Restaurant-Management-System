@@ -21,7 +21,9 @@ function mockLogin(email, password) {
     'admin@resto.com': { id: 1, name: 'System Admin', email: 'admin@resto.com', role: 'admin' },
     'manager@resto.com': { id: 2, name: 'Manager', email: 'manager@resto.com', role: 'manager' },
     'waiter@resto.com': { id: 3, name: 'Waiter', email: 'waiter@resto.com', role: 'waiter' },
-    'customer@resto.com': { id: 4, name: 'Customer', email: 'customer@resto.com', role: 'customer' },
+    'cashier@resto.com': { id: 4, name: 'Cashier', email: 'cashier@resto.com', role: 'cashier' },
+    'kitchen@resto.com': { id: 5, name: 'Kitchen Staff', email: 'kitchen@resto.com', role: 'kitchen' },
+    'customer@resto.com': { id: 6, name: 'Customer', email: 'customer@resto.com', role: 'customer' },
   };
   const normalizedEmail = email.trim().toLowerCase();
   const user = accounts[normalizedEmail];
@@ -79,7 +81,6 @@ export default function Login() {
     <div className="flex h-screen w-screen overflow-hidden bg-white font-sans">
       
       {/* LEFT SIDE: IMAGE */}
-      {/* object-cover ensures the image fills the screen without cutting off the main text */}
       <div className="hidden lg:block lg:w-1/2 relative bg-[#1a1a1a] h-full">
         <img
           src={loginImage}

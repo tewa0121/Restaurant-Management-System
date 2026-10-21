@@ -24,7 +24,7 @@ import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
-// Admin Pages (Mapped to your folder structure)
+// Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import UsersAndRoles from './pages/admin/UsersAndRoles';
 import AdminMenuManagement from './pages/admin/MenuManagement';
@@ -101,6 +101,17 @@ import ManagerActivityLog from './pages/manager/ActivityLog';
 
 // Waiter Pages
 import WaiterDashboard from './pages/waiter/Dashboard';
+import WaiterTables from './pages/waiter/MyTables';
+import WaiterNewOrder from './pages/waiter/NewOrder';
+import WaiterOrders from './pages/waiter/Orders';
+import WaiterOrderHistory from './pages/waiter/OrderHistory';
+import WaiterTablesGrid from './pages/waiter/Tables';
+import WaiterReservations from './pages/waiter/Reservations';
+import WaiterCustomers from './pages/waiter/Customers';
+import WaiterCustomerRequests from './pages/waiter/CustomerRequests';
+import WaiterNotifications from './pages/waiter/Notifications';
+import WaiterProfile from './pages/waiter/Profile';
+import WaiterSettings from './pages/waiter/Settings';
 
 // Customer Pages
 import Home from './pages/customer/Home';
@@ -227,6 +238,17 @@ export default function App() {
                 <Route path="/waiter" element={<WaiterLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<WaiterDashboard />} />
+                  <Route path="my-tables" element={<WaiterTables />} />
+                  <Route path="new-order" element={<WaiterNewOrder />} />
+                  <Route path="orders" element={<WaiterOrders />} />
+                  <Route path="order-history" element={<WaiterOrderHistory />} />
+                  <Route path="tables" element={<WaiterTablesGrid />} />
+                  <Route path="reservations" element={<WaiterReservations />} />
+                  <Route path="customers" element={<WaiterCustomers />} />
+                  <Route path="customer-requests" element={<WaiterCustomerRequests />} />
+                  <Route path="notifications" element={<WaiterNotifications />} />
+                  <Route path="profile" element={<WaiterProfile />} />
+                  <Route path="settings" element={<WaiterSettings />} />
                 </Route>
 
                 {/* Customer Routes */}

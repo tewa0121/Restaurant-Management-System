@@ -17,7 +17,10 @@ import { useAuth } from '../../context/AuthContext';
 const loginImage = '/assets/food-placeholders/login.png'; 
 
 function mockLogin(email, password) {
-  const accounts = {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  // 1. Default static mock accounts
+  const defaultAccounts = {
     'admin@resto.com': { id: 1, name: 'System Admin', email: 'admin@resto.com', role: 'admin' },
     'manager@resto.com': { id: 2, name: 'Manager', email: 'manager@resto.com', role: 'manager' },
     'waiter@resto.com': { id: 3, name: 'Waiter', email: 'waiter@resto.com', role: 'waiter' },
@@ -25,11 +28,30 @@ function mockLogin(email, password) {
     'kitchen@resto.com': { id: 5, name: 'Kitchen Staff', email: 'kitchen@resto.com', role: 'kitchen' },
     'customer@resto.com': { id: 6, name: 'Customer', email: 'customer@resto.com', role: 'customer' },
   };
-  const normalizedEmail = email.trim().toLowerCase();
-  const user = accounts[normalizedEmail];
-  if (user && password === 'password123') {
-    return { success: true, user, token: 'demo-token' };
+
+  let user = defaultAccounts[normalizedEmail];
+  let validPassword = (password === 'password123');
+
+  // 2. Check accounts registered via SignUp (saved in localStorage)
+  if (!user) {
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    const foundUser = registeredUsers.find(u => u.email === normalizedEmail);
+    
+    if (foundUser && foundUser.password === password) {
+      user = {
+        id: foundUser.id || Date.now(),
+        name: foundUser.fullName,
+        email: foundUser.email,
+        role: foundUser.role || 'customer'
+      };
+      validPassword = true;
+    }
   }
+
+  if (user && validPassword) {
+    return { success: true, user, token: 'demo-token-' + Date.now() };
+  }
+
   throw new Error('Invalid email or password.');
 }
 
@@ -59,8 +81,14 @@ export default function Login() {
       if (!response.success) throw new Error('Invalid email or password.');
       
       if (authLogin) authLogin(response.user, response.token);
-      if (rememberMe) localStorage.setItem('token', response.token);
-      else localStorage.removeItem('token');
+      
+      // Store user and token in localStorage
+      localStorage.setItem('user', JSON.stringify(response.user));
+      if (rememberMe) {
+        localStorage.setItem('token', response.token);
+      } else {
+        localStorage.removeItem('token');
+      }
       
       const role = String(response.user.role || '').toLowerCase();
       if (role.includes('admin')) navigate('/admin/dashboard');
@@ -81,11 +109,11 @@ export default function Login() {
     <div className="flex h-screen w-screen overflow-hidden bg-white font-sans">
       
       {/* LEFT SIDE: IMAGE */}
-      <div className="hidden lg:block lg:w-1/2 relative bg-[#1a1a1a] h-full">
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#1a1a1a] h-full items-center justify-center p-3 overflow-hidden">
         <img
           src={loginImage}
           alt="Restaurant Background"
-          className="w-full h-full object-cover object-center"
+          className="w-full h-[90%] object-cover object-center rounded-2xl shadow-2xl"
         />
       </div>
 
@@ -100,9 +128,9 @@ export default function Login() {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-[#fafafa] via-[#fafafa] to-transparent pointer-events-none" />
 
-        {/* Main Content Wrapper */}
         <div className="relative z-10 w-full max-w-[420px] flex flex-col justify-between min-h-full py-4 px-4">
           
+          {/* Top Bar: Language Selector */}
           <div className="flex justify-end w-full mb-1">
             <label className="flex items-center gap-2 text-[12px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm cursor-pointer hover:bg-gray-50 transition">
               <Globe className="w-3.5 h-3.5 text-gray-500" />
@@ -111,7 +139,8 @@ export default function Login() {
                 onChange={(e) => setLanguage(e.target.value)}
                 className="bg-transparent outline-none cursor-pointer font-semibold text-gray-700"
               >
-                <option>English</option>
+                <option value="English">English</option>
+                <option value="Amharic">አማርኛ</option>
               </select>
             </label>
           </div>
@@ -186,9 +215,12 @@ export default function Login() {
                   />
                   <span className="text-gray-600 font-medium">Remember me</span>
                 </label>
-                <a href="/forgot-password" className="text-[#1b8b30] hover:text-green-700 font-medium transition">
+                <span 
+                  onClick={() => navigate('/forgot-password')} 
+                  className="text-[#1b8b30] hover:text-green-700 font-medium transition cursor-pointer"
+                >
                   Forgot Password?
-                </a>
+                </span>
               </div>
 
               <button
@@ -246,9 +278,12 @@ export default function Login() {
 
             <p className="text-center text-[11px] text-gray-500 mt-3">
               Don&apos;t have an account?{' '}
-              <a href="/signup" className="text-[#1b8b30] font-bold hover:underline">
+              <span 
+                onClick={() => navigate('/signup')} 
+                className="text-[#1b8b30] font-bold hover:underline cursor-pointer"
+              >
                 Sign Up
-              </a>
+              </span>
             </p>
           </div>
 

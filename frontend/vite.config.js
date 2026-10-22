@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
@@ -8,9 +8,12 @@ export default defineConfig({
     host: true, // Listens on all local IPs
     strictPort: true, // Forces Vite to fail if port 3000 is occupied rather than switching ports
     hmr: {
-      protocol: 'ws',
-      host: 'localhost',
+      protocol: "ws",
+      host: "localhost",
       port: 3000,
     },
+  },
+  optimizeDeps: {
+    include: ["jspdf", "jspdf-autotable"],
   },
 });

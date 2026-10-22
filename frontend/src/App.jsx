@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -19,12 +14,12 @@ import ManagerLayout from './components/layout/ManagerLayout';
 import WaiterLayout from './components/layout/WaiterLayout';
 import CustomerLayout from './components/layout/CustomerLayout';
 
-// --- PAGES ---
+// --- AUTH PAGES ---
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
-// Admin Pages (Mapped to your folder structure)
+// --- ADMIN PAGES ---
 import AdminDashboard from './pages/admin/Dashboard';
 import UsersAndRoles from './pages/admin/UsersAndRoles';
 import AdminMenuManagement from './pages/admin/MenuManagement';
@@ -40,38 +35,23 @@ import PaymentManagement from './pages/admin/PaymentManagement';
 import ReportsAndAnalytics from './pages/admin/ReportsAndAnalytics';
 import LogsAndActivity from './pages/admin/LogsAndActivity';
 import Restaurants from './pages/admin/Restaurants';
-import Settings from './pages/admin/Settings';
+import AdminSettings from './pages/admin/Settings';
 
-// Cashier Pages
+// --- CASHIER PAGES ---
 import CashierDashboard from './pages/cashier/Dashboard';
-import * as NewBillModule from './pages/cashier/NewBill';
-import * as ActiveBillsModule from './pages/cashier/ActiveBills';
-import * as HoldBillsModule from './pages/cashier/HoldBills';
-import * as OrderHistoryModule from './pages/cashier/OrderHistory';
-import * as PaymentHistoryModule from './pages/cashier/PaymentHistory';
-import * as RefundsModule from './pages/cashier/Refunds';
-import * as ReceiptsModule from './pages/cashier/Receipts';
-import * as SalesSummaryModule from './pages/cashier/SalesSummary';
-import * as DailyCashReportModule from './pages/cashier/DailyCashReport';
-import * as CustomersModule from './pages/cashier/Customers';
-import * as CashierSettingsModule from './pages/cashier/Settings';
+import NewBill from './pages/cashier/NewBill';
+import ActiveBills from './pages/cashier/ActiveBills';
+import HoldBills from './pages/cashier/HoldBills';
+import OrderHistory from './pages/cashier/OrderHistory';
+import PaymentHistory from './pages/cashier/PaymentHistory';
+import Refunds from './pages/cashier/Refunds';
+import Receipts from './pages/cashier/Receipts';
+import SalesSummary from './pages/cashier/SalesSummary';
+import DailyCashReport from './pages/cashier/DailyCashReport';
+import CashierCustomers from './pages/cashier/Customers';
+import CashierSettings from './pages/cashier/Settings';
 
-// Safe component resolver to handle both default and named exports transparently
-const getComp = (mod, name) => mod.default || mod[name] || (() => <div className="p-6">Page Loaded</div>);
-
-const NewBill = getComp(NewBillModule, 'NewBill');
-const ActiveBills = getComp(ActiveBillsModule, 'ActiveBills');
-const HoldBills = getComp(HoldBillsModule, 'HoldBills');
-const OrderHistory = getComp(OrderHistoryModule, 'OrderHistory');
-const PaymentHistory = getComp(PaymentHistoryModule, 'PaymentHistory');
-const Refunds = getComp(RefundsModule, 'Refunds');
-const Receipts = getComp(ReceiptsModule, 'Receipts');
-const SalesSummary = getComp(SalesSummaryModule, 'SalesSummary');
-const DailyCashReport = getComp(DailyCashReportModule, 'DailyCashReport');
-const Customers = getComp(CustomersModule, 'Customers');
-const CashierSettings = getComp(CashierSettingsModule, 'CashierSettings');
-
-// Kitchen Pages
+// --- KITCHEN PAGES ---
 import KitchenDashboard from './pages/kitchen/Dashboard';
 import IncomingOrders from './pages/kitchen/IncomingOrders';
 import InProgressOrders from './pages/kitchen/InProgressOrders';
@@ -83,7 +63,7 @@ import KitchenReports from './pages/kitchen/KitchenReports';
 import Performance from './pages/kitchen/Performance';
 import KitchenSettings from './pages/kitchen/Settings';
 
-// Manager Pages
+// --- MANAGER PAGES ---
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerOrders from './pages/manager/Orders';
 import ManagerTableManagement from './pages/manager/TableManagement';
@@ -99,10 +79,19 @@ import ManagerAnalytics from './pages/manager/Analytics';
 import ManagerSettings from './pages/manager/Settings';
 import ManagerActivityLog from './pages/manager/ActivityLog';
 
-// Waiter Pages
+// --- WAITER PAGES ---
 import WaiterDashboard from './pages/waiter/Dashboard';
+import NewOrder from './pages/waiter/NewOrder';
+import MyTables from './pages/waiter/MyTables';
+import Tables from './pages/waiter/Tables';
+import Reservations from './pages/waiter/Reservations';
+import WaiterCustomers from './pages/waiter/Customers';
+import CustomerRequests from './pages/waiter/CustomerRequests';
+import Notifications from './pages/waiter/Notifications';
+import WaiterProfile from './pages/waiter/Profile';
+import WaiterSettings from './pages/waiter/Settings';
 
-// Customer Pages
+// --- CUSTOMER PAGES ---
 import Home from './pages/customer/Home';
 import BrowseMenu from './pages/customer/BrowseMenu';
 import Categories from './pages/customer/Categories';
@@ -132,22 +121,16 @@ export default function App() {
       <ThemeProvider>
         <NotificationProvider>
           <CartProvider>
-            <Router
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Routes>
-                {/* Default Redirects */}
+                
+                {/* PUBLIC ROUTES */}
                 <Route path="/" element={<Navigate to="/login" replace />} />
-
-                {/* Public Authentication */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Admin Routes */}
+                {/* ================= ADMIN ROUTES (NESTED) ================= */}
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
@@ -165,71 +148,68 @@ export default function App() {
                   <Route path="reports-and-analytics" element={<ReportsAndAnalytics />} />
                   <Route path="logs-and-activity" element={<LogsAndActivity />} />
                   <Route path="restaurants" element={<Restaurants />} />
-                  <Route path="settings" element={<Settings />} />
+                  <Route path="settings" element={<AdminSettings />} />
                 </Route>
 
-                {/* Cashier Routes */}
-                <Route path="/cashier" element={<CashierLayout />}>
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<CashierDashboard />} />
-                  <Route path="new-bill" element={<NewBill />} />
-                  <Route path="active-bills" element={<ActiveBills />} />
-                  <Route path="hold-bills" element={<HoldBills />} />
-                  <Route path="order-history" element={<OrderHistory />} />
-                  <Route path="payment-history" element={<PaymentHistory />} />
-                  <Route path="refunds" element={<Refunds />} />
-                  <Route path="receipts" element={<Receipts />} />
-                  <Route path="sales-summary" element={<SalesSummary />} />
-                  <Route path="daily-cash-report" element={<DailyCashReport />} />
-                  <Route path="customers" element={<Customers />} />
-                  <Route path="settings" element={<CashierSettings />} />
-                </Route>
+                {/* ================= CASHIER ROUTES (FLAT) ================= */}
+                <Route path="/cashier" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><CashierDashboard /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/dashboard" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><CashierDashboard /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/new-bill" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><NewBill /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/active-bills" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><ActiveBills /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/hold-bills" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><HoldBills /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/order-history" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><OrderHistory /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/payment-history" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><PaymentHistory /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/refunds" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><Refunds /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/receipts" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><Receipts /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/sales-summary" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><SalesSummary /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/daily-report" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><DailyCashReport /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/customers" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><CashierCustomers /></CashierLayout></ProtectedRoute>} />
+                <Route path="/cashier/settings" element={<ProtectedRoute allowedRoles={['Cashier']}><CashierLayout><CashierSettings /></CashierLayout></ProtectedRoute>} />
 
-                {/* Kitchen Routes */}
-                <Route path="/kitchen" element={<KitchenLayout />}>
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<KitchenDashboard />} />
-                  <Route path="incoming-orders" element={<IncomingOrders />} />
-                  <Route path="in-progress" element={<InProgressOrders />} />
-                  <Route path="ready-to-serve" element={<ReadyToServe />} />
-                  <Route path="completed-orders" element={<CompletedOrders />} />
-                  <Route path="ingredients" element={<Ingredients />} />
-                  <Route path="stock-alerts" element={<StockAlerts />} />
-                  <Route path="reports" element={<KitchenReports />} />
-                  <Route path="performance" element={<Performance />} />
-                  <Route path="settings" element={<KitchenSettings />} />
-                </Route>
+                {/* ================= KITCHEN ROUTES (FLAT) ================= */}
+                <Route path="/kitchen" element={<KitchenLayout><KitchenDashboard /></KitchenLayout>} />
+                <Route path="/kitchen/dashboard" element={<KitchenLayout><KitchenDashboard /></KitchenLayout>} />
+                <Route path="/kitchen/incoming-orders" element={<KitchenLayout><IncomingOrders /></KitchenLayout>} />
+                <Route path="/kitchen/in-progress" element={<KitchenLayout><InProgressOrders /></KitchenLayout>} />
+                <Route path="/kitchen/ready-to-serve" element={<KitchenLayout><ReadyToServe /></KitchenLayout>} />
+                <Route path="/kitchen/completed-orders" element={<KitchenLayout><CompletedOrders /></KitchenLayout>} />
+                <Route path="/kitchen/ingredients" element={<KitchenLayout><Ingredients /></KitchenLayout>} />
+                <Route path="/kitchen/stock-alerts" element={<KitchenLayout><StockAlerts /></KitchenLayout>} />
+                <Route path="/kitchen/reports" element={<KitchenLayout><KitchenReports /></KitchenLayout>} />
+                <Route path="/kitchen/performance" element={<KitchenLayout><Performance /></KitchenLayout>} />
+                <Route path="/kitchen/settings" element={<KitchenLayout><KitchenSettings /></KitchenLayout>} />
 
-                {/* Manager Routes */}
-                <Route path="/manager" element={
-                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}>
-                    <ManagerLayout />
-                  </ProtectedRoute>
-                }>
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<ManagerDashboard />} />
-                  <Route path="orders" element={<ManagerOrders />} />
-                  <Route path="table-management" element={<ManagerTableManagement />} />
-                  <Route path="inventory-management" element={<ManagerInventoryManagement />} />
-                  <Route path="reservations" element={<ManagerReservations />} />
-                  <Route path="menu-management" element={<ManagerMenuManagement />} />
-                  <Route path="employees" element={<ManagerEmployees />} />
-                  <Route path="customers" element={<ManagerCustomers />} />
-                  <Route path="suppliers" element={<ManagerSuppliers />} />
-                  <Route path="reports" element={<ManagerReports />} />
-                  <Route path="sales-and-revenue" element={<ManagerSalesAndRevenue />} />
-                  <Route path="analytics" element={<ManagerAnalytics />} />
-                  <Route path="settings" element={<ManagerSettings />} />
-                  <Route path="activity-log" element={<ManagerActivityLog />} />
-                </Route>
+                {/* ================= MANAGER ROUTES (FLAT) ================= */}
+                <Route path="/manager" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerDashboard /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/dashboard" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerDashboard /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/orders" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerOrders /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/table-management" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerTableManagement /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/inventory-management" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerInventoryManagement /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/reservations" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerReservations /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/menu-management" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerMenuManagement /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/employees" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerEmployees /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/customers" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerCustomers /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/suppliers" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerSuppliers /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/reports" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerReports /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/sales-and-revenue" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerSalesAndRevenue /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/analytics" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerAnalytics /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/settings" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerSettings /></ManagerLayout></ProtectedRoute>} />
+                <Route path="/manager/activity-log" element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}><ManagerLayout><ManagerActivityLog /></ManagerLayout></ProtectedRoute>} />
 
-                {/* Waiter Routes */}
-                <Route path="/waiter" element={<WaiterLayout />}>
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<WaiterDashboard />} />
-                </Route>
+                {/* ================= WAITER ROUTES (FLAT) ================= */}
+                <Route path="/waiter" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><WaiterDashboard /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/dashboard" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><WaiterDashboard /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/new-order" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><NewOrder /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/tables" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><Tables /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/my-tables" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><MyTables /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/reservations" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><Reservations /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/customers" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><WaiterCustomers /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/customer-requests" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><CustomerRequests /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/notifications" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><Notifications /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/profile" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><WaiterProfile /></WaiterLayout></ProtectedRoute>} />
+                <Route path="/waiter/settings" element={<ProtectedRoute allowedRoles={['Waiter']}><WaiterLayout><WaiterSettings /></WaiterLayout></ProtectedRoute>} />
 
-                {/* Customer Routes */}
+                {/* ================= CUSTOMER ROUTES ================= */}
                 <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
                 <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
                 <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
@@ -243,7 +223,7 @@ export default function App() {
                 <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
                 <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
 
-                {/* Catch-all for unknown routes */}
+                {/* CATCH ALL */}
                 <Route path="*" element={<Navigate to="/login" replace />} />
               </Routes>
             </Router>

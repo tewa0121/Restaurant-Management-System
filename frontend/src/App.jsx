@@ -4,13 +4,13 @@ import {
   Routes,
   Route,
   Navigate,
-  Outlet
 } from 'react-router-dom';
 
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CartProvider } from './context/CartContext';
+import ProtectedRoute from './routes/ProtectedRoute';
 
 // --- LAYOUTS ---
 import AdminLayout from './components/layout/AdminLayout';
@@ -57,7 +57,6 @@ import * as DailyCashReportModule from './pages/cashier/DailyCashReport';
 import * as CustomersModule from './pages/cashier/Customers';
 import * as CashierSettingsModule from './pages/cashier/Settings';
 
-// Safe component resolver to handle both default and named exports transparently
 const getComp = (mod, name) => mod.default || mod[name] || (() => <div className="p-6 text-xs font-semibold text-slate-500">Page Loaded</div>);
 
 const NewBill = getComp(NewBillModule, 'NewBill');
@@ -85,7 +84,7 @@ import Performance from './pages/kitchen/Performance';
 import KitchenSettings from './pages/kitchen/Settings';
 
 // Manager Pages
-import ManagerDashboard from './pages/manager/ManagerDashboard';
+import ManagerDashboard from './pages/manager/Dashboard';
 import ManagerOrders from './pages/manager/Orders';
 import ManagerTableManagement from './pages/manager/TableManagement';
 import ManagerInventoryManagement from './pages/manager/InventoryManagement';
@@ -128,16 +127,6 @@ import HelpSupport from './pages/customer/HelpSupport';
 import Cart from './pages/customer/Cart';
 import Checkout from './pages/customer/Checkout';
 
-// --- AUTH GUARD ---
-function ProtectedRoute({ children, allowedRoles }) {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/admin" replace />;
-  if (allowedRoles && !allowedRoles.some(role => role.toLowerCase() === String(user.role).toLowerCase())) {
-    return <Navigate to="/admin" replace />;
-  }
-  return children;
-}
-
 export default function App() {
   return (
     <AuthProvider>
@@ -153,22 +142,6 @@ export default function App() {
               <Routes>
                 {/* 1. PUBLIC CUSTOMER PORTAL */}
                 <Route path="/" element={<CustomerLayout />}>
-                  <Route index element={<Home />} />
-                  <Route path="menu" element={<BrowseMenu />} />
-                  <Route path="categories" element={<Categories />} />
-                  <Route path="offers" element={<OffersAndDeals />} />
-                  <Route path="orders" element={<MyOrders />} />
-                  <Route path="favorites" element={<Favorites />} />
-                  <Route path="track" element={<TrackOrder />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="address" element={<AddressBook />} />
-                  <Route path="help" element={<HelpSupport />} />
-                  <Route path="cart" element={<Cart />} />
-                  <Route path="checkout" element={<Checkout />} />
-                </Route>
-
-                {/* Customer /customer alias routes */}
-                <Route path="/customer" element={<CustomerLayout />}>
                   <Route index element={<Home />} />
                   <Route path="menu" element={<BrowseMenu />} />
                   <Route path="categories" element={<Categories />} />

@@ -1,37 +1,24 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import CustomerHeader from './CustomerHeader';
 import CustomerSidebar from './CustomerSidebar';
-import CustomerCartPanel from './CustomerCartPanel';
-import Footer from '../common/Footer';
+import CustomerHeader from './CustomerHeader';
 
 export default function CustomerLayout() {
   return (
-    <div className="h-screen w-screen bg-[#F8F9FA] flex flex-col font-sans overflow-hidden">
-      {/* Top Header */}
-      <CustomerHeader />
+    <div className="flex h-screen bg-gray-50/70 dark:bg-[#070D19] font-sans text-gray-900 dark:text-white overflow-hidden">
+      
+      {/* 1. SINGLE LEFT SIDEBAR */}
+      <CustomerSidebar />
 
-      {/* Main 3-Column Layout */}
-      <div className="flex flex-1 overflow-hidden w-full">
-        {/* Left Customer Nav */}
-        <div className="w-[200px] flex-shrink-0 bg-white border-r border-slate-100 h-full overflow-y-auto">
-          <CustomerSidebar />
-        </div>
+      {/* 2. RIGHT WRAPPER (Header + Main Page View) */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <CustomerHeader />
 
-        {/* Center Dynamic Content */}
-        <main className="flex-1 min-w-0 overflow-y-auto bg-[#F8F9FA] p-5">
-          <div className="w-full mx-auto max-w-[1100px]">
-            <Outlet />
-          </div>
+        <main className="flex-1 overflow-y-auto">
+          <Outlet />
         </main>
-
-        {/* Right Cart Sidebar */}
-        <div className="w-[200px] flex-shrink-0 bg-white border-l border-slate-100 h-full overflow-y-auto pr-0.5">
-          <CustomerCartPanel />
-        </div>
       </div>
 
-      <Footer appName="RestoCustomer Portal" />
     </div>
   );
 }

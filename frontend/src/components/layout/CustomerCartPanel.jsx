@@ -1,103 +1,94 @@
-import React, { useState } from 'react';
-import { ShoppingBag, Plus, Minus, Trash2, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Home, 
+  Utensils, 
+  Grid, 
+  Tag, 
+  ShoppingBag, 
+  Heart, 
+  Clock, 
+  User, 
+  BookOpen, 
+  HelpCircle,
+  Gift
+} from 'lucide-react';
 
-export default function CustomerCartPanel() {
+export default function CustomerSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [cartItems, setCartItems] = useState([
-    { id: 'cart-item-1', name: 'Margherita Pizza', price: 14.99, qty: 1, image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&h=100&fit=crop' },
-    { id: 'cart-item-2', name: 'Fresh Berry Smoothie', price: 5.50, qty: 2, image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=100&h=100&fit=crop' }
-  ]);
-
-  const updateQty = (id, delta) => {
-    setCartItems(prev =>
-      prev
-        .map(item => (item.id === id ? { ...item, qty: item.qty + delta } : item))
-        .filter(item => item.qty > 0)
-    );
-  };
-
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+  const navItems = [
+    { label: 'Home', icon: Home, path: '/customer' },
+    { label: 'Browse Menu', icon: Utensils, path: '/customer/menu' },
+    { label: 'Categories', icon: Grid, path: '/customer/categories' },
+    { label: 'Offers & Deals', icon: Tag, path: '/customer/offers' },
+    { label: 'My Orders', icon: ShoppingBag, path: '/customer/orders' },
+    { label: 'Favorites', icon: Heart, path: '/customer/favorites' },
+    { label: 'Track Order', icon: Clock, path: '/customer/track-order' },
+    { label: 'Profile', icon: User, path: '/customer/profile' },
+    { label: 'Address Book', icon: BookOpen, path: '/customer/addresses' },
+    { label: 'Help & Support', icon: HelpCircle, path: '/customer/help' },
+  ];
 
   return (
-    <div className="flex flex-col h-full p-4 bg-white select-none">
-      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-          <ShoppingBag className="w-4 h-4 text-[#52C41A]" />
-          Current Order
-        </h3>
-        <span className="text-[10px] font-bold text-slate-400">{cartItems.length} items</span>
-      </div>
-
-      {/* Cart Item List */}
-      <div className="flex-1 overflow-y-auto my-3 space-y-3 pr-1 custom-scrollbar">
-        {cartItems.length === 0 ? (
-          <div key="empty-cart-view" className="text-center py-10 text-slate-400">
-            <ShoppingBag className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-xs font-semibold">Your cart is empty</p>
+    <aside className="w-64 bg-white dark:bg-[#0B1426] border-r border-gray-100 dark:border-gray-800 p-5 hidden lg:flex flex-col justify-between shrink-0 h-screen sticky top-0 z-30">
+      <div className="space-y-6">
+        
+        {/* Brand Header */}
+        <div 
+          onClick={() => navigate('/customer')} 
+          className="flex items-center gap-3 px-2 cursor-pointer"
+        >
+          <div className="w-10 h-10 bg-emerald-600 rounded-2xl flex items-center justify-center text-white font-black shadow-xs">
+            <Utensils size={22} />
           </div>
-        ) : (
-          cartItems.map((item, index) => (
-            <div 
-              key={item.id || `cart-item-${index}`} 
-              className="flex gap-2.5 p-2 rounded-xl border border-slate-100 bg-slate-50/50"
-            >
-              <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
-              <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-slate-800 truncate">{item.name}</h4>
-                <p className="text-[11px] font-black text-[#52C41A]">${(item.price * item.qty).toFixed(2)}</p>
-
-                <div className="flex items-center gap-2 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => updateQty(item.id, -1)}
-                    className="p-1 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
-                  >
-                    {item.qty === 1 ? <Trash2 className="w-3 h-3 text-rose-500" /> : <Minus className="w-3 h-3" />}
-                  </button>
-                  <span className="text-xs font-bold text-slate-700">{item.qty}</span>
-                  <button
-                    type="button"
-                    onClick={() => updateQty(item.id, 1)}
-                    className="p-1 rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Price Summary */}
-      {cartItems.length > 0 && (
-        <div key="cart-summary-footer" className="pt-3 border-t border-slate-100 space-y-2">
-          <div className="flex justify-between text-xs text-slate-500 font-medium">
-            <span>Subtotal</span>
-            <span>${subtotal.toFixed(2)}</span>
+          <div>
+            <h1 className="font-black text-emerald-600 text-lg tracking-tight leading-none">RestoDelight</h1>
+            <span className="text-[10px] text-gray-400 font-medium">Good Food, Great Time</span>
           </div>
-          <div className="flex justify-between text-xs text-slate-500 font-medium">
-            <span>Tax (10%)</span>
-            <span>${tax.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm font-black text-slate-900 pt-1 border-t border-slate-100">
-            <span>Total</span>
-            <span className="text-[#52C41A]">${total.toFixed(2)}</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => navigate('/customer/checkout')}
-            className="w-full mt-3 py-2.5 bg-[#52C41A] text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 hover:bg-emerald-600 transition cursor-pointer"
-          >
-            Checkout <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
-      )}
-    </div>
+
+        {/* Navigation Items */}
+        <nav className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+
+            return (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isActive 
+                    ? 'bg-emerald-600 text-white shadow-xs' 
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60'
+                }`}
+              >
+                <Icon size={16} />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Bottom Promo Card */}
+      <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-800 dark:to-gray-800/80 p-4 rounded-2xl border border-emerald-100 dark:border-gray-700 text-center space-y-2.5">
+        <div className="w-9 h-9 bg-white dark:bg-emerald-950 text-emerald-600 rounded-xl flex items-center justify-center mx-auto shadow-2xs">
+          <Gift size={18} />
+        </div>
+        <div>
+          <h4 className="font-black text-xs text-gray-900 dark:text-white">Get 10% OFF</h4>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400">on your first order</p>
+        </div>
+        <button 
+          onClick={() => navigate('/customer/menu')} 
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 rounded-xl transition-all shadow-xs cursor-pointer"
+        >
+          Order Now
+        </button>
+      </div>
+    </aside>
   );
 }

@@ -1,254 +1,210 @@
 import React, { useState } from 'react';
-import { Search, Plus, Check } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { 
+  Search, 
+  Star, 
+  Heart, 
+  Plus, 
+  Filter, 
+  SlidersHorizontal 
+} from 'lucide-react';
+import { useCart } from '../../hooks/useCart';
 
-// Sample/Fallback Menu Data
-const SAMPLE_MENU_ITEMS = [
-  {
-    id: 1,
-    name: 'Garden Fresh Salad',
-    category: 'Salads', // Matches 'Salads' / 'Salad'
-    price: 8.99,
-    description: 'Crisp lettuce, cherry tomatoes, cucumbers, and house dressing.',
-    image: '/assets/food-placeholders/salad.jpg'
-  },
-  {
-    id: 2,
-    name: 'Caesar Salad',
-    category: 'Salads',
-    price: 9.50,
-    description: 'Romaine lettuce, parmesan cheese, croutons, and creamy Caesar dressing.',
-    image: '/assets/food-placeholders/caesar-salad.jpg'
-  },
-  {
-    id: 3,
-    name: 'Pancake Stack',
-    category: 'Breakfast',
-    price: 7.99,
-    description: 'Fluffy pancakes served with maple syrup and fresh berries.',
-    image: '/assets/food-placeholders/pancakes.jpg'
-  },
-  {
-    id: 4,
-    name: 'Grilled Salmon',
-    category: 'Lunch',
-    price: 15.99,
-    description: 'Fresh salmon served with steamed vegetables and lemon butter sauce.',
-    image: '/assets/food-placeholders/salmon.jpg'
-  },
-  {
-    id: 5,
-    name: 'Ribeye Steak',
-    category: 'Dinner',
-    price: 22.50,
-    description: 'Juicy ribeye steak cooked to perfection with garlic butter.',
-    image: '/assets/food-placeholders/steak.jpg'
-  },
-  {
-    id: 6,
-    name: 'Garlic Bread',
-    category: 'Appetizers',
-    price: 4.99,
-    description: 'Toasted baguette topped with garlic butter and herbs.',
-    image: '/assets/food-placeholders/garlic-bread.jpg'
-  },
-  {
-    id: 7,
-    name: 'Iced Latte',
-    category: 'Drinks',
-    price: 3.99,
-    description: 'Espresso with cold milk and syrup over ice.',
-    image: '/assets/food-placeholders/iced-latte.jpg'
-  },
-  {
-    id: 8,
-    name: 'Chocolate Lava Cake',
-    category: 'Desserts',
-    price: 6.50,
-    description: 'Warm chocolate cake with a molten center, served with vanilla ice cream.',
-    image: '/assets/food-placeholders/lava-cake.jpg'
-  }
-];
-
-const CATEGORIES = [
-  'All',
-  'Breakfast',
-  'Lunch',
-  'Dinner',
-  'Appetizers',
-  'Drinks',
-  'Desserts',
-  'Salads'
-];
-
-export default function BrowseMenu({ menuItems = SAMPLE_MENU_ITEMS }) {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [addedItemIds, setAddedItemIds] = useState([]);
+export default function BrowseMenu() {
   const { addToCart } = useCart();
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Robust Case-Insensitive Filter (Fixes empty state when clicking category buttons)
+  // Category filter tabs
+  const categories = [
+    { id: 'all', label: 'All Items' },
+    { id: 'burgers', label: 'Burgers' },
+    { id: 'pizza', label: 'Pizza' },
+    { id: 'chicken', label: 'Chicken' },
+    { id: 'pasta', label: 'Pasta' },
+    { id: 'drinks', label: 'Drinks & Beverages' },
+    { id: 'desserts', label: 'Desserts' },
+  ];
+
+  // Complete Menu Items List
+  const menuItems = [
+    {
+      id: 'menu-1',
+      name: 'Classic Cheeseburger',
+      category: 'burgers',
+      price: 9.99,
+      rating: 4.8,
+      reviews: 140,
+      description: 'Juicy beef patty topped with melted cheddar cheese, lettuce, and pickles.',
+      image: '/assets/food-placeholders/food-burger.png'
+    },
+    {
+      id: 'menu-2',
+      name: 'Margherita Pizza',
+      category: 'pizza',
+      price: 11.99,
+      rating: 4.9,
+      reviews: 310,
+      description: 'Fresh mozzarella, basil, and signature tomato sauce on a thin crust.',
+      image: '/assets/food-placeholders/food-pizza.png'
+    },
+    {
+      id: 'menu-3',
+      name: 'Grilled Chicken Veggie Plate',
+      category: 'chicken',
+      price: 12.99,
+      rating: 4.7,
+      reviews: 220,
+      description: 'Tender grilled chicken breast served with steamed veggies.',
+      image: '/assets/food-placeholders/food-grilled-chicken.png'
+    },
+    {
+      id: 'menu-4',
+      name: 'Creamy Pasta Alfredo',
+      category: 'pasta',
+      price: 11.49,
+      rating: 4.6,
+      reviews: 180,
+      description: 'Fettuccine tossed in a rich parmesan cream sauce.',
+      image: '/assets/food-placeholders/food-pasta-alfredo.png'
+    },
+    {
+      id: 'menu-5',
+      name: 'Special Chicken Biryani',
+      category: 'chicken',
+      price: 13.49,
+      rating: 4.8,
+      reviews: 290,
+      description: 'Aromatic basmati rice cooked with spiced tender chicken.',
+      image: '/assets/food-placeholders/food-biryani.png'
+    },
+    {
+      id: 'menu-6',
+      name: 'Fresh Berry Smoothie',
+      category: 'drinks',
+      price: 5.99,
+      rating: 4.5,
+      reviews: 95,
+      description: 'Blended strawberries, blueberries, yogurt, and honey.',
+      image: '/assets/food-placeholders/food-berry-smoothie.png'
+    },
+    {
+      id: 'menu-7',
+      name: 'Chocolate Lava Cake',
+      category: 'desserts',
+      price: 6.99,
+      rating: 4.9,
+      reviews: 410,
+      description: 'Warm chocolate cake with a molten chocolate center.',
+      image: '/assets/food-placeholders/food-lava-cake.png'
+    }
+  ];
+
+  // Filter menu items by category and search query
   const filteredItems = menuItems.filter((item) => {
-    // 1. Filter by Category
-    const categoryMatch = (() => {
-      if (selectedCategory === 'All') return true;
-      if (!item.category) return false;
-
-      const selected = selectedCategory.toLowerCase().trim();
-      const itemCat = item.category.toLowerCase().trim();
-
-      // Flexible matching for singular/plural differences (e.g., "Salads" vs "Salad")
-      return (
-        itemCat === selected ||
-        selected.startsWith(itemCat) ||
-        itemCat.startsWith(selected)
-      );
-    })();
-
-    // 2. Filter by Search Query
-    const searchMatch = searchQuery
-      ? item.name.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase().trim()))
-      : true;
-
-    return categoryMatch && searchMatch;
+    const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
 
-  const handleAddToCart = (item) => {
-    addToCart(item);
-    
-    // Quick visual feedback on button
-    setAddedItemIds((prev) => [...prev, item.id]);
-    setTimeout(() => {
-      setAddedItemIds((prev) => prev.filter((id) => id !== item.id));
-    }, 1200);
-  };
-
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 space-y-6 max-w-[1600px] mx-auto text-gray-900 dark:text-white">
       
-      {/* Title & Inner Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Title & Filter Controls */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-100 dark:border-gray-800">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Browse Full Menu</h1>
-          <p className="text-xs text-gray-500 mt-1">Explore all our handcrafted dishes and drinks</p>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white">Browse Full Menu</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Discover and customize your favorite dishes</p>
         </div>
 
-        {/* Local Search Input */}
-        <div className="relative w-full md:w-72">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-80">
           <input
             type="text"
+            placeholder="Search in menu..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search menu items..."
-            className="w-full bg-white border border-gray-200 text-xs rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#0B1426] border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:border-emerald-500"
           />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
       </div>
 
-      {/* Category Buttons */}
+      {/* Category Pills */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-        {CATEGORIES.map((category) => {
-          const isActive = selectedCategory === category;
-          return (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                isActive
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-              }`}
-            >
-              {category}
-            </button>
-          );
-        })}
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.id)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeCategory === cat.id
+                ? 'bg-emerald-600 text-white shadow-xs'
+                : 'bg-white dark:bg-[#0B1426] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-100 dark:border-gray-800'
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
       </div>
 
-      {/* Menu Cards Grid */}
-      {filteredItems.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredItems.map((item) => {
-            const isAdded = addedItemIds.includes(item.id);
-            return (
-              <div
-                key={item.id}
-                className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-40 bg-gray-100 relative overflow-hidden">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback image if local path is missing
-                        e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500';
-                      }}
-                    />
-                    <span className="absolute top-2 right-2 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded-full text-[10px] font-bold text-gray-700 shadow-xs">
-                      {item.category}
-                    </span>
-                  </div>
-
-                  <div className="p-4 space-y-1.5">
-                    <h3 className="font-bold text-sm text-gray-900 line-clamp-1">{item.name}</h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">
-                      {item.description}
-                    </p>
-                  </div>
+      {/* Food Items Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        {filteredItems.length === 0 ? (
+          <div className="col-span-full py-16 text-center text-gray-400 text-xs">
+            No food items found matching your search. Try adjusting filters!
+          </div>
+        ) : (
+          filteredItems.map((dish) => (
+            <div 
+              key={dish.id} 
+              className="bg-white dark:bg-[#0B1426] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 shadow-2xs space-y-3 relative group flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="relative">
+                  <button className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-gray-800/80 rounded-full text-gray-400 hover:text-rose-500 transition-colors z-10 cursor-pointer">
+                    <Heart size={14} />
+                  </button>
+                  <img
+                    src={dish.image}
+                    alt={dish.name}
+                    className="w-full h-36 object-cover rounded-xl bg-gray-50"
+                    onError={(e) => { e.target.src = '/assets/food-placeholders/food-burger.png'; }}
+                  />
                 </div>
 
-                <div className="p-4 pt-0 flex items-center justify-between mt-2">
-                  <span className="text-sm font-extrabold text-gray-900">
-                    ${Number(item.price).toFixed(2)}
-                  </span>
-                  <button
-                    onClick={() => handleAddToCart(item)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      isAdded
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    }`}
-                  >
-                    {isAdded ? (
-                      <>
-                        <Check size={14} /> Added
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={14} /> Add
-                      </>
-                    )}
-                  </button>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-xs text-gray-900 dark:text-white truncate">{dish.name}</h4>
+                    <div className="flex items-center gap-1 text-[10px] text-amber-500 font-bold shrink-0">
+                      <Star size={11} fill="currentColor" />
+                      <span>{dish.rating}</span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">{dish.description}</p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* Empty State */
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center space-y-3">
-          <div className="w-12 h-12 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto">
-            <Search size={20} />
-          </div>
-          <h3 className="text-sm font-bold text-gray-800">No items found</h3>
-          <p className="text-xs text-gray-400 max-w-sm mx-auto">
-            There are no dishes under "{selectedCategory}"{searchQuery ? ` matching "${searchQuery}"` : ''}.
-          </p>
-          <button
-            onClick={() => {
-              setSelectedCategory('All');
-              setSearchQuery('');
-            }}
-            className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer pt-2 block mx-auto"
-          >
-            Clear Filters
-          </button>
-        </div>
-      )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800">
+                <span className="font-black text-sm text-gray-900 dark:text-white">${dish.price.toFixed(2)}</span>
+                <button
+                  type="button"
+                  onClick={() => addToCart({
+                    id: dish.id,
+                    name: dish.name,
+                    price: Number(dish.price),
+                    image: dish.image
+                  })}
+                  className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                >
+                  <span>Add</span> <Plus size={12} />
+                </button>
+              </div>
+
+            </div>
+          ))
+        )}
+      </div>
+
     </div>
   );
 }

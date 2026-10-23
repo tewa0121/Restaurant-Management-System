@@ -130,9 +130,9 @@ import Checkout from './pages/customer/Checkout';
 // --- AUTH GUARD ---
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/admin" replace />;
   if (allowedRoles && !allowedRoles.some(role => role.toLowerCase() === String(user.role).toLowerCase())) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin" replace />;
   }
   return children;
 }
@@ -150,16 +150,41 @@ export default function App() {
               }}
             >
               <Routes>
-                {/* Default Redirects */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                {/* 1. Root displays Customer Portal Publicly */}
+                <Route path="/" element={<CustomerLayout><Home /></CustomerLayout>} />
+                <Route path="/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
+                <Route path="/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
+                <Route path="/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
+                <Route path="/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
+                <Route path="/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
+                <Route path="/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
+                <Route path="/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
+                <Route path="/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
+                <Route path="/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
+                <Route path="/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
+                <Route path="/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
 
-                {/* Public Authentication */}
-                <Route path="/login" element={<Login />} />
+                {/* Legacy /customer prefixed routes for safety */}
+                <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
+                <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
+                <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
+                <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
+                <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
+                <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
+                <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
+                <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
+                <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
+                <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
+                <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
+                <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
+
+                {/* 2. Authentication Login is now at /admin */}
+                <Route path="/admin" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
                 {/* Admin Routes */}
-                <Route path="/admin" element={<AdminLayout />}>
+                <Route path="/admin/panel" element={<AdminLayout />}>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
                   <Route path="users-and-roles" element={<UsersAndRoles />} />
@@ -251,22 +276,8 @@ export default function App() {
                   <Route path="settings" element={<WaiterSettings />} />
                 </Route>
 
-                {/* Customer Routes */}
-                <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
-                <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
-                <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
-                <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
-                <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
-                <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
-                <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
-                <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
-                <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
-                <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
-                <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
-                <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
-
-                {/* Catch-all for unknown routes */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                {/* Catch-all for unknown routes redirects to Home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Router>
           </CartProvider>

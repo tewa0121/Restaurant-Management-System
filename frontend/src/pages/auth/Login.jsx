@@ -12,9 +12,9 @@ import {
   Globe,
   LogIn
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext'; 
+import { useAuth } from '../../context/AuthContext';
 
-const loginImage = '/assets/food-placeholders/login.png'; 
+const loginImage = '/assets/food-placeholders/login.png';
 
 function mockLogin(email, password) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -36,7 +36,7 @@ function mockLogin(email, password) {
   if (!user) {
     const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
     const foundUser = registeredUsers.find(u => u.email === normalizedEmail);
-    
+
     if (foundUser && foundUser.password === password) {
       user = {
         id: foundUser.id || Date.now(),
@@ -65,7 +65,7 @@ export default function Login() {
   const [language, setLanguage] = useState('English');
 
   const navigate = useNavigate();
-  
+
   let authLogin = () => {};
   try {
     const auth = useAuth();
@@ -79,9 +79,9 @@ export default function Login() {
     try {
       const response = mockLogin(email, password);
       if (!response.success) throw new Error('Invalid email or password.');
-      
+
       if (authLogin) authLogin(response.user, response.token);
-      
+
       // Store user and token in localStorage
       localStorage.setItem('user', JSON.stringify(response.user));
       if (rememberMe) {
@@ -89,14 +89,15 @@ export default function Login() {
       } else {
         localStorage.removeItem('token');
       }
-      
+
+      // Synchronized navigation targets based on role
       const role = String(response.user.role || '').toLowerCase();
-      if (role.includes('admin')) navigate('/admin/dashboard');
+      if (role.includes('admin')) navigate('/admin/panel/dashboard');
       else if (role.includes('cashier')) navigate('/cashier/dashboard');
       else if (role.includes('kitchen')) navigate('/kitchen/dashboard');
       else if (role.includes('manager')) navigate('/manager/dashboard');
       else if (role.includes('waiter')) navigate('/waiter/dashboard');
-      else if (role.includes('customer')) navigate('/customer');
+      else if (role.includes('customer')) navigate('/');
       else setError('Your account does not have a recognized role.');
     } catch (err) {
       setError(err.message || 'Invalid email or password!');
@@ -113,6 +114,10 @@ export default function Login() {
         <img
           src={loginImage}
           alt="Restaurant Background"
+          onError={(e) => {
+            // Fallback if image isn't available in public folder
+            e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80';
+          }}
           className="w-full h-[90%] object-cover object-center rounded-2xl shadow-2xl"
         />
       </div>

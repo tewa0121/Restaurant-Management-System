@@ -150,7 +150,7 @@ export default function App() {
               }}
             >
               <Routes>
-                {/* 1. Root displays Customer Portal Publicly */}
+                {/* 1. PUBLIC CUSTOMER PORTAL (Root Route) */}
                 <Route path="/" element={<CustomerLayout><Home /></CustomerLayout>} />
                 <Route path="/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
                 <Route path="/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
@@ -164,7 +164,7 @@ export default function App() {
                 <Route path="/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
                 <Route path="/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
 
-                {/* Legacy /customer prefixed routes for safety */}
+                {/* Optional /customer aliases */}
                 <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
                 <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
                 <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
@@ -178,13 +178,18 @@ export default function App() {
                 <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
                 <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
 
-                {/* 2. Authentication Login is now at /admin */}
+                {/* 2. AUTHENTICATION (Staff & Admin Login) */}
                 <Route path="/admin" element={<Login />} />
+                <Route path="/login" element={<Navigate to="/admin" replace />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Admin Routes */}
-                <Route path="/admin/panel" element={<AdminLayout />}>
+                {/* Admin Management Routes */}
+                <Route path="/admin/panel" element={
+                  <ProtectedRoute allowedRoles={['Super Administrator', 'admin']}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
                   <Route path="users-and-roles" element={<UsersAndRoles />} />
@@ -205,7 +210,11 @@ export default function App() {
                 </Route>
 
                 {/* Cashier Routes */}
-                <Route path="/cashier" element={<CashierLayout />}>
+                <Route path="/cashier" element={
+                  <ProtectedRoute allowedRoles={['Cashier', 'cashier', 'admin']}>
+                    <CashierLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<CashierDashboard />} />
                   <Route path="new-bill" element={<NewBill />} />
@@ -222,7 +231,11 @@ export default function App() {
                 </Route>
 
                 {/* Kitchen Routes */}
-                <Route path="/kitchen" element={<KitchenLayout />}>
+                <Route path="/kitchen" element={
+                  <ProtectedRoute allowedRoles={['Kitchen Staff', 'kitchen', 'admin']}>
+                    <KitchenLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<KitchenDashboard />} />
                   <Route path="incoming-orders" element={<IncomingOrders />} />
@@ -238,7 +251,7 @@ export default function App() {
 
                 {/* Manager Routes */}
                 <Route path="/manager" element={
-                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}>
+                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'admin']}>
                     <ManagerLayout />
                   </ProtectedRoute>
                 }>
@@ -260,7 +273,11 @@ export default function App() {
                 </Route>
 
                 {/* Waiter Routes */}
-                <Route path="/waiter" element={<WaiterLayout />}>
+                <Route path="/waiter" element={
+                  <ProtectedRoute allowedRoles={['Waiter', 'waiter', 'admin']}>
+                    <WaiterLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<WaiterDashboard />} />
                   <Route path="my-tables" element={<WaiterTables />} />
@@ -276,7 +293,7 @@ export default function App() {
                   <Route path="settings" element={<WaiterSettings />} />
                 </Route>
 
-                {/* Catch-all for unknown routes redirects to Home */}
+                {/* Catch-all unknown routes redirect to Home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Router>

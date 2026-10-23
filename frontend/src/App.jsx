@@ -24,7 +24,7 @@ import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 
-// Admin Pages (Mapped to your folder structure)
+// Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import UsersAndRoles from './pages/admin/UsersAndRoles';
 import AdminMenuManagement from './pages/admin/MenuManagement';
@@ -101,6 +101,17 @@ import ManagerActivityLog from './pages/manager/ActivityLog';
 
 // Waiter Pages
 import WaiterDashboard from './pages/waiter/Dashboard';
+import WaiterTables from './pages/waiter/MyTables';
+import WaiterNewOrder from './pages/waiter/NewOrder';
+import WaiterOrders from './pages/waiter/Orders';
+import WaiterOrderHistory from './pages/waiter/OrderHistory';
+import WaiterTablesGrid from './pages/waiter/Tables';
+import WaiterReservations from './pages/waiter/Reservations';
+import WaiterCustomers from './pages/waiter/Customers';
+import WaiterCustomerRequests from './pages/waiter/CustomerRequests';
+import WaiterNotifications from './pages/waiter/Notifications';
+import WaiterProfile from './pages/waiter/Profile';
+import WaiterSettings from './pages/waiter/Settings';
 
 // Customer Pages
 import Home from './pages/customer/Home';
@@ -119,9 +130,9 @@ import Checkout from './pages/customer/Checkout';
 // --- AUTH GUARD ---
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/admin" replace />;
   if (allowedRoles && !allowedRoles.some(role => role.toLowerCase() === String(user.role).toLowerCase())) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/admin" replace />;
   }
   return children;
 }
@@ -139,16 +150,46 @@ export default function App() {
               }}
             >
               <Routes>
-                {/* Default Redirects */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                {/* 1. PUBLIC CUSTOMER PORTAL (Root Route) */}
+                <Route path="/" element={<CustomerLayout><Home /></CustomerLayout>} />
+                <Route path="/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
+                <Route path="/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
+                <Route path="/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
+                <Route path="/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
+                <Route path="/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
+                <Route path="/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
+                <Route path="/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
+                <Route path="/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
+                <Route path="/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
+                <Route path="/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
+                <Route path="/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
 
-                {/* Public Authentication */}
-                <Route path="/login" element={<Login />} />
+                {/* Optional /customer aliases */}
+                <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
+                <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
+                <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
+                <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
+                <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
+                <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
+                <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
+                <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
+                <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
+                <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
+                <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
+                <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
+
+                {/* 2. AUTHENTICATION (Staff & Admin Login) */}
+                <Route path="/admin" element={<Login />} />
+                <Route path="/login" element={<Navigate to="/admin" replace />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Admin Routes */}
-                <Route path="/admin" element={<AdminLayout />}>
+                {/* Admin Management Routes */}
+                <Route path="/admin/panel" element={
+                  <ProtectedRoute allowedRoles={['Super Administrator', 'admin']}>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
                   <Route path="users-and-roles" element={<UsersAndRoles />} />
@@ -169,7 +210,11 @@ export default function App() {
                 </Route>
 
                 {/* Cashier Routes */}
-                <Route path="/cashier" element={<CashierLayout />}>
+                <Route path="/cashier" element={
+                  <ProtectedRoute allowedRoles={['Cashier', 'cashier', 'admin']}>
+                    <CashierLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<CashierDashboard />} />
                   <Route path="new-bill" element={<NewBill />} />
@@ -186,7 +231,11 @@ export default function App() {
                 </Route>
 
                 {/* Kitchen Routes */}
-                <Route path="/kitchen" element={<KitchenLayout />}>
+                <Route path="/kitchen" element={
+                  <ProtectedRoute allowedRoles={['Kitchen Staff', 'kitchen', 'admin']}>
+                    <KitchenLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<KitchenDashboard />} />
                   <Route path="incoming-orders" element={<IncomingOrders />} />
@@ -202,7 +251,7 @@ export default function App() {
 
                 {/* Manager Routes */}
                 <Route path="/manager" element={
-                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'Admin']}>
+                  <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'admin']}>
                     <ManagerLayout />
                   </ProtectedRoute>
                 }>
@@ -224,27 +273,28 @@ export default function App() {
                 </Route>
 
                 {/* Waiter Routes */}
-                <Route path="/waiter" element={<WaiterLayout />}>
+                <Route path="/waiter" element={
+                  <ProtectedRoute allowedRoles={['Waiter', 'waiter', 'admin']}>
+                    <WaiterLayout />
+                  </ProtectedRoute>
+                }>
                   <Route index element={<Navigate to="dashboard" replace />} />
                   <Route path="dashboard" element={<WaiterDashboard />} />
+                  <Route path="my-tables" element={<WaiterTables />} />
+                  <Route path="new-order" element={<WaiterNewOrder />} />
+                  <Route path="orders" element={<WaiterOrders />} />
+                  <Route path="order-history" element={<WaiterOrderHistory />} />
+                  <Route path="tables" element={<WaiterTablesGrid />} />
+                  <Route path="reservations" element={<WaiterReservations />} />
+                  <Route path="customers" element={<WaiterCustomers />} />
+                  <Route path="customer-requests" element={<WaiterCustomerRequests />} />
+                  <Route path="notifications" element={<WaiterNotifications />} />
+                  <Route path="profile" element={<WaiterProfile />} />
+                  <Route path="settings" element={<WaiterSettings />} />
                 </Route>
 
-                {/* Customer Routes */}
-                <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
-                <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
-                <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
-                <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
-                <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
-                <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
-                <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
-                <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
-                <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
-                <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
-                <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
-                <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
-
-                {/* Catch-all for unknown routes */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                {/* Catch-all unknown routes redirect to Home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Router>
           </CartProvider>

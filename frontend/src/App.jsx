@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  Outlet
 } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -57,7 +58,7 @@ import * as CustomersModule from './pages/cashier/Customers';
 import * as CashierSettingsModule from './pages/cashier/Settings';
 
 // Safe component resolver to handle both default and named exports transparently
-const getComp = (mod, name) => mod.default || mod[name] || (() => <div className="p-6">Page Loaded</div>);
+const getComp = (mod, name) => mod.default || mod[name] || (() => <div className="p-6 text-xs font-semibold text-slate-500">Page Loaded</div>);
 
 const NewBill = getComp(NewBillModule, 'NewBill');
 const ActiveBills = getComp(ActiveBillsModule, 'ActiveBills');
@@ -150,33 +151,37 @@ export default function App() {
               }}
             >
               <Routes>
-                {/* 1. PUBLIC CUSTOMER PORTAL (Root Route) */}
-                <Route path="/" element={<CustomerLayout><Home /></CustomerLayout>} />
-                <Route path="/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
-                <Route path="/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
-                <Route path="/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
-                <Route path="/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
-                <Route path="/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
-                <Route path="/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
-                <Route path="/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
-                <Route path="/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
-                <Route path="/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
-                <Route path="/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
-                <Route path="/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
+                {/* 1. PUBLIC CUSTOMER PORTAL */}
+                <Route path="/" element={<CustomerLayout />}>
+                  <Route index element={<Home />} />
+                  <Route path="menu" element={<BrowseMenu />} />
+                  <Route path="categories" element={<Categories />} />
+                  <Route path="offers" element={<OffersAndDeals />} />
+                  <Route path="orders" element={<MyOrders />} />
+                  <Route path="favorites" element={<Favorites />} />
+                  <Route path="track" element={<TrackOrder />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="address" element={<AddressBook />} />
+                  <Route path="help" element={<HelpSupport />} />
+                  <Route path="cart" element={<Cart />} />
+                  <Route path="checkout" element={<Checkout />} />
+                </Route>
 
-                {/* Optional /customer aliases */}
-                <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
-                <Route path="/customer/menu" element={<CustomerLayout><BrowseMenu /></CustomerLayout>} />
-                <Route path="/customer/categories" element={<CustomerLayout><Categories /></CustomerLayout>} />
-                <Route path="/customer/offers" element={<CustomerLayout><OffersAndDeals /></CustomerLayout>} />
-                <Route path="/customer/orders" element={<CustomerLayout><MyOrders /></CustomerLayout>} />
-                <Route path="/customer/favorites" element={<CustomerLayout><Favorites /></CustomerLayout>} />
-                <Route path="/customer/track" element={<CustomerLayout><TrackOrder /></CustomerLayout>} />
-                <Route path="/customer/profile" element={<CustomerLayout><Profile /></CustomerLayout>} />
-                <Route path="/customer/address" element={<CustomerLayout><AddressBook /></CustomerLayout>} />
-                <Route path="/customer/help" element={<CustomerLayout><HelpSupport /></CustomerLayout>} />
-                <Route path="/customer/cart" element={<CustomerLayout><Cart /></CustomerLayout>} />
-                <Route path="/customer/checkout" element={<CustomerLayout><Checkout /></CustomerLayout>} />
+                {/* Customer /customer alias routes */}
+                <Route path="/customer" element={<CustomerLayout />}>
+                  <Route index element={<Home />} />
+                  <Route path="menu" element={<BrowseMenu />} />
+                  <Route path="categories" element={<Categories />} />
+                  <Route path="offers" element={<OffersAndDeals />} />
+                  <Route path="orders" element={<MyOrders />} />
+                  <Route path="favorites" element={<Favorites />} />
+                  <Route path="track" element={<TrackOrder />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="address" element={<AddressBook />} />
+                  <Route path="help" element={<HelpSupport />} />
+                  <Route path="cart" element={<Cart />} />
+                  <Route path="checkout" element={<Checkout />} />
+                </Route>
 
                 {/* 2. AUTHENTICATION (Staff & Admin Login) */}
                 <Route path="/admin" element={<Login />} />
@@ -184,9 +189,9 @@ export default function App() {
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Admin Management Routes */}
+                {/* 3. ADMIN MANAGEMENT ROUTES */}
                 <Route path="/admin/panel" element={
-                  <ProtectedRoute allowedRoles={['Super Administrator', 'admin']}>
+                  <ProtectedRoute allowedRoles={['Super Administrator', 'superadmin', 'admin']}>
                     <AdminLayout />
                   </ProtectedRoute>
                 }>
@@ -209,7 +214,7 @@ export default function App() {
                   <Route path="settings" element={<Settings />} />
                 </Route>
 
-                {/* Cashier Routes */}
+                {/* 4. CASHIER ROUTES */}
                 <Route path="/cashier" element={
                   <ProtectedRoute allowedRoles={['Cashier', 'cashier', 'admin']}>
                     <CashierLayout />
@@ -230,7 +235,7 @@ export default function App() {
                   <Route path="settings" element={<CashierSettings />} />
                 </Route>
 
-                {/* Kitchen Routes */}
+                {/* 5. KITCHEN ROUTES */}
                 <Route path="/kitchen" element={
                   <ProtectedRoute allowedRoles={['Kitchen Staff', 'kitchen', 'admin']}>
                     <KitchenLayout />
@@ -249,7 +254,7 @@ export default function App() {
                   <Route path="settings" element={<KitchenSettings />} />
                 </Route>
 
-                {/* Manager Routes */}
+                {/* 6. MANAGER ROUTES */}
                 <Route path="/manager" element={
                   <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager', 'admin']}>
                     <ManagerLayout />
@@ -272,7 +277,7 @@ export default function App() {
                   <Route path="activity-log" element={<ManagerActivityLog />} />
                 </Route>
 
-                {/* Waiter Routes */}
+                {/* 7. WAITER ROUTES */}
                 <Route path="/waiter" element={
                   <ProtectedRoute allowedRoles={['Waiter', 'waiter', 'admin']}>
                     <WaiterLayout />

@@ -10,12 +10,11 @@ export default function WaiterCustomerRequests() {
     { id: 4, table: 'Table 15', request: 'Bring Bill & POS Terminal', time: '10 min ago', status: 'New', urgent: true },
   ]);
 
-  // ጥሪውን እንደተጠናቀቀ አድርጎ ማጽዳት
+
   const handleResolve = (id) => {
     setRequests(prev => prev.filter(r => r.id !== id));
   };
 
-  // ጥሪውን በመስተናገድ ላይ እንደሆነ መቀየር
   const handleSetInProgress = (id) => {
     setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'In Progress' } : r));
   };

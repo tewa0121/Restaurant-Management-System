@@ -1,13 +1,13 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import Login from '../../pages/auth/Login';
-import SignUp from '../../pages/auth/SignUp';
-import ForgotPassword from '../../pages/auth/ForgotPassword';
+import Login from '../pages/auth/Login';
+import SignUp from '../pages/auth/SignUp';
+import ForgotPassword from '../pages/auth/ForgotPassword';
 import ProtectedRoute from './ProtectedRoute';
 
-import ManagerLayout from '../../components/layout/ManagerLayout';
-import ManagerDashboard from '../../pages/manager/Dashboard';
+import ManagerLayout from '../components/layout/ManagerLayout';
+import ManagerDashboard from '../pages/manager/ManagerDashboard';
 
 export default function AppRoute() {
   return (

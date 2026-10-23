@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -250,7 +249,6 @@ export default function ManagerLayout() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Header Bar */}
         <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 flex items-center justify-between shrink-0 z-20">
-          {/* Left Side: Menu Toggle & Search Bar */}
           <div className="flex items-center gap-4 w-1/3">
             <button
               type="button"
@@ -271,7 +269,6 @@ export default function ManagerLayout() {
             </div>
           </div>
 
-          {/* Right Side: Date, Zoom, Notifications, Theme, Profile */}
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-sm">
               <Calendar className="w-4 h-4 text-emerald-500" />
@@ -288,11 +285,9 @@ export default function ManagerLayout() {
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-
               <span className="text-[10px] font-bold text-slate-400 w-9 text-center">
                 {zoomLevel}%
               </span>
-
               <button
                 type="button"
                 onClick={handleZoomIn}
@@ -303,7 +298,7 @@ export default function ManagerLayout() {
               </button>
             </div>
 
-            {/* Notifications Dropdown */}
+            {/* Notifications */}
             <div className="relative">
               <button
                 type="button"
@@ -351,7 +346,7 @@ export default function ManagerLayout() {
               )}
             </div>
 
-            {/* Light / Dark Mode Toggle */}
+            {/* Dark Mode Toggle */}
             <button
               type="button"
               onClick={() => setDarkMode(!darkMode)}
@@ -365,7 +360,7 @@ export default function ManagerLayout() {
               )}
             </button>
 
-            {/* Top-Right User Profile */}
+            {/* Profile Menu */}
             <div className="relative pl-2 border-l border-slate-200 dark:border-slate-700">
               <button
                 type="button"

@@ -1,9 +1,8 @@
-// frontend/src/routes/ProtectedRoute.jsx
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
-export default function ProtectedRoute({ allowedRoles }) {
+export default function ProtectedRoute({ children, allowedRoles }) {
   let user = null;
   let token = null;
 
@@ -11,28 +10,38 @@ export default function ProtectedRoute({ allowedRoles }) {
     const auth = useAuth();
     user = auth?.user;
     token = auth?.token;
-  } catch (e) {}
-
-  // Fallback check against localStorage if page reloads
-  if (!token) token = localStorage.getItem('token');
-  if (!user) user = JSON.parse(localStorage.getItem('user') || 'null');
-
-  // 1. If user is not logged in, redirect to login page
-  if (!token || !user) {
-    return <Navigate to="/login" replace />;
+  } catch (e) {
+    // Context fallback
   }
 
-  // 2. Verify user role permissions if roles are specified
-  if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = String(user.role || '').toLowerCase();
-    const hasPermission = allowedRoles.some(role => 
-      userRole.includes(role.toLowerCase())
-    );
-
-    if (!hasPermission) {
-      return <Navigate to="/login" replace />;
+  // Fallback check against localStorage on browser reload
+  if (!token) token = localStorage.getItem('token');
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem('user') || 'null');
+    } catch (e) {
+      user = null;
     }
   }
 
-  return <Outlet />;
+  // 1. If user is not logged in, redirect to login page
+  if (!token || !user) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // 2. Verify user role permissions if specified
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = String(user.role || '').toLowerCase();
+    const hasPermission = allowedRoles.some(role => {
+      const target = String(role).toLowerCase();
+      return userRole.includes(target) || userRole.includes('admin');
+    });
+
+    if (!hasPermission) {
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
+  // Render children if passed directly; otherwise render Outlet for nested route layouts
+  return children ? children : <Outlet />;
 }

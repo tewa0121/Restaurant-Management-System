@@ -14,7 +14,7 @@ import {
   FileSpreadsheet,
   X,
   CheckCircle,
-  Layers
+  ChevronRight
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -22,17 +22,13 @@ export default function Dashboard() {
 
   // 1. Dynamic Date Filter State
   const [selectedRange, setSelectedRange] = useState('Today');
-
-  // 2. Active Modal States for All Buttons and Quick Actions
-  const [showAddMenuModal, setShowAddMenuModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [showOrdersModal, setShowOrdersModal] = useState(false);
-  const [showReservationsModal, setShowReservationsModal] = useState(false);
-  const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
-  const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [notification, setNotification] = useState('');
 
-  // 3. New Item Form State
+  // Modals for Add Menu & Export Report
+  const [showAddMenuModal, setShowAddMenuModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  // New Menu Item Form State
   const [newItem, setNewItem] = useState({
     name: '',
     category: 'Main Course',
@@ -76,19 +72,12 @@ export default function Dashboard() {
 
   const currentMetrics = getMetricsData();
 
-  const lowStockIngredients = [
-    { name: 'Tomato', qty: '2 kg left', image: '🍅' },
-    { name: 'Chicken Breast', qty: '1.5 kg left', image: '🍗' },
-    { name: 'Cooking Oil', qty: '1 L left', image: '🍾' },
-    { name: 'Cheese', qty: '1.2 kg left', image: '🧀' },
-  ];
-
   const recentOrders = [
-    { id: '#ORD-1250', table: 'Table 5', customer: 'John Smith', avatar: '👨‍💼', items: '3 items', amount: '$45.50', status: 'Completed', statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400', time: '10:30 AM' },
-    { id: '#ORD-1249', table: 'Table 12', customer: 'Sarah Johnson', avatar: '👩‍💼', items: '5 items', amount: '$78.20', status: 'Preparing', statusColor: 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400', time: '10:25 AM' },
-    { id: '#ORD-1248', table: 'Table 3', customer: 'Michael Brown', avatar: '👨‍💻', items: '2 items', amount: '$32.00', status: 'Preparing', statusColor: 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400', time: '10:20 AM' },
-    { id: '#ORD-1247', table: 'Table 7', customer: 'Emily Davis', avatar: '👩‍💻', items: '4 items', amount: '$67.80', status: 'Served', statusColor: 'bg-sky-100 text-sky-700 dark:bg-sky-950/80 dark:text-sky-400', time: '10:15 AM' },
-    { id: '#ORD-1246', table: 'Table 1', customer: 'David Wilson', avatar: '👨‍💼', items: '3 items', amount: '$29.40', status: 'Completed', statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400', time: '10:10 AM' },
+    { id: '#ORD-1250', table: 'Table 5', customer: 'John Smith', avatar: '👨‍💼', items: '3 items', amount: '$45.50', status: 'Completed', statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400' },
+    { id: '#ORD-1249', table: 'Table 12', customer: 'Sarah Johnson', avatar: '👩‍💼', items: '5 items', amount: '$78.20', status: 'Preparing', statusColor: 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400' },
+    { id: '#ORD-1248', table: 'Table 3', customer: 'Michael Brown', avatar: '👨‍💻', items: '2 items', amount: '$32.00', status: 'Preparing', statusColor: 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400' },
+    { id: '#ORD-1247', table: 'Table 7', customer: 'Emily Davis', avatar: '👩‍💻', items: '4 items', amount: '$67.80', status: 'Served', statusColor: 'bg-sky-100 text-sky-700 dark:bg-sky-950/80 dark:text-sky-400' },
+    { id: '#ORD-1246', table: 'Table 1', customer: 'David Wilson', avatar: '👨‍💼', items: '3 items', amount: '$29.40', status: 'Completed', statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400' },
   ];
 
   const todayReservations = [
@@ -121,7 +110,7 @@ export default function Dashboard() {
         </div>
 
         {/* Date Filter Bar */}
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-sm">
+        <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl shadow-xs">
           {['Today', 'This Week', 'This Month'].map((range) => (
             <button
               key={range}
@@ -129,7 +118,7 @@ export default function Dashboard() {
               onClick={() => setSelectedRange(range)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                 selectedRange === range
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -139,12 +128,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards -> Navigates to corresponding Manager views */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <button
           type="button"
-          onClick={() => setShowOrdersModal(true)}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 text-left hover:border-purple-500 transition-all cursor-pointer"
+          onClick={() => navigate('/manager/orders')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 text-left hover:border-purple-500 transition-all cursor-pointer"
         >
           <div className="p-2.5 w-fit bg-blue-50 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400 rounded-2xl">
             <ShoppingBag className="w-5 h-5" />
@@ -158,8 +147,8 @@ export default function Dashboard() {
 
         <button
           type="button"
-          onClick={() => setShowReportModal(true)}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 text-left hover:border-emerald-500 transition-all cursor-pointer"
+          onClick={() => navigate('/manager/sales-and-revenue')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 text-left hover:border-emerald-500 transition-all cursor-pointer"
         >
           <div className="p-2.5 w-fit bg-emerald-50 text-emerald-600 dark:bg-emerald-950/80 dark:text-emerald-400 rounded-2xl">
             <DollarSign className="w-5 h-5" />
@@ -173,8 +162,8 @@ export default function Dashboard() {
 
         <button
           type="button"
-          onClick={() => setShowFloorPlanModal(true)}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 text-left hover:border-sky-500 transition-all cursor-pointer"
+          onClick={() => navigate('/manager/table-management')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 text-left hover:border-sky-500 transition-all cursor-pointer"
         >
           <div className="p-2.5 w-fit bg-sky-50 text-sky-600 dark:bg-sky-950/80 dark:text-sky-400 rounded-2xl">
             <Utensils className="w-5 h-5" />
@@ -186,8 +175,8 @@ export default function Dashboard() {
 
         <button
           type="button"
-          onClick={() => setShowOrdersModal(true)}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 text-left hover:border-amber-500 transition-all cursor-pointer"
+          onClick={() => navigate('/manager/orders')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 text-left hover:border-amber-500 transition-all cursor-pointer"
         >
           <div className="p-2.5 w-fit bg-amber-50 text-amber-600 dark:bg-amber-950/80 dark:text-amber-400 rounded-2xl">
             <Clock className="w-5 h-5" />
@@ -199,8 +188,8 @@ export default function Dashboard() {
 
         <button
           type="button"
-          onClick={() => setShowReservationsModal(true)}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 text-left hover:border-indigo-500 transition-all cursor-pointer"
+          onClick={() => navigate('/manager/reservations')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 text-left hover:border-indigo-500 transition-all cursor-pointer"
         >
           <div className="p-2.5 w-fit bg-indigo-50 text-indigo-600 dark:bg-indigo-950/80 dark:text-indigo-400 rounded-2xl">
             <Calendar className="w-5 h-5" />
@@ -212,8 +201,8 @@ export default function Dashboard() {
 
         <button
           type="button"
-          onClick={() => setShowInventoryModal(true)}
-          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2 text-left hover:border-rose-500 transition-all cursor-pointer"
+          onClick={() => navigate('/manager/inventory-management')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-2 text-left hover:border-rose-500 transition-all cursor-pointer"
         >
           <div className="p-2.5 w-fit bg-rose-50 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400 rounded-2xl">
             <AlertTriangle className="w-5 h-5" />
@@ -224,17 +213,17 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Main Table Views */}
+      {/* Main Table Views & View All Buttons */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+        <div className="lg:col-span-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-xs space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-slate-900 dark:text-white text-xs">Recent Orders</h3>
             <button
               type="button"
-              onClick={() => setShowOrdersModal(true)}
-              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+              onClick={() => navigate('/manager/orders')}
+              className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer flex items-center gap-1"
             >
-              View All Orders
+              View All Orders <ChevronRight className="w-3 h-3" />
             </button>
           </div>
 
@@ -270,17 +259,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Floor Plan & Reservations Widgets */}
+        {/* Table Status & Reservations Widgets */}
         <div className="lg:col-span-4 space-y-5">
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-slate-900 dark:text-white text-xs">Table Status</h3>
               <button
                 type="button"
-                onClick={() => setShowFloorPlanModal(true)}
-                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                onClick={() => navigate('/manager/table-management')}
+                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer flex items-center gap-1"
               >
-                View Floor Plan
+                View Floor Plan <ChevronRight className="w-3 h-3" />
               </button>
             </div>
 
@@ -301,15 +290,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-slate-900 dark:text-white text-xs">Today's Reservations</h3>
               <button
                 type="button"
-                onClick={() => setShowReservationsModal(true)}
-                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                onClick={() => navigate('/manager/reservations')}
+                className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer flex items-center gap-1"
               >
-                View All
+                View All <ChevronRight className="w-3 h-3" />
               </button>
             </div>
 
@@ -327,50 +316,50 @@ export default function Dashboard() {
       </div>
 
       {/* QUICK ACTIONS BAR */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <h3 className="font-bold text-slate-900 dark:text-white text-xs">Quick Actions</h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <button
             type="button"
-            onClick={() => setShowOrdersModal(true)}
-            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-emerald-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
+            onClick={() => navigate('/manager/orders')}
+            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-emerald-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
           >
             <div className="p-2 rounded-xl text-emerald-600 bg-emerald-50 dark:bg-emerald-950/80"><ShoppingBag className="w-5 h-5" /></div>
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">New Order</span>
+            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Live Orders</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setShowReservationsModal(true)}
-            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-purple-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
+            onClick={() => navigate('/manager/reservations')}
+            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-purple-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
           >
             <div className="p-2 rounded-xl text-purple-600 bg-purple-50 dark:bg-purple-950/80"><CalendarPlus className="w-5 h-5" /></div>
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Reservation</span>
+            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Reservations</span>
           </button>
 
           <button
             type="button"
             onClick={() => setShowAddMenuModal(true)}
-            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-amber-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
+            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-amber-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
           >
             <div className="p-2 rounded-xl text-amber-600 bg-amber-50 dark:bg-amber-950/80"><UtensilsCrossed className="w-5 h-5" /></div>
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Add Menu</span>
+            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Add Menu Item</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setShowFloorPlanModal(true)}
-            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-sky-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
+            onClick={() => navigate('/manager/table-management')}
+            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-sky-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
           >
             <div className="p-2 rounded-xl text-sky-600 bg-sky-50 dark:bg-sky-950/80"><Utensils className="w-5 h-5" /></div>
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Tables</span>
+            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Floor Tables</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setShowInventoryModal(true)}
-            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-indigo-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
+            onClick={() => navigate('/manager/inventory-management')}
+            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-indigo-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
           >
             <div className="p-2 rounded-xl text-indigo-600 bg-indigo-50 dark:bg-indigo-950/80"><PackageCheck className="w-5 h-5" /></div>
             <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Inventory</span>
@@ -379,113 +368,17 @@ export default function Dashboard() {
           <button
             type="button"
             onClick={() => setShowReportModal(true)}
-            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-rose-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
+            className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:border-rose-500 transition-all flex flex-col items-center text-center gap-2 cursor-pointer"
           >
             <div className="p-2 rounded-xl text-rose-600 bg-rose-50 dark:bg-rose-950/80"><FileSpreadsheet className="w-5 h-5" /></div>
-            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Reports</span>
+            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Export Report</span>
           </button>
         </div>
       </div>
 
-      {/* ALL WORKING OVERLAY MODALS WITH FULL DARK MODE */}
-
-      {/* Orders Modal */}
-      {showOrdersModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-2xl rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                <ShoppingBag className="w-4 h-4 text-emerald-500" /> Active Orders Overview
-              </h3>
-              <button onClick={() => setShowOrdersModal(false)} className="cursor-pointer text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {recentOrders.map((o) => (
-                <div key={o.id} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{o.id}</span> — <span className="text-slate-700 dark:text-slate-300">{o.table} ({o.customer})</span>
-                    <p className="text-[10px] text-slate-400">{o.items} • {o.amount}</p>
-                  </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold ${o.statusColor}`}>{o.status}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reservations Modal */}
-      {showReservationsModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                <Calendar className="w-4 h-4 text-purple-500" /> Table Reservations
-              </h3>
-              <button onClick={() => setShowReservationsModal(false)} className="cursor-pointer text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-2">
-              {todayReservations.map((r, i) => (
-                <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">{r.name}</p>
-                    <p className="text-[10px] text-slate-400">{r.table} • {r.guests}</p>
-                  </div>
-                  <span className="font-bold text-purple-600 dark:text-purple-400">{r.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floor Plan Modal */}
-      {showFloorPlanModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                <Layers className="w-4 h-4 text-sky-500" /> Floor Plan Layout
-              </h3>
-              <button onClick={() => setShowFloorPlanModal(false)} className="cursor-pointer text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="grid grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                <div key={num} className={`p-3 rounded-xl border text-center text-xs font-bold ${num % 3 === 0 ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300' : 'bg-emerald-100 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'}`}>
-                  T-{num}
-                  <span className="block text-[8px] font-normal">{num % 3 === 0 ? 'Occupied' : 'Available'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Inventory Modal */}
-      {showInventoryModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                <AlertTriangle className="w-4 h-4 text-rose-500" /> Inventory Alerts
-              </h3>
-              <button onClick={() => setShowInventoryModal(false)} className="cursor-pointer text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
-            </div>
-            <div className="space-y-2">
-              {lowStockIngredients.map((item, i) => (
-                <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-2"><span>{item.image}</span> {item.name}</span>
-                  <span className="font-bold text-rose-500 text-xs">{item.qty}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Add Menu Item Modal */}
       {showAddMenuModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold flex items-center gap-2 text-slate-900 dark:text-white">
@@ -529,9 +422,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Report Modal */}
+      {/* Export Report Modal */}
       {showReportModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-sm rounded-2xl p-6 space-y-4 text-center shadow-2xl">
             <FileSpreadsheet className="w-10 h-10 text-rose-500 mx-auto" />
             <div>

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -69,11 +70,33 @@ exports.login = async (req, res, next) => {
   } catch (err) { 
     console.error('Login error:', err);
     next(err); 
+=======
+const authService = require('../services/authService');
+
+exports.login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    const result = await authService.authenticateUser(email, password);
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (err) {
+    if (
+      err.message.includes('Invalid email') || 
+      err.message.includes('deactivated') || 
+      err.message.includes('Please provide')
+    ) {
+      return res.status(401).json({ success: false, message: err.message });
+    }
+    next(err);
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
   }
 };
 
-exports.me = async (req, res, next) => {
+exports.getMe = async (req, res, next) => {
   try {
+<<<<<<< HEAD
     const [rows] = await db.query('SELECT id, full_name, email FROM users WHERE id = ? AND is_active = TRUE', [req.user.id]);
     if (!rows[0]) return res.status(401).json({ message: 'Account not found.' });
     
@@ -97,5 +120,14 @@ exports.logout = async (req, res, next) => {
     return res.json({ message: 'Signed out.' });
   } catch (err) { 
     next(err); 
+=======
+    const user = await authService.getUserProfile(req.user.id);
+    return res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (err) {
+    next(err);
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
   }
 };

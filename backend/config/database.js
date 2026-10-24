@@ -6,12 +6,22 @@ require("dotenv").config();
 // DATABASE CONNECTION POOL
 // ==============================
 const dbConnection = mysql.createPool({
+<<<<<<< HEAD
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   port: process.env.DB_PORT,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+=======
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  port: process.env.DB_PORT || 3306,
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'restaurant_db',
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
   connectionLimit: 10,
+  waitForConnections: true,
+  queueLimit: 0
 });
 
 // ==============================
@@ -728,7 +738,7 @@ async function initializeDatabase() {
     `;
 
     // ==============================
-    // DEFINED TABLE CREATION SEQUENCE (FK-safe)
+    // TABLE CREATION SEQUENCE (FK-safe)
     // ==============================
     const tables = [
       { query: restaurantsTable, name: "restaurants" },
@@ -780,33 +790,32 @@ async function initializeDatabase() {
       { query: rolePermissionsTable, name: "role_permissions" },
     ];
 
+    const promisePool = dbConnection.promise();
+
     // Execute table construction sequentially
     for (const table of tables) {
-      await new Promise((resolve, reject) => {
-        dbConnection.execute(table.query, (err) => {
-          if (err) {
-            console.log(`❌ Error creating ${table.name} table:`, err.sqlMessage);
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
+      await promisePool.execute(table.query);
     }
 
     console.log("🚀 Restaurant Database schema created successfully!");
 
+<<<<<<< HEAD
     // Seed base data and demo user accounts
     await seedDatabase();
+=======
+    // Seed base data & test users
+    await seedDatabase(promisePool);
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
 
     // Execute core querying optimization indexes
-    await createIndexes();
+    await createIndexes(promisePool);
   } catch (error) {
-    console.log("❌ Database schema initialization failed:", error);
+    console.error("❌ Database schema initialization failed:", error.message);
   }
 }
 
 // ==============================
+<<<<<<< HEAD
 // SEED DATA (ROLES, RESTAURANTS, USERS)
 // ==============================
 async function seedDatabase() {
@@ -825,8 +834,54 @@ async function seedDatabase() {
 
     for (const r of roles) {
       await promiseDb.execute('INSERT IGNORE INTO roles (name, description) VALUES (?, ?)', [r.name, r.desc]);
+=======
+// SEED DATA (Collaborative Team Setup)
+// ==============================
+async function seedDatabase(promisePool) {
+  const seedQueries = [
+    `INSERT IGNORE INTO roles (id, name, description) VALUES
+      (1, 'Super Admin', 'System wide access'),
+      (2, 'Admin', 'Restaurant full access'),
+      (3, 'Manager', 'Restaurant operations, analytics, inventory, employees'),
+      (4, 'Waiter', 'Tables, orders, customer requests'),
+      (5, 'Cashier', 'Billing, payments, receipts, refunds'),
+      (6, 'Kitchen Staff', 'Incoming orders and preparation status'),
+      (7, 'Customer', 'Online ordering portal')`,
+
+    `INSERT IGNORE INTO restaurants (id, name, address, phone) VALUES
+      (1, 'Main Branch', '123 Main St', '555-0100')`,
+
+    `INSERT IGNORE INTO restaurant_settings (restaurant_id, setting_key, setting_value) VALUES
+      (1, 'currency', 'ETB'),
+      (1, 'tax_rate', '15'),
+      (1, 'delivery_fee', '0')`,
+
+    // Pre-seeded users for team testing (Password for all is 'password123')
+    `INSERT IGNORE INTO users (id, restaurant_id, username, email, password_hash, full_name, is_active) VALUES 
+      (1, 1, 'admin', 'admin@resto.com', 'password123', 'Admin User', TRUE),
+      (2, 1, 'michael', 'michael@resto.com', 'password123', 'Michael Cashier', TRUE),
+      (3, 1, 'chef', 'chef@resto.com', 'password123', 'Kitchen Staff', TRUE),
+      (4, 1, 'john', 'john@resto.com', 'password123', 'John Manager', TRUE),
+      (5, 1, 'david', 'david@resto.com', 'password123', 'David Waiter', TRUE)`,
+
+    // Link users to roles
+    `INSERT IGNORE INTO user_roles (user_id, role_id) VALUES 
+      (1, 2), -- Admin -> Admin
+      (2, 5), -- Michael -> Cashier
+      (3, 6), -- Chef -> Kitchen Staff
+      (4, 3), -- John -> Manager
+      (5, 4)  -- David -> Waiter`
+  ];
+
+  for (const query of seedQueries) {
+    try {
+      await promisePool.execute(query);
+    } catch (err) {
+      console.log("⚠️ Seed notice:", err.sqlMessage);
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
     }
 
+<<<<<<< HEAD
     // 2. Seed Restaurant & Settings
     await promiseDb.execute('INSERT IGNORE INTO restaurants (id, name, address) VALUES (1, "Main Branch", "123 Main St")');
     await promiseDb.execute('INSERT IGNORE INTO restaurant_settings (restaurant_id, setting_key, setting_value) VALUES (1, "currency", "ETB"), (1, "tax_rate", "15"), (1, "delivery_fee", "0")');
@@ -879,12 +934,15 @@ async function seedDatabase() {
   } catch (err) {
     console.log("⚠️ Seed warning:", err.message);
   }
+=======
+  console.log("🌱 Collaborative seed data & test accounts verified!");
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
 }
 
 // ==============================
 // OPTIMIZATION INDEXES
 // ==============================
-async function createIndexes() {
+async function createIndexes(promisePool) {
   const indexes = [
     "CREATE INDEX idx_users_email ON users(email)",
     "CREATE INDEX idx_employees_user ON employees(user_id)",
@@ -904,6 +962,7 @@ async function createIndexes() {
 
   for (const indexQuery of indexes) {
     try {
+<<<<<<< HEAD
       await new Promise((resolve) => {
         dbConnection.execute(indexQuery, (err) => {
           if (err) {
@@ -916,10 +975,18 @@ async function createIndexes() {
       });
     } catch (error) {
       console.log("Index injection skipped:", error.message);
+=======
+      await promisePool.execute(indexQuery);
+    } catch (err) {
+      // Silently ignore duplicate index errors if already created by team members
+      if (!err.sqlMessage || !err.sqlMessage.includes("Duplicate key name")) {
+        // Safe to ignore
+      }
+>>>>>>> 2f3d0b3fc60ea42addd81d9a13784be68650bb24
     }
   }
 
-  console.log("⚡ Performance optimization indexes verified and active!");
+  console.log("⚡ Performance optimization indexes verified!");
 }
 
 // ==============================

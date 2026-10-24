@@ -1,137 +1,49 @@
-import React, { useState } from 'react';
-import { Search, MapPin, Bell, User } from 'lucide-react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Search, MapPin, Bell, User, ChevronDown } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
-export default function CustomerHeader({ user, onSearch }) {
+export default function CustomerHeader() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAddress, setSelectedAddress] = useState('Home - 123 Main St');
-  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
-  const [hasNotifications, setHasNotifications] = useState(true);
-
-  const addresses = [
-    'Home - 123 Main St',
-    'Office - 456 Market St, Suite 200',
-    'Gym - 789 Fitness Ave'
-  ];
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    if (onSearch) {
-      onSearch(value);
-    }
-  };
+  const { isAuthenticated } = useAuth();
 
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-3.5 flex items-center justify-between gap-4 w-full shadow-xs">
+    <header className="h-16 bg-white dark:bg-[#0B1426] border-b border-gray-100 dark:border-gray-800 px-6 flex items-center justify-between gap-4 shrink-0">
       
-      {/* 1. Search Bar */}
-      <div className="relative flex-1 max-w-xl">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-          <Search size={18} className="text-gray-400" />
-        </div>
+      {/* Search Input */}
+      <div className="relative flex-1 max-w-md">
         <input
           type="text"
-          value={searchQuery}
-          onChange={handleSearchChange}
           placeholder="Search for food, drinks, cuisines..."
-          className="w-full bg-gray-50 border border-gray-200 text-xs font-medium text-gray-800 placeholder-gray-400 rounded-2xl pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+          className="w-full pl-4 pr-10 py-2 bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:border-emerald-500 text-gray-900 dark:text-white"
         />
+        <Search size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
       </div>
 
-      {/* Right Action Items */}
-      <div className="flex items-center gap-3 shrink-0">
-
-        {/* 2. Deliver To Address Selector */}
-        <div className="relative">
-          <button
-            onClick={() => setShowAddressDropdown(!showAddressDropdown)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-gray-50 text-left transition-colors cursor-pointer group"
-          >
-            <div className="p-2 bg-green-50 text-green-600 rounded-xl group-hover:bg-green-100 transition-colors">
-              <MapPin size={18} />
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-[10px] text-gray-400 font-medium block leading-none mb-0.5">
-                Deliver to
-              </span>
-              <span className="text-xs font-bold text-gray-900 leading-tight block truncate max-w-[150px]">
-                {selectedAddress}
-              </span>
-            </div>
+      {/* Right Controls */}
+      <div className="flex items-center gap-5">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+          <MapPin size={16} className="text-emerald-600" />
+          <span>Deliver to</span>
+          <button className="font-extrabold text-gray-900 dark:text-white flex items-center gap-1 hover:underline cursor-pointer">
+            Home - 123 Main St <ChevronDown size={14} />
           </button>
-
-          {/* Address Dropdown Menu */}
-          {showAddressDropdown && (
-            <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                Select Saved Address
-              </div>
-              {addresses.map((addr, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedAddress(addr);
-                    setShowAddressDropdown(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-xs transition-colors flex items-center gap-2 ${
-                    selectedAddress === addr
-                      ? 'bg-green-50 text-green-700 font-bold'
-                      : 'text-gray-700 hover:bg-gray-50 font-medium'
-                  }`}
-                >
-                  <MapPin size={14} className={selectedAddress === addr ? 'text-green-600' : 'text-gray-400'} />
-                  <span className="truncate">{addr}</span>
-                </button>
-              ))}
-              <div className="border-t border-gray-100 mt-1 pt-1 px-2">
-                <button
-                  onClick={() => {
-                    setShowAddressDropdown(false);
-                    navigate('/customer/address-book');
-                  }}
-                  className="w-full text-center text-xs text-green-600 font-bold py-1.5 hover:underline"
-                >
-                  + Add New Address
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* 3. Notification Icon with Dot */}
-        <button
-          onClick={() => setHasNotifications(false)}
-          className="relative p-2.5 bg-gray-50 border border-gray-100 text-gray-600 hover:bg-gray-100 rounded-2xl transition-all cursor-pointer"
-          title="Notifications"
-        >
+        <button className="relative p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-600 dark:text-gray-300 cursor-pointer">
           <Bell size={18} />
-          {hasNotifications && (
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
-          )}
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white dark:border-[#0B1426]">2</span>
         </button>
 
-        {/* 4. Login / Sign Up or User Profile Button */}
-        {user ? (
-          <button
-            onClick={() => navigate('/customer/profile')}
-            className="flex items-center gap-2 border border-gray-200 px-3.5 py-2 rounded-2xl hover:bg-gray-50 transition-all cursor-pointer"
-          >
-            <User size={16} className="text-gray-700" />
-            <span className="text-xs font-bold text-gray-800">{user.name || 'Account'}</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate('/login')}
-            className="flex items-center gap-2 border border-gray-200 px-4 py-2 rounded-2xl hover:bg-gray-50 text-gray-900 font-bold text-xs transition-all cursor-pointer"
-          >
-            <User size={16} className="text-gray-800" />
-            <span>Login / Sign Up</span>
-          </button>
-        )}
-
+        <button
+          onClick={() => navigate(isAuthenticated ? '/customer/profile' : '/login')}
+          className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 text-gray-800 dark:text-white px-3.5 py-2 rounded-xl text-xs font-bold border border-gray-100 dark:border-gray-700 cursor-pointer"
+        >
+          <User size={15} />
+          <span>{isAuthenticated ? 'My Profile' : 'Login / Sign Up'}</span>
+        </button>
       </div>
+
     </header>
   );
 }

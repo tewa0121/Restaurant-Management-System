@@ -64,12 +64,12 @@ export default function AdminDashboard() {
   };
 
   const quickActions = [
-    { label: 'Add New User', icon: UserPlus, color: 'text-indigo-600', route: '/admin/users-and-roles' },
-    { label: 'Add Menu Item', icon: ConciergeBell, color: 'text-emerald-600', route: '/admin/menu-management' },
-    { label: 'Create Order', icon: FilePlus, color: 'text-sky-600', route: '/admin/order-management' },
-    { label: 'Add Table', icon: Utensils, color: 'text-amber-600', route: '/admin/table-management' },
-    { label: 'New Reservation', icon: CalendarPlus, color: 'text-rose-600', route: '/admin/reservation-management' },
-    { label: 'Generate Report', icon: BarChart3, color: 'text-purple-600', route: '/admin/reports-and-analytics' },
+    { label: 'Add New User', icon: UserPlus, color: 'text-indigo-600', route: '/admin/panel/users-and-roles' },
+    { label: 'Add Menu Item', icon: ConciergeBell, color: 'text-emerald-600', route: '/admin/panel/menu-management' },
+    { label: 'Create Order', icon: FilePlus, color: 'text-sky-600', route: '/admin/panel/order-management' },
+    { label: 'Add Table', icon: Utensils, color: 'text-amber-600', route: '/admin/panel/table-management' },
+    { label: 'New Reservation', icon: CalendarPlus, color: 'text-rose-600', route: '/admin/panel/reservation-management' },
+    { label: 'Generate Report', icon: BarChart3, color: 'text-purple-600', route: '/admin/panel/reports-and-analytics' },
   ];
 
   return (
@@ -172,8 +172,8 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-slate-800 dark:text-white text-sm">Quick Actions</h3>
             <button 
-              onClick={() => navigate('/admin/settings')}
-              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1"
+              onClick={() => navigate('/admin/panel/settings')}
+              className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer"
             >
               <Settings className="w-3 h-3" /> Manage
             </button>
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
         <div className="lg:col-span-6 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-slate-800 dark:text-white text-sm">Recent Orders</h3>
-            <button onClick={() => navigate('/admin/order-management')} className="text-xs font-bold text-emerald-600 hover:underline">View All</button>
+            <button onClick={() => navigate('/admin/panel/order-management')} className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer">View All</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs whitespace-nowrap">
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
         <div className="lg:col-span-3 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-slate-800 dark:text-white text-sm">Inventory Alerts</h3>
-            <button onClick={() => navigate('/admin/inventory-management')} className="text-xs font-bold text-emerald-600 hover:underline">View All</button>
+            <button onClick={() => navigate('/admin/panel/inventory-management')} className="text-xs font-bold text-emerald-600 hover:underline cursor-pointer">View All</button>
           </div>
           <div className="space-y-2.5">
             {inventoryAlerts.map((item, idx) => (

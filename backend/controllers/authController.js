@@ -12,10 +12,13 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide email and password.' });
     }
 
-    // Query user from MySQL database
+    // Query user and join with user_roles and roles tables
     const [rows] = await db.query(
-      `SELECT id, restaurant_id, username, email, password_hash, full_name, role, avatar_url, is_active 
-       FROM users WHERE email = ?`, 
+      `SELECT u.id, u.restaurant_id, u.username, u.email, u.password_hash, u.full_name, u.avatar_url, u.is_active, r.name as role 
+       FROM users u 
+       LEFT JOIN user_roles ur ON u.id = ur.user_id 
+       LEFT JOIN roles r ON ur.role_id = r.id 
+       WHERE u.email = ?`, 
       [email]
     );
 
@@ -42,7 +45,7 @@ exports.login = async (req, res, next) => {
         id: user.id, 
         restaurant_id: user.restaurant_id, 
         email: user.email, 
-        role: user.role 
+        role: user.role || 'Staff' 
       },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
@@ -58,7 +61,7 @@ exports.login = async (req, res, next) => {
         id: user.id,
         name: user.full_name,
         email: user.email,
-        role: user.role,
+        role: user.role || 'Staff',
         avatar: user.avatar_url
       }
     });
@@ -73,8 +76,11 @@ exports.login = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     const [rows] = await db.query(
-      `SELECT id, restaurant_id, username, email, full_name, role, avatar_url, language 
-       FROM users WHERE id = ?`, 
+      `SELECT u.id, u.restaurant_id, u.username, u.email, u.full_name, u.avatar_url, u.language, r.name as role 
+       FROM users u 
+       LEFT JOIN user_roles ur ON u.id = ur.user_id 
+       LEFT JOIN roles r ON ur.role_id = r.id 
+       WHERE u.id = ?`, 
       [req.user.id]
     );
 

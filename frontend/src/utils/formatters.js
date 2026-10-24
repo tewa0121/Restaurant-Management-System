@@ -17,11 +17,13 @@ export const formatCurrency = (amount, currencySymbol = '$') => {
  * @param {string|Date} date 
  * @returns {string}
  */
-export const formatDate = (date) => {
-  if (!date) return '';
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+// src/utils/format.js
+export const formatStatus = (status) => {
+  switch (status) {
+    case 'pending': return 'Pending';
+    case 'preparing': return 'Preparing';
+    case 'ready': return 'Ready';
+    case 'completed': return 'Completed';
+    default: return status;
+  }
 };

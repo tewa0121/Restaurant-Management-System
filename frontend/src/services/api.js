@@ -4,7 +4,13 @@ import { initialMenuItems, initialUsers, initialTables, initialOrders } from './
 // Helper to simulate asynchronous API delay
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export const apiService = {
+const apiService = {
+  // src/services/api.js
+
+// ✅ Correct Named Export
+export const createOrder = async (orderData) => {
+  // Your API logic here
+};
   // Menu API
   getMenuItems: async () => {
     await delay();

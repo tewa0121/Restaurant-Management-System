@@ -1,4 +1,5 @@
 const mysql = require("mysql2");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
 // ==============================
@@ -7,7 +8,7 @@ require("dotenv").config();
 const dbConnection = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  port:process.env.DB_PORT,
+  port: process.env.DB_PORT,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   connectionLimit: 10,
@@ -795,7 +796,7 @@ async function initializeDatabase() {
 
     console.log("🚀 Restaurant Database schema created successfully!");
 
-    // Seed base data
+    // Seed base data and demo user accounts
     await seedDatabase();
 
     // Execute core querying optimization indexes
@@ -806,46 +807,78 @@ async function initializeDatabase() {
 }
 
 // ==============================
-// SEED DATA
+// SEED DATA (ROLES, RESTAURANTS, USERS)
 // ==============================
 async function seedDatabase() {
-  const seedQueries = [
-    `INSERT IGNORE INTO roles (name, description) VALUES
-      ('Super Admin', 'System wide access'),
-      ('Admin', 'Restaurant full access'),
-      ('Manager', 'Restaurant operations, analytics, inventory, employees'),
-      ('Waiter', 'Tables, orders, customer requests'),
-      ('Cashier', 'Billing, payments, receipts, refunds'),
-      ('Kitchen Staff', 'Incoming orders and preparation status'),
-      ('Customer', 'Online ordering portal')`,
+  const promiseDb = dbConnection.promise();
 
-    `INSERT IGNORE INTO restaurants (id, name, address) VALUES
-      (1, 'Main Branch', '123 Main St')`,
+  try {
+    // 1. Seed Roles
+    const roles = [
+      { name: 'Admin', desc: 'Restaurant full access' },
+      { name: 'Manager', desc: 'Restaurant operations, analytics, inventory, employees' },
+      { name: 'Waiter', desc: 'Tables, orders, customer requests' },
+      { name: 'Cashier', desc: 'Billing, payments, receipts, refunds' },
+      { name: 'Kitchen', desc: 'Incoming orders and preparation status' },
+      { name: 'Customer', desc: 'Online ordering portal' }
+    ];
 
-    `INSERT IGNORE INTO restaurant_settings (restaurant_id, setting_key, setting_value) VALUES
-      (1, 'currency', 'ETB'),
-      (1, 'tax_rate', '15'),
-      (1, 'delivery_fee', '0')`,
-  ];
-
-  for (const query of seedQueries) {
-    try {
-      await new Promise((resolve, reject) => {
-        dbConnection.execute(query, (err) => {
-          if (err) {
-            console.log("⚠️ Seed warning:", err.sqlMessage);
-            resolve(); // don't block on seed failures
-          } else {
-            resolve();
-          }
-        });
-      });
-    } catch (err) {
-      console.log("Seed skipped:", err.message);
+    for (const r of roles) {
+      await promiseDb.execute('INSERT IGNORE INTO roles (name, description) VALUES (?, ?)', [r.name, r.desc]);
     }
-  }
 
-  console.log("🌱 Seed data verified!");
+    // 2. Seed Restaurant & Settings
+    await promiseDb.execute('INSERT IGNORE INTO restaurants (id, name, address) VALUES (1, "Main Branch", "123 Main St")');
+    await promiseDb.execute('INSERT IGNORE INTO restaurant_settings (restaurant_id, setting_key, setting_value) VALUES (1, "currency", "ETB"), (1, "tax_rate", "15"), (1, "delivery_fee", "0")');
+
+    // 3. Seed Demo Users (Password: password123)
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
+    const people = [
+      { username: 'admin', email: 'admin@resto.com', fullName: 'System Admin', role: 'Admin', extra: ['EMP-001', 'System', 'Admin', 'Manager', 'Management'] },
+      { username: 'manager', email: 'manager@resto.com', fullName: 'John Manager', role: 'Manager', extra: ['EMP-002', 'John', 'Manager', 'Manager', 'Management'] },
+      { username: 'waiter', email: 'waiter@resto.com', fullName: 'David Waiter', role: 'Waiter', extra: ['EMP-003', 'David', 'Waiter', 'Waiter', 'Service'] },
+      { username: 'cashier', email: 'cashier@resto.com', fullName: 'Michael Cashier', role: 'Cashier', extra: ['EMP-004', 'Michael', 'Cashier', 'Cashier', 'Service'] },
+      { username: 'kitchen', email: 'kitchen@resto.com', fullName: 'Kitchen Staff', role: 'Kitchen', extra: ['EMP-005', 'Kitchen', 'Staff', 'Chef', 'Kitchen'] },
+      { username: 'customer', email: 'customer@resto.com', fullName: 'John Smith', role: 'Customer', extra: 'customer' }
+    ];
+
+    for (const p of people) {
+      // Insert User
+      await promiseDb.execute(
+        'INSERT IGNORE INTO users (restaurant_id, username, email, password_hash, full_name, is_active) VALUES (1, ?, ?, ?, ?, TRUE)',
+        [p.username, p.email, hashedPassword, p.fullName]
+      );
+
+      // Get User ID
+      const [userRows] = await promiseDb.execute('SELECT id FROM users WHERE username = ?', [p.username]);
+      if (userRows.length === 0) continue;
+      const userId = userRows[0].id;
+
+      // Assign Role
+      await promiseDb.execute(
+        'INSERT IGNORE INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ?',
+        [userId, p.role]
+      );
+
+      // Assign Employee or Customer profile
+      if (Array.isArray(p.extra)) {
+        await promiseDb.execute(
+          'INSERT IGNORE INTO employees (restaurant_id, user_id, employee_code, first_name, last_name, position, department, hire_date) VALUES (1, ?, ?, ?, ?, ?, ?, CURDATE())',
+          [userId, ...p.extra]
+        );
+      } else if (p.extra === 'customer') {
+        await promiseDb.execute(
+          'INSERT IGNORE INTO customers (user_id, first_name, last_name, email, phone) VALUES (?, ?, ?, ?, ?)',
+          [userId, 'John', 'Smith', p.email, '0911000001']
+        );
+      }
+    }
+
+    console.log("🌱 Seed data verified! (Demo login accounts ready: admin@resto.com, manager@resto.com, waiter@resto.com, cashier@resto.com, kitchen@resto.com, customer@resto.com with password 'password123')");
+  } catch (err) {
+    console.log("⚠️ Seed warning:", err.message);
+  }
 }
 
 // ==============================
@@ -874,7 +907,6 @@ async function createIndexes() {
       await new Promise((resolve) => {
         dbConnection.execute(indexQuery, (err) => {
           if (err) {
-            // Silently swallow duplicate key warnings if database restarts
             if (!err.sqlMessage.includes("Duplicate key name")) {
               console.log("⚠️ Index deployment warning:", err.sqlMessage);
             }

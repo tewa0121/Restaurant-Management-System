@@ -1,5 +1,5 @@
 module.exports = {
-  jwtSecret: process.env.JWT_SECRET,
-  shortExpiry: '12h',   // normal login
-  longExpiry: '7d',     // "Remember me"
+  jwtSecret: process.env.JWT_SECRET || 'your_super_secret_jwt_key_here',
+  shortExpiry: '1d',
+  longExpiry: '7d',
 };

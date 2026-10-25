@@ -1,29 +1,44 @@
 const db = require('../config/database');
 
-exports.findUserByEmail = async (email) => {
-  const [rows] = await db.query(
-    `SELECT u.id, u.restaurant_id, u.username, u.email, u.password_hash, u.full_name, u.avatar_url, u.is_active, r.name as role 
-     FROM users u 
-     LEFT JOIN user_roles ur ON u.id = ur.user_id 
-     LEFT JOIN roles r ON ur.role_id = r.id 
-     WHERE u.email = ?`,
-    [email]
-  );
-  return rows[0] || null;
+const User = {
+  // Find a user by email (only active accounts)
+  findByEmail: async (email) => {
+    const [rows] = await db.query('SELECT * FROM users WHERE email = ? AND is_active = TRUE', [email]);
+    return rows[0];
+  },
+
+  // Find a user by ID
+  findById: async (id) => {
+    const [rows] = await db.query('SELECT id, full_name, email, is_active FROM users WHERE id = ? AND is_active = TRUE', [id]);
+    return rows[0];
+  },
+
+  // Fetch roles assigned to a user via user_roles and roles tables
+  getRoles: async (userId) => {
+    const [rows] = await db.query(
+      'SELECT r.name FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ?',
+      [userId]
+    );
+    return rows.map((r) => r.name);
+  },
+
+  // Update last login timestamp
+  updateLastLogin: async (userId) => {
+    await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [userId]);
+  },
+
+  // Create a new active session record
+  createSession: async (userId, sessionId, ip, userAgent, expiresAt) => {
+    await db.query(
+      'INSERT INTO user_sessions (user_id, token_id, ip_address, user_agent, expires_at) VALUES (?, ?, ?, ?, ?)',
+      [userId, sessionId, ip, userAgent, expiresAt]
+    );
+  },
+
+  // Revoke a session on logout
+  revokeSession: async (sessionId) => {
+    await db.query('UPDATE user_sessions SET revoked_at = NOW() WHERE token_id = ?', [sessionId]);
+  }
 };
 
-exports.findUserById = async (id) => {
-  const [rows] = await db.query(
-    `SELECT u.id, u.restaurant_id, u.username, u.email, u.full_name, u.avatar_url, u.language, r.name as role 
-     FROM users u 
-     LEFT JOIN user_roles ur ON u.id = ur.user_id 
-     LEFT JOIN roles r ON ur.role_id = r.id 
-     WHERE u.id = ?`,
-    [id]
-  );
-  return rows[0] || null;
-};
-
-exports.updateLastLogin = async (id) => {
-  await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [id]);
-};
+module.exports = User;

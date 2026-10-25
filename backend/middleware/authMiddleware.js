@@ -1,27 +1,35 @@
 const jwt = require('jsonwebtoken');
+const { jwtSecret } = require('../config/auth');
+const db = require('../config/database');
 
-exports.verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
-  }
-
+const verifyToken = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Attach user payload to request
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, jwtSecret);
+
+    // Verify session validity if jti exists
+    if (decoded.jti) {
+      const [sessions] = await db.query(
+        'SELECT * FROM user_sessions WHERE token_id = ? AND revoked_at IS NULL',
+        [decoded.jti]
+      );
+      if (sessions.length === 0) {
+        return res.status(401).json({ message: 'Session expired or revoked.' });
+      }
+      req.user = { id: decoded.sub, roles: decoded.roles, sessionId: decoded.jti };
+    } else {
+      req.user = { id: decoded.sub, roles: decoded.roles };
+    }
+
     next();
   } catch (err) {
-    return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+    return res.status(401).json({ message: 'Invalid or expired token.' });
   }
 };
 
-exports.requireRole = (allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'Unauthorized access for this role.' });
-    }
-    next();
-  };
-};
+module.exports = verifyToken;

@@ -394,6 +394,162 @@ export function StaffSidebarContent({ role, onCloseMobile }) {
 }
 
 // ==========================================
+// 4B. NOTIFICATIONS (per portal / page)
+// ==========================================
+const NOTIFICATIONS_BY_ROLE = {
+  customer: [
+    { id: 1, title: 'Order on the way', text: 'Your order #1042 is out for delivery.', time: '2m ago', path: '/customer/track' },
+    { id: 2, title: 'New offer', text: 'Get 10% off on all pizzas today.', time: '1h ago', path: '/customer/offers' },
+    { id: 3, title: 'Order delivered', text: 'Order #1038 was delivered. Enjoy!', time: 'Yesterday', path: '/customer/orders' },
+  ],
+  admin: [
+    { id: 1, title: 'New order', text: 'A new order was placed.', time: '1m ago', path: '/admin/panel/order-management' },
+    { id: 2, title: 'Low stock', text: 'Tomatoes are running low.', time: '20m ago', path: '/admin/panel/inventory-management' },
+    { id: 3, title: 'New reservation', text: 'Table for 4 booked for 7:30 PM.', time: '1h ago', path: '/admin/panel/reservation-management' },
+  ],
+  cashier: [
+    { id: 1, title: 'Bill ready', text: 'Table 5 is waiting for payment.', time: '1m ago', path: '/cashier/active-bills' },
+    { id: 2, title: 'Refund request', text: 'A refund request needs approval.', time: '30m ago', path: '/cashier/refunds' },
+  ],
+  kitchen: [
+    { id: 1, title: 'Incoming order', text: 'New order #1043 received.', time: 'Just now', path: '/kitchen/incoming-orders' },
+    { id: 2, title: 'Stock alert', text: 'Cheese is below minimum level.', time: '15m ago', path: '/kitchen/stock-alerts' },
+  ],
+  manager: [
+    { id: 1, title: 'Daily report', text: 'Yesterday\'s sales report is ready.', time: '1h ago', path: '/manager/reports' },
+    { id: 2, title: 'Inventory', text: '3 items need restocking.', time: '2h ago', path: '/manager/inventory-management' },
+  ],
+  waiter: [
+    { id: 1, title: 'Customer request', text: 'Table 3 is asking for the bill.', time: '1m ago', path: '/waiter/customer-requests' },
+    { id: 2, title: 'Order ready', text: 'Order for Table 7 is ready to serve.', time: '5m ago', path: '/waiter/orders' },
+  ],
+};
+
+export function NotificationBell({ role = 'customer' }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const wrapRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState(() =>
+    (NOTIFICATIONS_BY_ROLE[role] || []).map((n) => ({ ...n, read: false }))
+  );
+
+  const unread = items.filter((n) => !n.read).length;
+
+  // Close on page change
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handleOutside = (e) => {
+      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('pointerdown', handleOutside, true);
+    return () => document.removeEventListener('pointerdown', handleOutside, true);
+  }, [open]);
+
+  const markAllRead = () => setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+  const removeItem = (id) => setItems((prev) => prev.filter((n) => n.id !== id));
+
+  const handleItemClick = (n) => {
+    setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+    setOpen(false);
+    if (n.path) navigate(n.path);
+  };
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Notifications"
+        className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+      >
+        <Bell size={18} />
+        {unread > 0 && (
+          <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+            {unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div className="fixed top-[66px] right-[3px] z-50 w-72 max-w-[calc(100vw-6px)] bg-white dark:bg-[#0B1426] border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl overflow-hidden font-sans">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
+            <h4 className="font-extrabold text-xs text-gray-900 dark:text-white flex items-center gap-1.5">
+              <Bell size={13} className="text-emerald-600" /> Notifications
+              {unread > 0 && (
+                <span className="bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">{unread}</span>
+              )}
+            </h4>
+            <div className="flex items-center gap-2">
+              {unread > 0 && (
+                <button type="button" onClick={markAllRead} className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer">
+                  Mark all read
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close notifications"
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/60 scrollbar-thin">
+            {items.length === 0 ? (
+              <p className="text-[11px] text-gray-400 py-6 text-center">No notifications.</p>
+            ) : (
+              items.map((n) => (
+                <div
+                  key={n.id}
+                  className={`flex items-start transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
+                    n.read ? '' : 'bg-emerald-50/60 dark:bg-emerald-950/20'
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleItemClick(n)}
+                    className="flex-1 min-w-0 text-left px-3 py-2.5 flex items-start gap-2 cursor-pointer"
+                  >
+                    <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${n.read ? 'bg-transparent' : 'bg-emerald-600'}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-[11px] text-gray-900 dark:text-white truncate">{n.title}</span>
+                        <span className="text-[9px] text-gray-400 shrink-0">{n.time}</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{n.text}</p>
+                    </div>
+                  </button>
+
+                  {n.read && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(n.id)}
+                      aria-label="Dismiss notification"
+                      className="mt-2 mr-2 p-1 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer shrink-0"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
 // 5. CUSTOMER HEADER
 // ==========================================
 export function CustomerHeader({ onOpenCart, onOpenMobileMenu }) {
@@ -432,6 +588,8 @@ export function CustomerHeader({ onOpenCart, onOpenMobileMenu }) {
         >
           {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+
+        <NotificationBell role="customer" />
 
         <button
           onClick={onOpenCart}
@@ -494,6 +652,8 @@ export function PortalHeader({ title, subtitle, roleName, onOpenMobileMenu }) {
         >
           {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+
+        <NotificationBell role={(roleName || '').toLowerCase()} />
 
         <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-800">
           <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">

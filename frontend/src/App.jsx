@@ -279,5 +279,5 @@ export default function App() {
         </NotificationProvider>
       </ThemeProvider>
     </AuthProvider>
-  );
+  )
 }

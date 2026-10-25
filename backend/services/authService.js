@@ -1,56 +1,82 @@
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const userModel = require('../models/userModel');
+const User = require('../models/userModel');
+const { jwtSecret, shortExpiry, longExpiry } = require('../config/auth');
 
-exports.authenticateUser = async (email, password) => {
-  if (!email || !password) {
-    throw new Error('Please provide email and password.');
-  }
+// Constant-time comparison dummy hash to prevent timing attacks
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 
-  const user = await userModel.findUserByEmail(email);
-  if (!user) {
-    throw new Error('Invalid email or password.');
-  }
+class AuthService {
+  async authenticateUser(email, password, remember, req) {
+    // 1. Find user by email
+    const user = await User.findByEmail(email);
 
-  if (!user.is_active) {
-    throw new Error('This account has been deactivated.');
-  }
-
-  // Password verification (supports seed test password 'password123')
-  const isMatch = (password === 'password123' || password === user.password_hash);
-  if (!isMatch) {
-    throw new Error('Invalid email or password.');
-  }
-
-  // Generate 8-hour JWT token
-  const token = jwt.sign(
-    { 
-      id: user.id, 
-      restaurant_id: user.restaurant_id, 
-      email: user.email, 
-      role: user.role || 'Staff' 
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '8h' }
-  );
-
-  await userModel.updateLastLogin(user.id);
-
-  return {
-    token,
-    user: {
-      id: user.id,
-      name: user.full_name,
-      email: user.email,
-      role: user.role || 'Staff',
-      avatar: user.avatar_url
+    // 2. Compare passwords securely
+    const passwordOk = await bcrypt.compare(password, user?.password_hash || DUMMY_HASH);
+    if (!user || !user.password_hash || !passwordOk) {
+      throw new Error('INVALID_CREDENTIALS');
     }
-  };
-};
 
-exports.getUserProfile = async (userId) => {
-  const user = await userModel.findUserById(userId);
-  if (!user) {
-    throw new Error('User not found.');
+    // 3. Fetch user roles
+    const roles = await User.getRoles(user.id);
+    if (!roles.length) {
+      throw new Error('NO_ROLES_ASSIGNED');
+    }
+
+    // 4. Generate JWT token with unique session ID (jti)
+    const jti = crypto.randomUUID();
+    const token = jwt.sign({ sub: user.id, roles }, jwtSecret, { 
+      expiresIn: remember ? longExpiry : shortExpiry, 
+      jwtid: jti 
+    });
+
+    const decodedToken = jwt.decode(token);
+    const expiresAt = decodedToken && decodedToken.exp ? new Date(decodedToken.exp * 1000) : new Date(Date.now() + 86400000);
+
+    // 5. Track session in database
+    await User.createSession(
+      user.id, 
+      jti, 
+      req.ip || '127.0.0.1', 
+      (req.get('user-agent') || '').slice(0, 255), 
+      expiresAt
+    );
+
+    // 6. Update last login time
+    await User.updateLastLogin(user.id);
+
+    // 7. Return payload formatted for frontend consumption
+    return {
+      token,
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        roles
+      }
+    };
   }
-  return user;
-};
+
+  async getUserProfile(userId) {
+    const user = await User.findById(userId);
+    if (!user) throw new Error('USER_NOT_FOUND');
+
+    const roles = await User.getRoles(user.id);
+    return {
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        roles
+      }
+    };
+  }
+
+  async logoutUser(sessionId) {
+    await User.revokeSession(sessionId);
+    return { message: 'Signed out successfully.' };
+  }
+}
+
+module.exports = new AuthService();

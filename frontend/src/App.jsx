@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -128,7 +128,7 @@ export default function App() {
       <ThemeProvider>
         <NotificationProvider>
           <CartProvider>
-            <Router
+            <BrowserRouter
               future={{
                 v7_startTransition: true,
                 v7_relativeSplatPath: true,
@@ -269,7 +269,7 @@ export default function App() {
                 {/* Catch-all unknown routes redirect to Home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </Router>
+            </BrowserRouter>
           </CartProvider>
         </NotificationProvider>
       </ThemeProvider>

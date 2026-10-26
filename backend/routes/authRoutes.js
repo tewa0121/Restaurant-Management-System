@@ -1,8 +1,9 @@
+// routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
-const verifyToken = require('../middleware/authMiddleware'); // Your JWT verification middleware
+const { verifyToken } = require('../middleware/authMiddleware'); // Destructured correctly here
 
 // POST /api/auth/login
 router.post('/login', [

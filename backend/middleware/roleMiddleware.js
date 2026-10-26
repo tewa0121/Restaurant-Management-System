@@ -1,8 +1,28 @@
-const { ROLES } = require('../utils/constants');
+// middleware/roleMiddleware.js
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
 
-// allowRoles(ROLES.MANAGER, ROLES.CASHIER) -> only those roles (Admin always passes).
-exports.allowRoles = (...allowed) => (req, res, next) => {
-  const roles = req.user?.roles || [];
-  if (roles.includes(ROLES.ADMIN) || roles.some((r) => allowed.includes(r))) return next();
-  res.status(403).json({ message: 'You do not have access to this feature.' });
+    // Support both req.user.role (string) and req.user.roles (array)
+    const userRoles = req.user.roles || [req.user.role];
+
+    // Normalize allowedRoles and userRoles to lowercase for reliable comparison
+    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
+    const hasPermission = userRoles.some(role => 
+      role && normalizedAllowed.includes(role.toLowerCase())
+    );
+
+    if (!hasPermission) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Access denied. Required roles: [${allowedRoles.join(', ')}], but got [${userRoles.join(', ')}]` 
+      });
+    }
+
+    next();
+  };
 };
+
+module.exports = { requireRole };

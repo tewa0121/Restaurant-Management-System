@@ -1,0 +1,175 @@
+// src/services/api.js
+// Same exports as before (default apiService + named createOrder), so existing pages keep working.
+// Each area can be switched between mock and real backend in .env:
+//   VITE_API_URL=http://localhost:5000/api
+//   VITE_USE_MOCK_MENU=false
+//   VITE_USE_MOCK_USERS=true
+//   VITE_USE_MOCK_ORDERS=true
+import { initialMenuItems, initialUsers, initialOrders } from "./mockData";
+
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const MOCK = {
+  menu: import.meta.env.VITE_USE_MOCK_MENU !== "false",
+  users: import.meta.env.VITE_USE_MOCK_USERS !== "false",
+  orders: import.meta.env.VITE_USE_MOCK_ORDERS !== "false",
+};
+
+const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ---------- real API helper ----------
+async function request(path, { method = "GET", body } = {}) {
+  const token = localStorage.getItem("token"); // must match the key AuthContext saves the token under
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload.message || `Request failed (${res.status})`);
+  }
+  // The backend answers { success: true, data: ... }. Pages expect just the data
+  // (the list or the object), so we unwrap it here, once, for every call.
+  return payload && payload.data !== undefined ? payload.data : payload;
+}
+
+// ---------- mock helpers (your original behaviour) ----------
+const readMock = (key, fallback) => {
+  const stored = localStorage.getItem(key);
+  return stored ? JSON.parse(stored) : fallback;
+};
+const writeMock = (key, value) =>
+  localStorage.setItem(key, JSON.stringify(value));
+
+const apiService = {
+  // ================= MENU =================
+  getMenuItems: async () => {
+    if (MOCK.menu) {
+      await delay();
+      return readMock("resto_menu", initialMenuItems);
+    }
+    return request("/menu");
+  },
+  createMenuItem: async (item) => {
+    if (MOCK.menu) {
+      await delay();
+      const items = readMock("resto_menu", initialMenuItems);
+      const created = { ...item, id: "MENU-" + Date.now() };
+      writeMock("resto_menu", [created, ...items]);
+      return created;
+    }
+    return request("/menu", { method: "POST", body: item });
+  },
+  updateMenuItem: async (id, changes) => {
+    if (MOCK.menu) {
+      await delay();
+      const items = readMock("resto_menu", initialMenuItems).map((i) =>
+        String(i.id) === String(id) ? { ...i, ...changes } : i,
+      );
+      writeMock("resto_menu", items);
+      return items.find((i) => String(i.id) === String(id));
+    }
+    return request(`/menu/${id}`, { method: "PUT", body: changes });
+  },
+  deleteMenuItem: async (id) => {
+    if (MOCK.menu) {
+      await delay();
+      writeMock(
+        "resto_menu",
+        readMock("resto_menu", initialMenuItems).filter(
+          (i) => String(i.id) !== String(id),
+        ),
+      );
+      return { message: "Deleted" };
+    }
+    return request(`/menu/${id}`, { method: "DELETE" });
+  },
+  // Old "save the whole list" style. Mock only: a real backend saves one record at a time.
+  saveMenuItems: async (items) => {
+    if (!MOCK.menu) {
+      console.warn(
+        "saveMenuItems is mock-only. Use createMenuItem / updateMenuItem / deleteMenuItem.",
+      );
+      return items;
+    }
+    await delay();
+    writeMock("resto_menu", items);
+    return items;
+  },
+
+  // ================= USERS =================
+  getUsers: async () => {
+    if (MOCK.users) {
+      await delay();
+      return readMock("resto_users", initialUsers);
+    }
+    return request("/users"); // admin only
+  },
+  saveUsers: async (users) => {
+    if (!MOCK.users) {
+      console.warn(
+        "saveUsers is mock-only. Use per-user create/update endpoints.",
+      );
+      return users;
+    }
+    await delay();
+    writeMock("resto_users", users);
+    return users;
+  },
+
+  // ================= ORDERS =================
+  getOrders: async (filters = {}) => {
+    if (MOCK.orders) {
+      await delay();
+      return readMock("resto_orders", initialOrders);
+    }
+    const qs = new URLSearchParams(filters).toString();
+    return request(`/orders${qs ? `?${qs}` : ""}`);
+  },
+  updateOrderStatus: async (id, status) => {
+    if (MOCK.orders) {
+      await delay();
+      const orders = readMock("resto_orders", initialOrders).map((o) =>
+        o.id === id ? { ...o, status } : o,
+      );
+      writeMock("resto_orders", orders);
+      return orders.find((o) => o.id === id);
+    }
+    return request(`/orders/${id}/status`, {
+      method: "PATCH",
+      body: { status },
+    });
+  },
+  saveOrders: async (orders) => {
+    if (!MOCK.orders) {
+      console.warn(
+        "saveOrders is mock-only. Use createOrder / updateOrderStatus.",
+      );
+      return orders;
+    }
+    await delay();
+    writeMock("resto_orders", orders);
+    return orders;
+  },
+  createOrder: async (orderData) => {
+    if (MOCK.orders) {
+      await delay();
+      const orders = readMock("resto_orders", initialOrders);
+      const newOrder = {
+        id: "ORD-" + Date.now(),
+        createdAt: new Date().toISOString(),
+        status: "Pending",
+        ...orderData,
+      };
+      writeMock("resto_orders", [newOrder, ...orders]);
+      return newOrder;
+    }
+    return request("/orders", { method: "POST", body: orderData });
+  },
+};
+
+export const createOrder = apiService.createOrder;
+export default apiService;

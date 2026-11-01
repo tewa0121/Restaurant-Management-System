@@ -1,0 +1,6 @@
+🚀 Server running on http://localhost:5000
+✅ Connected to MySQL database successfully.
+🚀 Restaurant Database schema created successfully!
+🌱 Seed data verified! (Demo login accounts ready: admin@resto.com, manager@resto.com, waiter@resto.com, cashier@resto.com, kitchen@resto.com, customer@resto.com with password 'password123')
+⚡ Performance optimization indexes verified and active!
+GET /health

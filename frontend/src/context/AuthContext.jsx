@@ -1,51 +1,52 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState } from "react";
+import { authService } from "../services/authService";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Restore user from localStorage on initial load, or provide a default dev admin user so layout testing isn't blocked
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser);
-      } catch (e) {
-        return null;
-      }
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // On page load: if a token is saved, ask the backend who we are
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
     }
-    // Default mock user for smooth frontend development and layout testing
-    return { name: 'System Admin', role: 'admin' };
-  });
+    authService
+      .me()
+      .then((data) => setUser(data.user))
+      .catch(() => localStorage.removeItem("token"))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
-
-  const login = (userData, userToken) => {
-    setUser(userData);
-    setToken(userToken);
-    localStorage.setItem('token', userToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const saveSession = (data) => {
+    localStorage.setItem("token", data.token);
+    setUser(data.user);
+    return data.user;
   };
 
+  const login = async (email, password) =>
+    saveSession(await authService.login(email, password));
+
+  const register = async (form) =>
+    saveSession(await authService.register(form));
+
   const logout = () => {
+    localStorage.removeItem("token");
     setUser(null);
-    setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Custom hook to consume AuthContext safely
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 };

@@ -1,93 +1,48 @@
-// require('dotenv').config();
-// const express = require('express');
-// const mysql2 = require('mysql2');
-// const cors = require('cors');
-// const helmet = require('helmet');
-// const morgan = require('morgan');
-// const db = require('./config/database');
-// const routes = require('./routes');
-// const { notFound, errorHandler } = require('./middleware/errorHandler');
-
-// if (!process.env.JWT_SECRET) throw new Error('Set JWT_SECRET in .env before starting the server.');
-
-// const app = express();
-// app.use(helmet({ crossOriginResourcePolicy: false }));
-// app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
-// app.use(express.json());
-// app.use(morgan('dev'));
-// app.use('/api', routes);
-// app.use(notFound);
-// app.use(errorHandler);
-
-// const port = process.env.PORT || 5000;
-// app.listen(port, () => {
-//   console.log(`API running on http://localhost:${port}`);
-//   db.query('SELECT 1')
-//     .then(() => console.log('MySQL connected'))
-//     .catch((e) => console.error('MySQL connection FAILED:', e.message));
-// });
-require("dotenv").config();
+// backend/server.js
 const express = require("express");
 const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
+require("dotenv").config();
 
+// 👇 HARDCODED FALLBACK
+process.env.JWT_SECRET =
+  process.env.JWT_SECRET ||
+  "48af5bb2a64d0083662cd4703bd95bdd5c6afedb85dfa0ca088f7f51f6bd7d9b";
+
+// Import DB (This triggers your database.js)
 const db = require("./config/database");
-const routes = require("./routes");
+
+// Import Middleware
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("❌ Set JWT_SECRET in .env before starting the server.");
-}
+// Import Routes
+const authRoutes = require("./routes/authRoutes");
+const menuRoutes = require("./routes/menuRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+// Middleware
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev"));
 
-app.get("/", (req, res) => {
-  res.json({ status: "ok", message: "Restaurant Management API is running" });
+// Mount Routes
+app.use((req, res, next) => {
+  console.log(req.method, req.url);
+  next();
+});
+app.use("/api/auth", authRoutes);
+app.use("/api/menu", menuRoutes);
+
+// Health Check
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", message: "Restaurant API is running" });
 });
 
-app.use("/api", routes);
+// Error Handling Middleware (must stay AFTER all the routes)
 app.use(notFound);
 app.use(errorHandler);
 
-async function start() {
-  try {
-    // DB schema is already being initialized by config/database.js on require.
-    // Just verify the pool responds before binding the port.
-    await db.query("SELECT 1");
-    console.log("✅ MySQL pool verified");
-
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 API running on http://localhost:${PORT}`);
-    });
-
-    const shutdown = (signal) => {
-      console.log(`\n🛑 ${signal} received. Closing server...`);
-      server.close(async () => {
-        try {
-          await db.end();
-          console.log("✅ Database pool closed.");
-        } catch (err) {
-          console.log("⚠️ Error closing DB pool:", err.message);
-        }
-        process.exit(0);
-      });
-    };
-
-    process.on("SIGINT", () => shutdown("SIGINT"));
-    process.on("SIGTERM", () => shutdown("SIGTERM"));
-  } catch (err) {
-    console.error("❌ Startup failed:", err.message);
-    process.exit(1);
-  }
-}
-
-start();
-module.exports = app;
+// Start Server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

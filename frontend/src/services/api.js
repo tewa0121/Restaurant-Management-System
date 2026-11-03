@@ -1,63 +1,58 @@
 // src/services/api.js
-import { initialMenuItems, initialUsers, initialTables, initialOrders } from './mockData';
-
-// Helper to simulate asynchronous API delay
-const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const apiService = {
-  // Menu API
+  // --- MENU ---
   getMenuItems: async () => {
-    await delay();
-    const stored = localStorage.getItem('resto_menu');
-    return stored ? JSON.parse(stored) : initialMenuItems;
+    const res = await fetch(`${API_BASE_URL}/admin/menu`);
+    const json = await res.json();
+    return json.success ? json.data : [];
   },
-  saveMenuItems: async (items) => {
-    await delay();
-    localStorage.setItem('resto_menu', JSON.stringify(items));
-    return items;
-  },
-
-  // Users API
-  getUsers: async () => {
-    await delay();
-    const stored = localStorage.getItem('resto_users');
-    return stored ? JSON.parse(stored) : initialUsers;
-  },
-  saveUsers: async (users) => {
-    await delay();
-    localStorage.setItem('resto_users', JSON.stringify(users));
-    return users;
+  createMenuItem: async (itemData) => {
+    const res = await fetch(`${API_BASE_URL}/admin/menu`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(itemData)
+    });
+    return await res.json();
   },
 
-  // Orders API
+  // --- TABLES ---
+  getTables: async () => {
+    const res = await fetch(`${API_BASE_URL}/admin/tables`);
+    const json = await res.json();
+    return json.success ? json.data : [];
+  },
+
+  // --- ORDERS ---
   getOrders: async () => {
-    await delay();
-    const stored = localStorage.getItem('resto_orders');
-    return stored ? JSON.parse(stored) : initialOrders;
+    const res = await fetch(`${API_BASE_URL}/admin/orders`);
+    const json = await res.json();
+    return json.success ? json.data : [];
   },
-  saveOrders: async (orders) => {
-    await delay();
-    localStorage.setItem('resto_orders', JSON.stringify(orders));
-    return orders;
+  updateOrderStatus: async (orderId, status) => {
+    const res = await fetch(`${API_BASE_URL}/admin/orders/${orderId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    return await res.json();
   },
-  
-  // Create Order Method (በ localStorage ውስጥ አዲስ ትዕዛዝ የሚጨምር)
-  createOrder: async (orderData) => {
-    await delay();
-    const orders = await apiService.getOrders();
-    const newOrder = {
-      id: 'ORD-' + Date.now(),
-      createdAt: new Date().toISOString(),
-      status: 'Pending',
-      ...orderData
-    };
-    const updatedOrders = [newOrder, ...orders];
-    localStorage.setItem('resto_orders', JSON.stringify(updatedOrders));
-    return newOrder;
-  },
-};
 
-// ✅ Optional: Named export እንዲኖር ከፈለግክ ከዚህ በታች መስጠት ይቻላል
-export const createOrder = apiService.createOrder;
+  // --- EMPLOYEES ---
+  getEmployees: async () => {
+    const res = await fetch(`${API_BASE_URL}/admin/employees`);
+    const json = await res.json();
+    return json.success ? json.employees : [];
+  },
+  createEmployee: async (empData) => {
+    const res = await fetch(`${API_BASE_URL}/admin/employees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(empData)
+    });
+    return await res.json();
+  }
+};
 
 export default apiService;

@@ -1,28 +1,27 @@
-// middleware/roleMiddleware.js
-const requireRole = (allowedRoles) => {
+const AppError = require('../utils/AppError');
+
+const normalize = (value) => String(value).trim().toLowerCase();
+
+const authorize = (...allowed) => {
+  const allowedRoles = allowed.flat().map(normalize);
+
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    if (!req.user) return next(new AppError('Authentication required.', 401, 'NO_TOKEN'));
+
+    const userRoles = (req.user.roles || []).map(normalize);
+    if (userRoles.includes('admin') || userRoles.some((role) => allowedRoles.includes(role))) {
+      return next();
     }
 
-    // Support both req.user.role (string) and req.user.roles (array)
-    const userRoles = req.user.roles || [req.user.role];
-
-    // Normalize allowedRoles and userRoles to lowercase for reliable comparison
-    const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
-    const hasPermission = userRoles.some(role => 
-      role && normalizedAllowed.includes(role.toLowerCase())
-    );
-
-    if (!hasPermission) {
-      return res.status(403).json({ 
-        success: false, 
-        message: `Access denied. Required roles: [${allowedRoles.join(', ')}], but got [${userRoles.join(', ')}]` 
-      });
-    }
-
-    next();
+    return next(new AppError('You do not have permission to perform this action.', 403, 'FORBIDDEN'));
   };
 };
 
-module.exports = { requireRole };
+const hasRole = (user, ...roles) => {
+  if (!user) return false;
+  const userRoles = (user.roles || []).map(normalize);
+  const wanted = roles.flat().map(normalize);
+  return userRoles.includes('admin') || userRoles.some((role) => wanted.includes(role));
+};
+
+module.exports = { authorize, hasRole };

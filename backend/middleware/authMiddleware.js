@@ -1,27 +1,52 @@
 const jwt = require('jsonwebtoken');
+const AppError = require('../utils/AppError');
+const asyncHandler = require('../utils/asyncHandler');
+const UserModel = require('../models/userModel');
+const { jwtSecret } = require('../config/auth');
 
-exports.verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer <token>
+const extractToken = (req) => {
+  const header = req.headers.authorization || '';
+  const [scheme, token] = header.split(' ');
+  return scheme && scheme.toLowerCase() === 'bearer' && token ? token : null;
+};
 
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Access denied. No token provided.' });
-  }
-
+async function resolveUser(token) {
+  let payload;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Attach user payload to request
-    next();
+    payload = jwt.verify(token, jwtSecret);
   } catch (err) {
-    return res.status(403).json({ success: false, message: 'Invalid or expired token.' });
+    if (err.name === 'TokenExpiredError') throw new AppError('Your session has expired. Please log in again.', 401, 'TOKEN_EXPIRED');
+    throw new AppError('Invalid authentication token.', 401, 'INVALID_TOKEN');
   }
-};
 
-exports.requireRole = (allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'Unauthorized access for this role.' });
-    }
-    next();
+  const active = await UserModel.isSessionActive(payload.jti);
+  if (!active) throw new AppError('Your session is no longer active. Please log in again.', 401, 'SESSION_REVOKED');
+
+  return {
+    id: Number(payload.sub),
+    roles: Array.isArray(payload.roles) ? payload.roles : [],
+    role: payload.role,
+    sessionId: payload.jti,
   };
-};
+}
+
+const verifyToken = asyncHandler(async (req, res, next) => {
+  const token = extractToken(req);
+  if (!token) throw new AppError('Access denied. No token provided.', 401, 'NO_TOKEN');
+  req.user = await resolveUser(token);
+  next();
+});
+
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  const token = extractToken(req);
+  if (token) {
+    try {
+      req.user = await resolveUser(token);
+    } catch (err) {
+      req.user = null;
+    }
+  }
+  next();
+});
+
+module.exports = { verifyToken, optionalAuth };

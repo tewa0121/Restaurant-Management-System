@@ -1,5 +1,8 @@
 module.exports = {
-  jwtSecret: process.env.JWT_SECRET || 'your_super_secret_jwt_key_here',
-  shortExpiry: '1d',
-  longExpiry: '7d',
+  jwtSecret: process.env.JWT_SECRET,
+  shortExpirySeconds: 60 * 60 * 24,
+  longExpirySeconds: 60 * 60 * 24 * 7,
+  resetTokenMinutes: 60,
+  bcryptRounds: 10,
+  restaurantId: Number(process.env.RESTAURANT_ID) || 1,
 };

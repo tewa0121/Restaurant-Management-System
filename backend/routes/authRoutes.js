@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/authController');
-const { verifyToken } = require('../middleware/authMiddleware'); // Destructured correctly here
+const verifyToken = require('../middleware/authMiddleware');
 
 // POST /api/auth/login
 router.post('/login', [

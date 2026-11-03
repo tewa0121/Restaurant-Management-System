@@ -1,89 +1,42 @@
-const { validationResult } = require('express-validator');
-const authService = require('../services/authService');
+const AuthService = require('../services/authService');
+const asyncHandler = require('../utils/asyncHandler');
 
-/**
- * @route   POST /api/auth/login
- * @desc    Authenticate user, issue JWT token, and create session
- * @access  Public
- */
-exports.login = async (req, res, next) => {
-  try {
-    // 1. Check for express-validator input errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        message: 'Validation failed. Please check your credentials.',
-        errors: errors.array(),
-      });
-    }
+exports.login = asyncHandler(async (req, res) => {
+  const result = await AuthService.login(req.body, req);
+  res.status(200).json({ success: true, ...result });
+});
 
-    const { email, password, remember } = req.body;
+exports.register = asyncHandler(async (req, res) => {
+  const result = await AuthService.register(req.body, req);
+  res.status(201).json({ success: true, ...result });
+});
 
-    // 2. Delegate authentication business logic to authService
-    const result = await authService.authenticateUser(email, password, remember, req);
+exports.me = asyncHandler(async (req, res) => {
+  const user = await AuthService.getProfile(req.user.id);
+  res.status(200).json({ success: true, user });
+});
 
-    // 3. Return payload formatted for frontend consumption: { token, user: { id, fullName, email, roles } }
-    return res.status(200).json(result);
-  } catch (err) {
-    if (err.message === 'INVALID_CREDENTIALS') {
-      return res.status(401).json({ message: 'Email or password is incorrect.' });
-    }
-    if (err.message === 'NO_ROLES_ASSIGNED') {
-      return res.status(403).json({
-        message: 'This account has no role assigned. Please contact an administrator.',
-      });
-    }
-    if (err.message === 'ACCOUNT_INACTIVE') {
-      return res.status(403).json({
-        message: 'This account has been deactivated. Please contact support.',
-      });
-    }
+exports.updateProfile = asyncHandler(async (req, res) => {
+  const user = await AuthService.updateProfile(req.user.id, req.body);
+  res.status(200).json({ success: true, message: 'Profile updated successfully.', user });
+});
 
-    console.error('❌ Login Error:', err);
-    return next(err);
-  }
-};
+exports.changePassword = asyncHandler(async (req, res) => {
+  const result = await AuthService.changePassword(req.user.id, req.user.sessionId, req.body);
+  res.status(200).json({ success: true, ...result });
+});
 
-/**
- * @route   GET /api/auth/me
- * @desc    Get current authenticated user profile
- * @access  Private (Requires JWT Bearer Token)
- */
-exports.me = async (req, res, next) => {
-  try {
-    // req.user.id is attached by authMiddleware after verifying JWT
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: 'Unauthorized access.' });
-    }
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const result = await AuthService.forgotPassword(req.body);
+  res.status(200).json({ success: true, ...result });
+});
 
-    const profile = await authService.getUserProfile(req.user.id);
-    return res.status(200).json(profile);
-  } catch (err) {
-    if (err.message === 'USER_NOT_FOUND') {
-      return res.status(401).json({ message: 'Account not found or inactive.' });
-    }
+exports.resetPassword = asyncHandler(async (req, res) => {
+  const result = await AuthService.resetPassword(req.body);
+  res.status(200).json({ success: true, ...result });
+});
 
-    console.error('❌ Auth Me Error:', err);
-    return next(err);
-  }
-};
-
-/**
- * @route   POST /api/auth/logout
- * @desc    Revoke current user session in database
- * @access  Private (Requires JWT Bearer Token)
- */
-exports.logout = async (req, res, next) => {
-  try {
-    const sessionId = req.user?.sessionId || req.user?.jti;
-    
-    if (sessionId) {
-      await authService.logoutUser(sessionId);
-    }
-
-    return res.status(200).json({ message: 'Signed out successfully.' });
-  } catch (err) {
-    console.error('❌ Logout Error:', err);
-    return next(err);
-  }
-};
+exports.logout = asyncHandler(async (req, res) => {
+  const result = await AuthService.logout(req.user.sessionId, req.user.id);
+  res.status(200).json({ success: true, ...result });
+});

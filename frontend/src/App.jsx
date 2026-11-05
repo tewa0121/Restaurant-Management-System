@@ -21,6 +21,7 @@ import {
 import Login from './pages/auth/Login';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 
 // --- ADMIN PAGES ---
 import AdminDashboard from './pages/admin/Dashboard';
@@ -178,6 +179,7 @@ export default function App() {
                 <Route path="/login" element={<Navigate to="/admin" replace />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* 3. ADMIN MANAGEMENT ROUTES */}
                 <Route element={<ProtectedRoute allowedRoles={['Super Administrator', 'superadmin', 'admin']} />}>

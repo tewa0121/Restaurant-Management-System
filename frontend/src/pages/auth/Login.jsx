@@ -16,45 +16,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const loginImage = '/assets/food-placeholders/login.png';
 
-function mockLogin(email, password) {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  // 1. Default static mock accounts
-  const defaultAccounts = {
-    'admin@resto.com': { id: 1, name: 'System Admin', email: 'admin@resto.com', role: 'admin' },
-    'manager@resto.com': { id: 2, name: 'Manager', email: 'manager@resto.com', role: 'manager' },
-    'waiter@resto.com': { id: 3, name: 'Waiter', email: 'waiter@resto.com', role: 'waiter' },
-    'cashier@resto.com': { id: 4, name: 'Cashier', email: 'cashier@resto.com', role: 'cashier' },
-    'kitchen@resto.com': { id: 5, name: 'Kitchen Staff', email: 'kitchen@resto.com', role: 'kitchen' },
-    'customer@resto.com': { id: 6, name: 'Customer', email: 'customer@resto.com', role: 'customer' },
-  };
-
-  let user = defaultAccounts[normalizedEmail];
-  let validPassword = (password === 'password123');
-
-  // 2. Check accounts registered via SignUp (saved in localStorage)
-  if (!user) {
-    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const foundUser = registeredUsers.find(u => u.email === normalizedEmail);
-
-    if (foundUser && foundUser.password === password) {
-      user = {
-        id: foundUser.id || Date.now(),
-        name: foundUser.fullName,
-        email: foundUser.email,
-        role: foundUser.role || 'customer'
-      };
-      validPassword = true;
-    }
-  }
-
-  if (user && validPassword) {
-    return { success: true, user, token: 'demo-token-' + Date.now() };
-  }
-
-  throw new Error('Invalid email or password.');
-}
-
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -65,42 +26,26 @@ export default function Login() {
   const [language, setLanguage] = useState('English');
 
   const navigate = useNavigate();
-
-  let authLogin = () => {};
-  try {
-    const auth = useAuth();
-    if (auth && auth.login) authLogin = auth.login;
-  } catch (e) {}
+  const { login: authLogin } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const response = mockLogin(email, password);
-      if (!response.success) throw new Error('Invalid email or password.');
-
-      if (authLogin) authLogin(response.user, response.token);
-
-      // Store user and token in localStorage
-      localStorage.setItem('user', JSON.stringify(response.user));
-      if (rememberMe) {
-        localStorage.setItem('token', response.token);
-      } else {
-        localStorage.removeItem('token');
-      }
-
-      // Synchronized navigation targets based on role
-      const role = String(response.user.role || '').toLowerCase();
-      if (role.includes('admin')) navigate('/admin/panel/dashboard');
-      else if (role.includes('cashier')) navigate('/cashier/dashboard');
-      else if (role.includes('kitchen')) navigate('/kitchen/dashboard');
-      else if (role.includes('manager')) navigate('/manager/dashboard');
-      else if (role.includes('waiter')) navigate('/waiter/dashboard');
-      else if (role.includes('customer')) navigate('/');
-      else setError('Your account does not have a recognized role.');
+      const user = await authLogin(email, password, rememberMe);
+      const role = String(user.role || '').toLowerCase();
+      const destinations = {
+        admin: '/admin/panel/dashboard',
+        manager: '/manager/dashboard',
+        cashier: '/cashier/dashboard',
+        kitchen: '/kitchen/dashboard',
+        waiter: '/waiter/dashboard',
+        customer: '/',
+      };
+      navigate(destinations[role] || '/');
     } catch (err) {
-      setError(err.message || 'Invalid email or password!');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

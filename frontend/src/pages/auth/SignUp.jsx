@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -9,40 +10,27 @@ export default function SignUp() {
     password: '',
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { register } = useAuth();
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
-
-      // Save user to localStorage
-      const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      const normalizedEmail = formData.email.trim().toLowerCase();
-
-      // Check if email is already registered
-      const isExisting = existingUsers.some(u => u.email === normalizedEmail);
-      if (isExisting) {
-        alert('An account with this email already exists!');
-        return;
-      }
-
-      const newUser = {
-        id: Date.now(),
-        fullName: formData.fullName,
-        email: normalizedEmail,
+    try {
+      await register({
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        role: 'customer' // Default role for public signups
-      };
-
-      existingUsers.push(newUser);
-      localStorage.setItem('registeredUsers', JSON.stringify(existingUsers));
-
-      alert('Account created successfully! Please Log In.');
-      navigate('/login');
-    }, 1200);
+      });
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Could not create the account. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,6 +87,7 @@ export default function SignUp() {
               <input
                 type="password"
                 required
+                minLength={6}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
@@ -106,6 +95,8 @@ export default function SignUp() {
               />
             </div>
           </div>
+
+          {error && <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
           <button
             type="submit"

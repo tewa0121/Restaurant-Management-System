@@ -1,12 +1,13 @@
 // src/pages/manager/TableManagement.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Utensils, Users, Plus, Eye, RefreshCw, X, Trash2, AlertTriangle, ShoppingBag } from 'lucide-react';
-import { mockDatabase } from '../../data/mockData';
+import useTables from '../../hooks/useTables';
 import { formatCurrency } from '../../utils/formatters';
 
 export default function TableManagement() {
-  const [tables, setTables] = useState(mockDatabase.tables || []);
-  const [orders, setOrders] = useState(mockDatabase.orders || []);
+  const { tables, loading, error, notice, addTable, changeStatus, removeTable } = useTables();
+  const orders = []; // real orders arrive with the Orders module
+  const [formError, setFormError] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   
   // Modals state
@@ -21,6 +22,11 @@ export default function TableManagement() {
   const [newCapacity, setNewCapacity] = useState('4');
   const [newStatus, setNewStatus] = useState('available');
 
+  // forget an old error message whenever every popup is closed
+  useEffect(() => {
+    if (!isAddTableOpen && !isChangeStatusOpen && !isDeleteOpen) setFormError('');
+  }, [isAddTableOpen, isChangeStatusOpen, isDeleteOpen]);
+
   const filteredTables = tables.filter(t => filterStatus === 'all' || t.status === filterStatus);
 
   const getStatusStyle = (status) => {
@@ -34,24 +40,30 @@ export default function TableManagement() {
     }
   };
 
-  const handleAddTable = (e) => {
+  const handleAddTable = async (e) => {
     e.preventDefault();
     if (!newTableNum) return;
-    setTables([...tables, { id: Date.now(), table_number: parseInt(newTableNum, 10), capacity: parseInt(newCapacity, 10), status: 'available' }]);
+    setFormError('');
+    const r = await addTable({ number: newTableNum, capacity: newCapacity });
+    if (!r.ok) return setFormError(r.message);
     setNewTableNum('');
     setIsAddTableOpen(false);
   };
 
-  const handleUpdateStatus = (e) => {
+  const handleUpdateStatus = async (e) => {
     e.preventDefault();
     if (!selectedTable) return;
-    setTables(tables.map(t => t.id === selectedTable.id ? { ...t, status: newStatus } : t));
+    setFormError('');
+    const r = await changeStatus(selectedTable.id, newStatus);
+    if (!r.ok) return setFormError(r.message);
     setIsChangeStatusOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!selectedTable) return;
-    setTables(tables.filter(t => t.id !== selectedTable.id));
+    setFormError('');
+    const r = await removeTable(selectedTable.id);
+    if (!r.ok) return setFormError(r.message);
     setIsDeleteOpen(false);
     setSelectedTable(null);
   };
@@ -84,6 +96,11 @@ export default function TableManagement() {
           </button>
         </div>
       </div>
+
+      {notice && <div className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">{notice}</div>}
+      {error && <div className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200">{error}</div>}
+      {loading && <p className="text-xs text-slate-400">Loading tables...</p>}
+      {!loading && !error && filteredTables.length === 0 && <p className="text-xs text-slate-400">No tables found.</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {filteredTables.map((table) => {
@@ -179,6 +196,7 @@ export default function TableManagement() {
               <h3 className="font-bold text-sm text-slate-800 dark:text-white">Delete Table #{selectedTable.table_number}?</h3>
             </div>
             <p className="text-slate-500">Are you sure you want to remove this table? This action cannot be undone.</p>
+            {formError && <p className="text-xs font-semibold text-rose-600">{formError}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setIsDeleteOpen(false)} className="px-3 py-1.5 rounded-xl text-slate-500">Cancel</button>
               <button type="button" onClick={confirmDelete} className="px-4 py-1.5 bg-rose-600 text-white rounded-xl font-semibold cursor-pointer">Delete</button>
@@ -192,6 +210,7 @@ export default function TableManagement() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
             <h3 className="font-bold text-slate-800 dark:text-white text-sm">Add New Table</h3>
+            {formError && <p className="text-xs font-semibold text-rose-600">{formError}</p>}
             <form onSubmit={handleAddTable} className="space-y-3 text-xs">
               <input type="number" placeholder="Table Number" value={newTableNum} onChange={(e) => setNewTableNum(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-3 py-2" />
               <select value={newCapacity} onChange={(e) => setNewCapacity(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-3 py-2">
@@ -211,6 +230,7 @@ export default function TableManagement() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
             <h3 className="font-bold text-slate-800 dark:text-white text-sm">Update Status: Table #{selectedTable.table_number}</h3>
+            {formError && <p className="text-xs font-semibold text-rose-600">{formError}</p>}
             <form onSubmit={handleUpdateStatus} className="space-y-3 text-xs">
               <select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-3 py-2">
                 <option value="available">Available</option>

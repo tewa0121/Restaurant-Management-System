@@ -1,18 +1,17 @@
 // src/pages/kitchen/IncomingOrders.jsx
+// New tickets waiting for the kitchen. "Start Preparing" moves an order to Preparing.
 import React, { useState } from 'react';
-import { Flame, Clock, Play, AlertCircle } from 'lucide-react';
+import { Flame, Clock, Play } from 'lucide-react';
+import useOrders, { timeOf } from '../../hooks/useOrders';
 
 export default function IncomingOrders() {
-  const [orders, setOrders] = useState([
-    { id: '#ORD-1250', table: 'Table 5', items: ['Grilled Chicken Breast x2', 'Caesar Salad x1'], time: '10:20 AM', priority: 'High', elapsed: '15 min' },
-    { id: '#ORD-1249', table: 'Table 7', items: ['Beef Burger x2', 'French Fries x2', 'Coke x2'], time: '10:18 AM', priority: 'High', elapsed: '17 min' },
-    { id: '#ORD-1248', table: 'Table 12', items: ['Margherita Pizza x1', 'Garlic Bread x1'], time: '10:15 AM', priority: 'Medium', elapsed: '20 min' },
-    { id: '#ORD-1247', table: 'Table 3', items: ['Pasta Carbonara x2'], time: '10:10 AM', priority: 'Medium', elapsed: '25 min' },
-    { id: '#ORD-1246', table: 'Table 15', items: ['Seafood Soup x1', 'Steak x1'], time: '10:08 AM', priority: 'Low', elapsed: '27 min' },
-  ]);
+  const { orders, loading, error, notice, changeStatus } = useOrders({ status: 'pending', sort: 'priority', pollMs: 8000 });
+  const [actionError, setActionError] = useState('');
 
-  const handleStartOrder = (id) => {
-    setOrders(prev => prev.filter(o => o.id !== id));
+  const handleStartOrder = async (id) => {
+    setActionError('');
+    const r = await changeStatus(id, 'preparing', 'Order started.');
+    if (!r.ok) setActionError(r.message);
   };
 
   return (
@@ -29,12 +28,17 @@ export default function IncomingOrders() {
         </span>
       </div>
 
+      {notice && <div className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">{notice}</div>}
+      {(error || actionError) && <div className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 text-xs font-semibold border border-rose-200">{actionError || error}</div>}
+      {loading && <p className="text-xs text-slate-400">Loading orders...</p>}
+      {!loading && !error && orders.length === 0 && <p className="text-xs text-slate-400">No new orders. The kitchen is all caught up.</p>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {orders.map(order => (
           <div key={order.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">{order.id}</span>
+                <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">{order.displayId}</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                   order.priority === 'High' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400' :
                   order.priority === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' :
@@ -43,15 +47,21 @@ export default function IncomingOrders() {
                   {order.priority} Priority
                 </span>
               </div>
-              <div className="text-xs font-bold text-slate-700 dark:text-slate-200">{order.table}</div>
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                {order.tableLabel}{order.type !== 'dine_in' ? ` • ${order.type.replace('_', ' ')}` : ''}
+              </div>
               <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
-                {order.items.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-1.5">• {item}</li>
+                {order.items.map((item) => (
+                  <li key={item.id} className="flex items-center gap-1.5">
+                    • {item.name} x{item.quantity}
+                    {item.instructions && <span className="text-amber-600"> ({item.instructions})</span>}
+                  </li>
                 ))}
               </ul>
+              {order.notes && <p className="text-[11px] text-amber-700 dark:text-amber-400">Note: {order.notes}</p>}
               <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Placed: {order.time}</span>
-                <span className="text-amber-600 font-bold">Waiting: {order.elapsed}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Placed: {timeOf(order.orderedAt)}</span>
+                <span className="text-amber-600 font-bold">Waiting: {order.elapsedMinutes} min</span>
               </div>
             </div>
 

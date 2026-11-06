@@ -12,6 +12,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeLayout from './ThemeLayout';
+import { http } from '../../services/http';
 
 // ==========================================
 // 1. PORTAL CONFIG (roles + paths match App.jsx)
@@ -676,49 +677,84 @@ export function PortalHeader({ title, subtitle, roleName, onOpenMobileMenu }) {
 // ==========================================
 // 7. CUSTOMER CART PANEL
 // ==========================================
+
 export function CustomerCartPanel({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { cart, removeFromCart, updateQuantity, subtotal, totalAmount, clearCart } = useCart();
-  const { isAuthenticated, user, login, register, users = [] } = useAuth();
+  const { user, login, register, logout } = useAuth();
+  const isAuthenticated = !!user;
 
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [checkoutStep, setCheckoutStep] = useState('cart');
   const [authMode, setAuthMode] = useState('login');
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [orderType, setOrderType] = useState('takeaway'); // takeaway = pickup | delivery
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [orderError, setOrderError] = useState('');
+  const [placedOrder, setPlacedOrder] = useState(null);
   const [isLoyaltyApplied, setIsLoyaltyApplied] = useState(false);
-  const [authForm, setAuthForm] = useState({ fullName: '', email: '', phone: '' });
+  const [authForm, setAuthForm] = useState({ fullName: '', email: '', phone: '', password: '' });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalItemsCount = cart ? cart.reduce((sum, item) => sum + item.qty, 0) : 0;
 
-  const getUserOrderCount = () => {
-    try {
-      const allOrders = JSON.parse(localStorage.getItem('resto_orders') || '[]');
-      const activeUserEmail = user?.email || authForm.email;
-      if (activeUserEmail) {
-        return allOrders.filter((o) => o.customerEmail?.toLowerCase() === activeUserEmail.toLowerCase()).length;
-      }
-      return user?.orderCount || 0;
-    } catch {
-      return 0;
-    }
-  };
-
-  const pastOrdersCount = getUserOrderCount();
-  const REQUIRED_ORDERS = 10;
-  const isEligibleForLoyalty = pastOrdersCount >= REQUIRED_ORDERS;
-  const discountAmount = isEligibleForLoyalty && isLoyaltyApplied ? subtotal * 0.1 : 0;
-  const finalPayableAmount = Math.max(0, totalAmount - discountAmount);
+  // Exact prices and loyalty status come from the server (nothing is calculated locally)
+  const [quote, setQuote] = useState(null);
+  const loyalty = quote?.loyalty;
+  const pastOrdersCount = loyalty?.completedOrders ?? 0;
+  const REQUIRED_ORDERS = loyalty?.required ?? 10;
+  const isEligibleForLoyalty = !!loyalty?.eligible;
+  const discountAmount = quote ? Number(quote.discount) || 0 : 0;
+  const finalPayableAmount = quote ? Number(quote.total) : totalAmount;
+  const shownSubtotal = quote ? Number(quote.subtotal) : subtotal;
 
   const location = useLocation();
   const panelRef = useRef(null);
 
-  // Collapse when the page changes
+  // Collapse when the page changes (not on first mount)
+  const prevPathRef = useRef(location.pathname);
   useEffect(() => {
-    if (isOpen) onClose();
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      if (isOpen) onClose();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // Ask the server for the exact price whenever the cart changes
+  useEffect(() => {
+    if (!isOpen || !user || cart.length === 0) {
+      setQuote(null);
+      return undefined;
+    }
+    const delivery =
+      orderType === 'delivery' && deliveryAddress.trim()
+        ? { address: deliveryAddress.trim(), phone: user.phone || authForm.phone, name: user.name }
+        : null;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await http('/orders/quote', {
+          method: 'POST',
+          body: {
+            orderType: delivery ? 'delivery' : 'takeaway',
+            items: cart.map((i) => ({ id: i.id, qty: i.qty })),
+            useLoyalty: isLoyaltyApplied,
+            ...(delivery ? { delivery } : {}),
+          },
+        });
+        if (!cancelled) setQuote(res.data);
+      } catch {
+        if (!cancelled) setQuote(null); // fall back to the local estimate
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, user, cart, orderType, deliveryAddress, isLoyaltyApplied]);
 
   // Collapse when clicking anywhere outside the cart (sidebar, main, etc.)
   useEffect(() => {
@@ -743,16 +779,20 @@ export function CustomerCartPanel({ isOpen, onClose }) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^[0-9+\s-]{8,15}$/;
 
+    if (authMode === 'signup' && !authForm.fullName.trim()) {
+      setFormError('Full name is required for registration.');
+      return false;
+    }
     if (!emailRegex.test(authForm.email.trim())) {
       setFormError('Please enter a valid email address.');
       return false;
     }
-    if (!phoneRegex.test(authForm.phone.trim())) {
+    if (authMode === 'signup' && !phoneRegex.test(authForm.phone.trim())) {
       setFormError('Please enter a valid phone number.');
       return false;
     }
-    if (authMode === 'signup' && !authForm.fullName.trim()) {
-      setFormError('Full name is required for registration.');
+    if (authForm.password.length < 6) {
+      setFormError('Password must be at least 6 characters.');
       return false;
     }
     return true;
@@ -772,52 +812,91 @@ export function CustomerCartPanel({ isOpen, onClose }) {
     setFormError('');
 
     try {
-      const emailInput = authForm.email.trim().toLowerCase();
-      const existingUser = users.find((u) => u.email?.toLowerCase() === emailInput);
-
+      const email = authForm.email.trim().toLowerCase();
       if (authMode === 'login') {
-        if (!existingUser) {
-          setFormError('Account not found! Please click "New customer? Sign up here".');
-          setIsSubmitting(false);
-          return;
-        }
-        if (login) await login({ email: authForm.email, phone: authForm.phone });
+        await login(email, authForm.password);
       } else {
-        if (existingUser) {
-          setFormError('Account already exists with this email. Please login instead.');
-          setIsSubmitting(false);
-          return;
-        }
-        if (register) await register(authForm);
+        await register({
+          fullName: authForm.fullName.trim(),
+          email,
+          phone: authForm.phone.trim(),
+          password: authForm.password,
+        });
       }
-
+      setAuthForm((f) => ({ ...f, password: '' }));
+      setOrderError('');
       setCheckoutStep('cart');
-      setShowConfirmPopup(true);
+      setShowConfirmPopup(true); // straight to Confirm Order
     } catch (err) {
-      setFormError('Authentication failed. Please check your details.');
+      setFormError(err.message || 'Could not sign you in. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const executePayment = (shouldSucceed = true) => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setShowConfirmPopup(false);
-      if (shouldSucceed) {
-        setCheckoutStep('success');
-        if (clearCart) clearCart();
-      } else {
+  // Saves the order in the database. Prices are re-calculated by the server.
+  const executePayment = async (shouldSucceed = true) => {
+    if (!shouldSucceed) {
+      setIsSubmitting(true);
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setShowConfirmPopup(false);
         setCheckoutStep('failed');
+      }, 800);
+      return;
+    }
+
+    if (orderType === 'delivery' && !deliveryAddress.trim()) {
+      setShowConfirmPopup(false);
+      setOrderError('Please enter a delivery address.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setOrderError('');
+    try {
+      const body = {
+        orderType,
+        items: cart.map((i) => ({ id: i.id, qty: i.qty })),
+        paymentMethod: selectedPayment,
+        useLoyalty: isEligibleForLoyalty && isLoyaltyApplied,
+      };
+      if (orderType === 'delivery') {
+        body.delivery = {
+          address: deliveryAddress.trim(),
+          phone: user?.phone || authForm.phone,
+          name: user?.name,
+        };
       }
-    }, 800);
+
+      const res = await http('/orders', { method: 'POST', body });
+
+      setPlacedOrder(res.data);
+      setShowConfirmPopup(false);
+      setCheckoutStep('success');
+      if (clearCart) clearCart();
+      setTimeout(() => handleGoToOrders(), 1500); // then open My Orders
+    } catch (err) {
+      if (err.status === 401) {
+        // login expired: ask the customer to log in again
+        if (logout) logout();
+        setShowConfirmPopup(false);
+        setAuthMode('login');
+        setFormError('Your session expired. Please log in again.');
+        setCheckoutStep('auth');
+      } else {
+        setOrderError(err.message || 'Could not place your order. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleResetAndClose = () => {
     setCheckoutStep('cart');
     setShowConfirmPopup(false);
     setFormError('');
+    setOrderError('');
     setIsLoyaltyApplied(false);
     onClose();
   };
@@ -858,6 +937,10 @@ export function CustomerCartPanel({ isOpen, onClose }) {
                   <span className="font-bold text-gray-900 dark:text-white truncate max-w-[90px]">{user?.name || authForm.fullName || 'Verified'}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
+                  <span>Order:</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{orderType === 'delivery' ? 'Delivery' : 'Pickup'}</span>
+                </div>
+                <div className="flex justify-between text-gray-500">
                   <span>Payment:</span>
                   <span className="font-bold capitalize text-gray-900 dark:text-white">{selectedPayment}</span>
                 </div>
@@ -869,6 +952,11 @@ export function CustomerCartPanel({ isOpen, onClose }) {
             </div>
 
             <div className="space-y-1.5 pt-2">
+              {orderError && (
+                <p className="text-[8px] text-rose-500 bg-rose-50 dark:bg-rose-950/40 p-1 rounded font-bold border border-rose-200 dark:border-rose-900 leading-tight">
+                  {orderError}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => executePayment(true)}
@@ -907,8 +995,8 @@ export function CustomerCartPanel({ isOpen, onClose }) {
               {cart.length === 0 ? (
                 <p className="text-[10px] text-gray-400 py-3 text-center">Cart is empty.</p>
               ) : (
-                cart.map((item) => (
-                  <div key={item.id} className="pt-2 flex items-center gap-1.5 min-w-0">
+                cart.map((item, index) => (
+                  <div key={`${item.id ?? item._id ?? item.name}-${index}`} className="pt-2 flex items-center gap-1.5 min-w-0">
                     <img
                       src={item.image || '/assets/food-placeholders/food-burger.png'}
                       alt={item.name}
@@ -938,30 +1026,59 @@ export function CustomerCartPanel({ isOpen, onClose }) {
             </div>
 
             <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 shrink-0">
-              <button
-                type="button"
-                disabled={!isEligibleForLoyalty}
-                onClick={() => setIsLoyaltyApplied(!isLoyaltyApplied)}
-                className={`w-full p-1.5 rounded-lg border text-[8px] font-bold transition-all flex items-center justify-between gap-1 ${
+              <div
+                className={`w-full p-1.5 rounded-lg border text-[8px] font-bold flex items-center justify-between gap-1 ${
                   isEligibleForLoyalty
-                    ? isLoyaltyApplied
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs cursor-pointer'
-                      : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 cursor-pointer'
-                    : 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800 cursor-not-allowed'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                    : 'bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-800'
                 }`}
               >
                 <div className="flex items-center gap-1 min-w-0">
                   <Gift size={11} className="shrink-0" />
                   <span className="truncate">
                     {isEligibleForLoyalty
-                      ? isLoyaltyApplied ? '10% Discount Applied!' : 'Apply 10% Loyalty Off'
-                      : '10-Day Loyalty Off'}
+                      ? `VIP ${loyalty?.percent ?? 10}% Off Applied!`
+                      : `VIP ${loyalty?.percent ?? 10}% Off`}
                   </span>
                 </div>
                 <span className="text-[7px] font-black shrink-0 px-1 py-0.5 rounded bg-black/10 dark:bg-white/10">
                   {pastOrdersCount}/{REQUIRED_ORDERS} Orders
                 </span>
-              </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2 shrink-0">
+              <label className="text-[8px] font-extrabold uppercase tracking-wider block text-gray-400">Order Type</label>
+              <div className="grid grid-cols-2 gap-1">
+                {[['takeaway', 'Pickup'], ['delivery', 'Delivery']].map(([value, text]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => { setOrderType(value); setOrderError(''); }}
+                    className={`p-1 rounded border text-[8px] font-bold transition-all cursor-pointer ${
+                      orderType === value
+                        ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 ring-1 ring-emerald-600/30'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+              {orderType === 'delivery' && (
+                <input
+                  type="text"
+                  value={deliveryAddress}
+                  onChange={(e) => { setDeliveryAddress(e.target.value); setOrderError(''); }}
+                  placeholder="Delivery address"
+                  className={inputCls}
+                />
+              )}
+              {orderError && !showConfirmPopup && (
+                <p className="text-[8px] text-rose-500 bg-rose-50 dark:bg-rose-950/40 p-1 rounded font-bold border border-rose-200 dark:border-rose-900 leading-tight">
+                  {orderError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5 pt-2 border-t border-gray-100 dark:border-gray-800 mt-2 shrink-0">
@@ -991,11 +1108,11 @@ export function CustomerCartPanel({ isOpen, onClose }) {
               <div className="space-y-0.5 text-[10px]">
                 <div className="flex justify-between text-gray-500 text-[9px]">
                   <span>Subtotal</span>
-                  <span className="font-bold text-gray-900 dark:text-white">${subtotal.toFixed(2)}</span>
+                  <span className="font-bold text-gray-900 dark:text-white">${shownSubtotal.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-emerald-600 text-[9px] font-bold">
-                    <span>Loyalty 10% Off</span>
+                    <span>VIP {loyalty?.percent ?? 10}% Off</span>
                     <span>-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}
@@ -1046,11 +1163,25 @@ export function CustomerCartPanel({ isOpen, onClose }) {
               )}
               <div>
                 <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Email Address</label>
-                <input type="email" name="email" value={authForm.email} onChange={handleInputChange} placeholder="name@example.com" className={inputCls} />
+                <input type="email" name="email" value={authForm.email} onChange={handleInputChange} placeholder="name@example.com" autoComplete="email" className={inputCls} />
               </div>
+              {authMode === 'signup' && (
+                <div>
+                  <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Phone Number</label>
+                  <input type="tel" name="phone" value={authForm.phone} onChange={handleInputChange} placeholder="+1 234 567 890" className={inputCls} />
+                </div>
+              )}
               <div>
-                <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Phone Number</label>
-                <input type="tel" name="phone" value={authForm.phone} onChange={handleInputChange} placeholder="+1 234 567 890" className={inputCls} />
+                <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Password</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={authForm.password}
+                  onChange={handleInputChange}
+                  placeholder="At least 6 characters"
+                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                  className={inputCls}
+                />
               </div>
 
               <button
@@ -1082,6 +1213,11 @@ export function CustomerCartPanel({ isOpen, onClose }) {
             <div>
               <h4 className="font-black text-[11px] text-gray-900 dark:text-white">Payment Successful!</h4>
               <p className="text-[8px] text-gray-500 dark:text-gray-400 mt-0.5">Your order has been placed and sent to the kitchen.</p>
+              {placedOrder && (
+                <p className="text-[9px] font-bold text-gray-900 dark:text-white mt-1">
+                  {placedOrder.orderNumber} · ${Number(placedOrder.total).toFixed(2)}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5 pt-1">
               <button type="button" onClick={handleGoToOrders} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[9px] py-1.5 rounded-lg transition-all cursor-pointer">

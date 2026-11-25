@@ -44,6 +44,10 @@ export const tableService = {
     return unwrapItem(res);
   },
 
+  updateStatus: async (tableId, status) => {
+    return tableService.updateTableStatus(tableId, status);
+  },
+
   assignWaiter: async (tableId, waiterId) => {
     const res = await api.patch(`/tables/${tableId}/assign-waiter`, { waiterId });
     return unwrapItem(res);

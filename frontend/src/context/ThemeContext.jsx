@@ -7,10 +7,9 @@ export function ThemeProvider({ children }) {
     try {
       const saved = localStorage.getItem('resto_theme');
       if (saved !== null) {
-        // Handle plain strings like "dark"/"light" or JSON booleans
         if (saved === 'dark' || saved === '"dark"') return true;
         if (saved === 'light' || saved === '"light"') return false;
-        return JSON.parse(saved);
+        return Boolean(JSON.parse(saved));
       }
     } catch (e) {
       // Fallback if parsing fails
@@ -19,8 +18,11 @@ export function ThemeProvider({ children }) {
   });
 
   useEffect(() => {
-    // Save cleanly as boolean JSON or string
-    localStorage.setItem('resto_theme', JSON.stringify(isDarkMode));
+    try {
+      localStorage.setItem('resto_theme', JSON.stringify(isDarkMode));
+    } catch (e) {
+      // Ignore storage errors
+    }
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {

@@ -8,13 +8,13 @@ import { ThemeProvider } from './context/ThemeContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
 // --- LAYOUTS ---
-import { 
-  AdminLayout, 
-  CashierLayout, 
-  KitchenLayout, 
-  ManagerLayout, 
-  WaiterLayout, 
-  CustomerLayout 
+import {
+  AdminLayout,
+  CashierLayout,
+  KitchenLayout,
+  ManagerLayout,
+  WaiterLayout,
+  CustomerLayout,
 } from './components/layout/AppLayout';
 
 // --- AUTH PAGES ---
@@ -41,33 +41,19 @@ import LogsAndActivity from './pages/admin/LogsAndActivity';
 import Restaurants from './pages/admin/Restaurants';
 import Settings from './pages/admin/Settings';
 
-// --- CASHIER PAGES (Safe Module Loaders) ---
+// --- CASHIER PAGES ---
 import CashierDashboard from './pages/cashier/Dashboard';
-import * as NewBillModule from './pages/cashier/NewBill';
-import * as ActiveBillsModule from './pages/cashier/ActiveBills';
-import * as HoldBillsModule from './pages/cashier/HoldBills';
-import * as OrderHistoryModule from './pages/cashier/OrderHistory';
-import * as PaymentHistoryModule from './pages/cashier/PaymentHistory';
-import * as RefundsModule from './pages/cashier/Refunds';
-import * as ReceiptsModule from './pages/cashier/Receipts';
-import * as SalesSummaryModule from './pages/cashier/SalesSummary';
-import * as DailyCashReportModule from './pages/cashier/DailyCashReport';
-import * as CustomersModule from './pages/cashier/Customers';
-import * as CashierSettingsModule from './pages/cashier/Settings';
-
-const getComp = (mod, name) => mod.default || mod[name] || (() => <div className="p-6 text-xs font-semibold text-slate-500">Page Loaded</div>);
-
-const NewBill = getComp(NewBillModule, 'NewBill');
-const ActiveBills = getComp(ActiveBillsModule, 'ActiveBills');
-const HoldBills = getComp(HoldBillsModule, 'HoldBills');
-const OrderHistory = getComp(OrderHistoryModule, 'OrderHistory');
-const PaymentHistory = getComp(PaymentHistoryModule, 'PaymentHistory');
-const Refunds = getComp(RefundsModule, 'Refunds');
-const Receipts = getComp(ReceiptsModule, 'Receipts');
-const SalesSummary = getComp(SalesSummaryModule, 'SalesSummary');
-const DailyCashReport = getComp(DailyCashReportModule, 'DailyCashReport');
-const Customers = getComp(CustomersModule, 'Customers');
-const CashierSettings = getComp(CashierSettingsModule, 'CashierSettings');
+import NewBill from './pages/cashier/NewBill';
+import ActiveBills from './pages/cashier/ActiveBills';
+import HoldBills from './pages/cashier/HoldBills';
+import OrderHistory from './pages/cashier/OrderHistory';
+import PaymentHistory from './pages/cashier/PaymentHistory';
+import Refunds from './pages/cashier/Refunds';
+import Receipts from './pages/cashier/Receipts';
+import SalesSummary from './pages/cashier/SalesSummary';
+import DailyCashReport from './pages/cashier/DailyCashReport';
+import Customers from './pages/cashier/Customers';
+import CashierSettings from './pages/cashier/Settings';
 
 // --- KITCHEN PAGES ---
 import KitchenDashboard from './pages/kitchen/Dashboard';
@@ -182,7 +168,13 @@ export default function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* 3. ADMIN MANAGEMENT ROUTES */}
-                <Route element={<ProtectedRoute allowedRoles={['Super Administrator', 'superadmin', 'admin']} />}>
+                <Route
+                  element={
+                    <ProtectedRoute
+                      allowedRoles={['Super Administrator', 'superadmin', 'admin']}
+                    />
+                  }
+                >
                   <Route path="/admin/panel" element={<AdminLayout />}>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<AdminDashboard />} />
@@ -241,13 +233,20 @@ export default function App() {
                 </Route>
 
                 {/* 6. MANAGER ROUTES */}
-                <Route element={<ProtectedRoute allowedRoles={['Restaurant Manager', 'manager']} />}>
+                <Route
+                  element={
+                    <ProtectedRoute allowedRoles={['Restaurant Manager', 'manager']} />
+                  }
+                >
                   <Route path="/manager" element={<ManagerLayout />}>
                     <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<ManagerDashboard />} />
                     <Route path="orders" element={<ManagerOrders />} />
                     <Route path="table-management" element={<ManagerTableManagement />} />
-                    <Route path="inventory-management" element={<ManagerInventoryManagement />} />
+                    <Route
+                      path="inventory-management"
+                      element={<ManagerInventoryManagement />}
+                    />
                     <Route path="reservations" element={<ManagerReservations />} />
                     <Route path="menu-management" element={<ManagerMenuManagement />} />
                     <Route path="employees" element={<ManagerEmployees />} />

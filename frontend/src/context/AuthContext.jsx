@@ -3,11 +3,26 @@ import authService from '../services/authService';
 
 export const AuthContext = createContext();
 
+const normalizeUser = (rawUser) => {
+  if (!rawUser || typeof rawUser !== 'object') return null;
+  const roles = Array.isArray(rawUser.roles)
+    ? rawUser.roles
+    : rawUser.role
+    ? [rawUser.role]
+    : [];
+  const primaryRole = rawUser.role || rawUser.primaryRole || roles[0] || 'Customer';
+  return {
+    ...rawUser,
+    roles,
+    role: primaryRole,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('user') || sessionStorage.getItem('user');
-      return saved ? JSON.parse(saved) : null;
+      return saved ? normalizeUser(JSON.parse(saved)) : null;
     } catch {
       return null;
     }
@@ -18,9 +33,8 @@ export const AuthProvider = ({ children }) => {
   });
 
   const login = async (emailOrUser, passwordOrToken, remember = true) => {
-    // Support both direct (userData, userToken) and credentials (email, password, remember)
     if (typeof emailOrUser === 'object' && emailOrUser !== null) {
-      const userData = emailOrUser;
+      const userData = normalizeUser(emailOrUser);
       const userToken = passwordOrToken || '';
       const store = remember ? localStorage : sessionStorage;
       localStorage.removeItem('token');
@@ -28,14 +42,14 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
       if (userToken) store.setItem('token', userToken);
-      store.setItem('user', JSON.stringify(userData));
+      if (userData) store.setItem('user', JSON.stringify(userData));
       setToken(userToken || null);
       setUser(userData);
       return userData;
     }
 
     const res = await authService.loginRequest(emailOrUser, passwordOrToken, remember);
-    const userData = res?.user || res?.data?.user || res;
+    const userData = normalizeUser(res?.user || res?.data?.user || res);
     const userToken = res?.token || res?.data?.token || '';
 
     const store = remember ? localStorage : sessionStorage;

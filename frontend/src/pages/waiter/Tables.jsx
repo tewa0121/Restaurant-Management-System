@@ -28,7 +28,7 @@ export default function WaiterTablesGrid() {
   const handleStatusChange = async (tableId, status) => {
     setError('');
     try {
-      await tableService.updateStatus(tableId, status);
+      await tableService.updateTableStatus(tableId, status);
       await loadTables();
     } catch (err) {
       setError(err.message || 'Failed to update table status.');

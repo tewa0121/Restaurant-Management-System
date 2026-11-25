@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import paymentService from '../../services/paymentService';
+import invoiceService from '../../services/invoiceService';
 import orderService from '../../services/orderService';
 
 export default function PaymentManagement() {
   const [payments, setPayments] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -12,23 +14,37 @@ export default function PaymentManagement() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
+    invoiceId: '',
     orderId: '',
     method: 'cash',
     amount: '',
-    referenceNumber: '',
+    tendered: '',
+    transactionId: '',
   });
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [payRes, ordList] = await Promise.all([
-        paymentService.getPayments({ limit: 100 }),
-        orderService.getOrders({ limit: 100 }),
+      const [payRes, invList, ordList] = await Promise.all([
+        paymentService.getPayments({ limit: 50 }),
+        invoiceService.getInvoices({ limit: 50 }).catch(() => []),
+        orderService.getOrders({ limit: 50 }).catch(() => []),
       ]);
       setPayments(payRes.rows || []);
+      setInvoices(invList);
       setOrders(ordList);
-      if (ordList.length > 0 && !formData.orderId) {
+
+      const unpaidInv = invList.find((i) => Number(i.balance ?? i.total ?? 0) > 0 && i.status !== 'paid');
+      if (unpaidInv) {
+        const bal = Number(unpaidInv.balance ?? unpaidInv.total ?? 0);
+        setFormData((prev) => ({
+          ...prev,
+          invoiceId: String(unpaidInv.id),
+          orderId: String(unpaidInv.orderId ?? unpaidInv.order_id ?? ''),
+          amount: bal > 0 ? bal.toFixed(2) : '',
+        }));
+      } else if (ordList.length > 0 && !formData.orderId) {
         const first = ordList[0];
         const amt = Number(first.totalAmount ?? first.total_amount ?? first.total ?? 0);
         setFormData((prev) => ({
@@ -49,38 +65,83 @@ export default function PaymentManagement() {
   }, []);
 
   const handleOpenAdd = () => {
-    const first = orders[0];
-    const amt = first ? Number(first.totalAmount ?? first.total_amount ?? first.total ?? 0) : 0;
-    setFormData({
-      orderId: first ? String(first.id) : '',
-      method: 'cash',
-      amount: amt > 0 ? amt.toFixed(2) : '',
-      referenceNumber: '',
-    });
+    const unpaidInv = invoices.find((i) => Number(i.balance ?? i.total ?? 0) > 0 && i.status !== 'paid');
+    if (unpaidInv) {
+      const bal = Number(unpaidInv.balance ?? unpaidInv.total ?? 0);
+      setFormData({
+        invoiceId: String(unpaidInv.id),
+        orderId: String(unpaidInv.orderId ?? unpaidInv.order_id ?? ''),
+        method: 'cash',
+        amount: bal > 0 ? bal.toFixed(2) : '',
+        tendered: '',
+        transactionId: '',
+      });
+    } else {
+      const first = orders[0];
+      const amt = first ? Number(first.totalAmount ?? first.total_amount ?? first.total ?? 0) : 0;
+      setFormData({
+        invoiceId: '',
+        orderId: first ? String(first.id) : '',
+        method: 'cash',
+        amount: amt > 0 ? amt.toFixed(2) : '',
+        tendered: '',
+        transactionId: '',
+      });
+    }
     setIsModalOpen(true);
   };
 
-  const handleOrderSelect = (ordId) => {
+  const handleInvoiceSelect = (invId) => {
+    const found = invoices.find((i) => String(i.id) === String(invId));
+    const bal = found ? Number(found.balance ?? found.total ?? 0) : 0;
+    setFormData((prev) => ({
+      ...prev,
+      invoiceId: invId,
+      orderId: found ? String(found.orderId ?? found.order_id ?? '') : prev.orderId,
+      amount: bal > 0 ? bal.toFixed(2) : prev.amount,
+    }));
+  };
+
+  const handleOrderSelect = async (ordId) => {
     const found = orders.find((o) => String(o.id) === String(ordId));
     const amt = found ? Number(found.totalAmount ?? found.total_amount ?? found.total ?? 0) : 0;
     setFormData((prev) => ({
       ...prev,
       orderId: ordId,
+      invoiceId: '',
       amount: amt > 0 ? amt.toFixed(2) : prev.amount,
     }));
+    if (!ordId) return;
+    try {
+      const inv = await invoiceService.getInvoiceByOrder(ordId);
+      if (inv?.id) {
+        const bal = Number(inv.balance ?? inv.total ?? amt);
+        setFormData((prev) => ({
+          ...prev,
+          invoiceId: String(inv.id),
+          amount: bal > 0 ? bal.toFixed(2) : prev.amount,
+        }));
+      }
+    } catch (err) {
+      if (err?.status !== 404) {
+        setError(err.message || 'Failed to check order invoice.');
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.orderId || formData.amount === '') return;
+    if (!formData.invoiceId && !formData.orderId) return;
     setSaving(true);
     setError('');
     try {
       await paymentService.processPayment({
-        orderId: Number(formData.orderId),
+        ...(formData.invoiceId ? { invoiceId: Number(formData.invoiceId) } : {}),
+        ...(formData.orderId ? { orderId: Number(formData.orderId) } : {}),
         method: formData.method,
-        amount: Number(formData.amount),
-        referenceNumber: formData.referenceNumber.trim() || undefined,
+        ...(formData.amount !== '' ? { amount: Number(formData.amount) } : {}),
+        ...(formData.tendered !== '' ? { tendered: Number(formData.tendered) } : {}),
+        ...(formData.transactionId.trim() ? { transactionId: formData.transactionId.trim() } : {}),
       });
       setIsModalOpen(false);
       await loadData();
@@ -124,7 +185,7 @@ export default function PaymentManagement() {
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-800/40 text-gray-400 uppercase font-extrabold text-[10px]">
                 <th className="p-4">Payment #</th>
-                <th className="p-4">Order</th>
+                <th className="p-4">Invoice / Order</th>
                 <th className="p-4">Method</th>
                 <th className="p-4">Amount</th>
                 <th className="p-4">Status</th>
@@ -150,13 +211,17 @@ export default function PaymentManagement() {
                       {p.paymentNumber || p.payment_number || `#PAY-${p.id || idx + 1}`}
                     </td>
                     <td className="p-4">
-                      {p.orderNumber || p.order_number || (p.orderId ? `Order #${p.orderId}` : '-')}
+                      {p.invoiceNumber || p.invoice_number || p.orderNumber || p.order_number || '-'}
                     </td>
-                    <td className="p-4 capitalize">{p.method || p.paymentMethod || 'cash'}</td>
+                    <td className="p-4 capitalize">
+                      {p.methodLabel || p.method || p.paymentMethod || p.payment_method || 'cash'}
+                    </td>
                     <td className="p-4 font-extrabold text-emerald-600">
                       ${Number(p.amount || 0).toFixed(2)}
                     </td>
-                    <td className="p-4 capitalize font-bold">{p.status || 'completed'}</td>
+                    <td className="p-4 capitalize font-bold">
+                      {p.status || p.payment_status || 'completed'}
+                    </td>
                   </tr>
                 ))
               )}
@@ -175,10 +240,28 @@ export default function PaymentManagement() {
               </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-3">
+              {invoices.length > 0 && (
+                <div>
+                  <label className="font-bold block mb-1">INVOICE</label>
+                  <select
+                    value={formData.invoiceId}
+                    onChange={(e) => handleInvoiceSelect(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0b1d3a] border rounded-xl outline-none"
+                  >
+                    <option value="">Generate from Order below</option>
+                    {invoices.map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {inv.invoiceNumber || inv.invoice_number || `#INV-${inv.id}`} ({inv.orderNumber || inv.order_number || ''}) — Bal: $
+                        {Number(inv.balance ?? inv.total ?? 0).toFixed(2)} [{inv.status}]
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
-                <label className="font-bold block mb-1">ORDER</label>
+                <label className="font-bold block mb-1">ORDER (IF GENERATING INVOICE)</label>
                 <select
-                  required
                   value={formData.orderId}
                   onChange={(e) => handleOrderSelect(e.target.value)}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0b1d3a] border rounded-xl outline-none"
@@ -192,6 +275,7 @@ export default function PaymentManagement() {
                   ))}
                 </select>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-bold block mb-1">METHOD</label>
@@ -202,8 +286,12 @@ export default function PaymentManagement() {
                   >
                     <option value="cash">Cash</option>
                     <option value="card">Card</option>
-                    <option value="mobile_money">Mobile Money</option>
-                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="mobile_banking">Mobile Banking</option>
+                    <option value="telebirr">Telebirr</option>
+                    <option value="cbe_birr">CBE Birr</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="apple_pay">Apple Pay</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
                 <div>
@@ -219,15 +307,23 @@ export default function PaymentManagement() {
                   />
                 </div>
               </div>
+
               <div>
-                <label className="font-bold block mb-1">REFERENCE NUMBER (OPTIONAL)</label>
+                <label className="font-bold block mb-1">
+                  TRANSACTION REFERENCE{' '}
+                  {['mobile_banking', 'telebirr', 'cbe_birr'].includes(formData.method)
+                    ? '(REQUIRED)'
+                    : '(OPTIONAL)'}
+                </label>
                 <input
                   type="text"
-                  value={formData.referenceNumber}
-                  onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                  required={['mobile_banking', 'telebirr', 'cbe_birr'].includes(formData.method)}
+                  value={formData.transactionId}
+                  onChange={(e) => setFormData({ ...formData, transactionId: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0b1d3a] border rounded-xl outline-none"
                 />
               </div>
+
               <div className="flex justify-end space-x-2 pt-3">
                 <button
                   type="button"

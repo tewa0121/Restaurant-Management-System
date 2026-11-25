@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { FileText, RefreshCw } from 'lucide-react';
 import orderService from '../../services/orderService';
 import paymentService from '../../services/paymentService';
+import invoiceService from '../../services/invoiceService';
 
 export function ActiveBills() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [settlingId, setSettlingId] = useState(null);
   const [settledMsg, setSettledMsg] = useState('');
   const [error, setError] = useState('');
 
@@ -13,11 +15,25 @@ export function ActiveBills() {
     setLoading(true);
     setError('');
     try {
-      const list = await orderService.getOrders({ limit: 100 });
+      const [list, invoices] = await Promise.all([
+        orderService.getOrders({ limit: 100 }),
+        invoiceService.getInvoices({ limit: 50 }).catch(() => []),
+      ]);
+
+      const paidOrderIds = new Set(
+        invoices
+          .filter((inv) => String(inv.status || '').toLowerCase() === 'paid')
+          .map((inv) => Number(inv.orderId ?? inv.order_id))
+          .filter(Boolean)
+      );
+
       const active = list.filter((o) => {
         const st = String(o.status || '').toLowerCase();
-        return st !== 'completed' && st !== 'cancelled';
+        if (st === 'completed' || st === 'cancelled' || st === 'paid') return false;
+        if (paidOrderIds.has(Number(o.id))) return false;
+        return true;
       });
+
       setBills(active);
     } catch (err) {
       setError(err.message || 'Failed to load active bills.');
@@ -32,12 +48,22 @@ export function ActiveBills() {
 
   const handleSettle = async (bill) => {
     const amount = Number(bill.totalAmount ?? bill.total_amount ?? bill.total ?? 0);
+    setSettlingId(bill.id);
     setError('');
     setSettledMsg('');
     try {
+      const invoice = await invoiceService.generateInvoice(bill.id);
+      if (String(invoice?.status || '').toLowerCase() === 'paid') {
+        setSettledMsg(`${bill.orderNumber || bill.order_number || `#${bill.id}`} is already paid.`);
+        await loadActiveBills();
+        return;
+      }
+
+      const balance = Number(invoice?.balance ?? amount);
       await paymentService.processPayment({
+        invoiceId: invoice?.id,
         orderId: bill.id,
-        amount,
+        amount: balance > 0 ? balance : amount,
         method: 'cash',
       });
       setSettledMsg(`Settled ${bill.orderNumber || bill.order_number || `#${bill.id}`}.`);
@@ -45,6 +71,11 @@ export function ActiveBills() {
       await loadActiveBills();
     } catch (err) {
       setError(err.message || 'Failed to settle bill.');
+      if (err?.code === 'ALREADY_PAID') {
+        await loadActiveBills();
+      }
+    } finally {
+      setSettlingId(null);
     }
   };
 
@@ -124,10 +155,11 @@ export function ActiveBills() {
                     <td className="p-4 text-right">
                       <button
                         type="button"
+                        disabled={settlingId === b.id}
                         onClick={() => handleSettle(b)}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold cursor-pointer"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-xs font-bold cursor-pointer"
                       >
-                        Settle Cash
+                        {settlingId === b.id ? 'Settling...' : 'Settle Cash'}
                       </button>
                     </td>
                   </tr>

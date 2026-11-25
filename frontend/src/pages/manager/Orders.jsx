@@ -4,6 +4,15 @@ import orderService from '../../services/orderService';
 
 const STATUSES = ['all', 'pending', 'preparing', 'ready', 'served', 'completed', 'cancelled'];
 
+const ALLOWED_TRANSITIONS = {
+  pending: ['preparing', 'cancelled'],
+  preparing: ['ready', 'cancelled'],
+  ready: ['served', 'completed', 'preparing', 'cancelled'],
+  served: ['completed'],
+  completed: [],
+  cancelled: [],
+};
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -85,7 +94,9 @@ export default function Orders() {
             type="button"
             onClick={() => setFilterStatus(st)}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize cursor-pointer ${
-              filterStatus === st ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 border border-gray-200'
+              filterStatus === st
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200'
             }`}
           >
             {st}
@@ -112,30 +123,58 @@ export default function Orders() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan="5" className="p-8 text-center text-gray-400">Loading orders...</td></tr>
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-gray-400">
+                  Loading orders...
+                </td>
+              </tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan="5" className="p-8 text-center text-gray-400">No orders found.</td></tr>
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-gray-400">
+                  No orders found.
+                </td>
+              </tr>
             ) : (
               filtered.map((o) => {
                 const st = String(o.status || 'pending').toLowerCase();
+                const nextOptions = ALLOWED_TRANSITIONS[st] || [];
                 return (
                   <tr key={o.id} className="hover:bg-gray-50/70">
-                    <td className="p-4 font-bold text-gray-900">{o.orderNumber || o.order_number || `#${o.id}`}</td>
-                    <td className="p-4 text-gray-700">{o.customerName || o.customer_name || 'Guest'}</td>
-                    <td className="p-4 capitalize text-gray-600">{o.orderType || o.order_type || 'dine_in'}</td>
+                    <td className="p-4 font-bold text-gray-900">
+                      {o.orderNumber || o.order_number || `#${o.id}`}
+                    </td>
+                    <td className="p-4 text-gray-700">
+                      {o.customerName || o.customer_name || 'Guest'}
+                    </td>
+                    <td className="p-4 capitalize text-gray-600">
+                      {o.orderType || o.order_type || 'dine_in'}
+                    </td>
                     <td className="p-4 font-extrabold text-gray-900">
                       ${Number(o.totalAmount ?? o.total_amount ?? o.total ?? 0).toFixed(2)}
                     </td>
                     <td className="p-4">
-                      <select
-                        value={st}
-                        onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                        className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold capitalize outline-none"
-                      >
-                        {STATUSES.filter((s) => s !== 'all').map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
+                      {nextOptions.length > 0 ? (
+                        <select
+                          value={st}
+                          onChange={(e) => {
+                            if (e.target.value !== st) {
+                              handleStatusChange(o.id, e.target.value);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold capitalize outline-none"
+                        >
+                          <option value={st}>{st} (current)</option>
+                          {nextOptions.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold capitalize">
+                          {st}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );

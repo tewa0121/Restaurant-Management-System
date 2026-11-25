@@ -3,34 +3,60 @@ import api from './api';
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
   if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.rows)) return res.rows;
+  if (Array.isArray(res?.items)) return res.items;
   return [];
 };
 
 const unwrapItem = (res) => res?.data ?? res;
 
+const sanitizeParams = (params = {}) => {
+  const clean = { ...params };
+  if (clean.limit !== undefined && Number(clean.limit) > 50) {
+    clean.limit = 50;
+  }
+  Object.keys(clean).forEach((k) => {
+    if (clean[k] === '' || clean[k] === null || clean[k] === undefined) {
+      delete clean[k];
+    }
+  });
+  return clean;
+};
+
 export const paymentService = {
   getPayments: async (params = {}) => {
-    const res = await api.get('/payments', params);
+    const cleanParams = sanitizeParams(params);
+    const res = await api.get('/payments', cleanParams);
     return {
       rows: unwrapList(res),
-      summary: res?.summary ?? null,
-      pagination: res?.pagination ?? null,
+      summary: res?.summary ?? res?.data?.summary ?? null,
     };
   },
 
-  getPaymentHistory: async (params = {}) => {
-    const res = await api.get('/payments', params);
-    return unwrapList(res);
-  },
-
-  getPayment: async (id) => {
-    const res = await api.get(`/payments/${id}`);
+  processPayment: async (paymentData) => {
+    const payload = {
+      orderId: paymentData.orderId ?? paymentData.order_id,
+      amount: Number(paymentData.amount ?? 0),
+      paymentMethod: paymentData.paymentMethod ?? paymentData.payment_method ?? paymentData.method ?? 'cash',
+      ...(paymentData.reference ? { reference: paymentData.reference } : {}),
+    };
+    const res = await api.post('/payments', payload);
     return unwrapItem(res);
   },
 
-  processPayment: async (paymentData) => {
-    const res = await api.post('/payments', paymentData);
-    return res;
+  getInvoices: async (params = {}) => {
+    const res = await api.get('/invoices', sanitizeParams(params));
+    return unwrapList(res);
+  },
+
+  getRefunds: async (params = {}) => {
+    const res = await api.get('/refunds', sanitizeParams(params));
+    return unwrapList(res);
+  },
+
+  requestRefund: async (refundData) => {
+    const res = await api.post('/refunds', refundData);
+    return unwrapItem(res);
   },
 };
 

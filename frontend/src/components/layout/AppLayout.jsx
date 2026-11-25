@@ -18,167 +18,215 @@ import ThemeLayout from './ThemeLayout';
 // ==========================================
 const PORTALS = {
   admin: {
-    // allowedRoles: 'Super Administrator', 'superadmin', 'admin'
     roleName: 'Admin',
     portalTitle: 'Admin Portal',
     subtitle: 'System Overview & Administration',
     brandName: 'RestoAdmin',
     brandIcon: UtensilsCrossed,
     sections: [
-      { title: null, items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/panel/dashboard' },
-      ]},
-      { title: 'MANAGEMENT', items: [
-        { label: 'Users & Roles', icon: Users, path: '/admin/panel/users-and-roles' },
-        { label: 'Restaurants', icon: Store, path: '/admin/panel/restaurants' },
-        { label: 'Menu Management', icon: UtensilsCrossed, path: '/admin/panel/menu-management' },
-        { label: 'Table Management', icon: Grid, path: '/admin/panel/table-management' },
-        { label: 'Order Management', icon: Receipt, path: '/admin/panel/order-management' },
-        { label: 'Reservation Management', icon: Calendar, path: '/admin/panel/reservation-management' },
-        { label: 'Customer Management', icon: UserCheck, path: '/admin/panel/customer-management' },
-        { label: 'Employee Management', icon: UserCog, path: '/admin/panel/employee-management' },
-        { label: 'Inventory Management', icon: Boxes, path: '/admin/panel/inventory-management' },
-        { label: 'Supplier Management', icon: Truck, path: '/admin/panel/supplier-management' },
-        { label: 'Delivery Management', icon: Truck, path: '/admin/panel/delivery-management' },
-        { label: 'Payment Management', icon: DollarSign, path: '/admin/panel/payment-management' },
-      ]},
-      { title: 'ANALYTICS & REPORTS', items: [
-        { label: 'Reports & Analytics', icon: BarChart3, path: '/admin/panel/reports-and-analytics' },
-        { label: 'Logs & Activity', icon: History, path: '/admin/panel/logs-and-activity' },
-      ]},
-      { title: 'OTHER', items: [
-        { label: 'Settings', icon: SettingsIcon, path: '/admin/panel/settings' },
-      ]},
+      {
+        title: null,
+        items: [{ label: 'Dashboard', icon: LayoutDashboard, path: '/admin/panel/dashboard' }],
+      },
+      {
+        title: 'MANAGEMENT',
+        items: [
+          { label: 'Users & Roles', icon: Users, path: '/admin/panel/users-and-roles' },
+          { label: 'Restaurants', icon: Store, path: '/admin/panel/restaurants' },
+          { label: 'Menu Management', icon: UtensilsCrossed, path: '/admin/panel/menu-management' },
+          { label: 'Table Management', icon: Grid, path: '/admin/panel/table-management' },
+          { label: 'Order Management', icon: Receipt, path: '/admin/panel/order-management' },
+          { label: 'Reservation Management', icon: Calendar, path: '/admin/panel/reservation-management' },
+          { label: 'Customer Management', icon: UserCheck, path: '/admin/panel/customer-management' },
+          { label: 'Employee Management', icon: UserCog, path: '/admin/panel/employee-management' },
+          { label: 'Inventory Management', icon: Boxes, path: '/admin/panel/inventory-management' },
+          { label: 'Supplier Management', icon: Truck, path: '/admin/panel/supplier-management' },
+          { label: 'Delivery Management', icon: Truck, path: '/admin/panel/delivery-management' },
+          { label: 'Payment Management', icon: DollarSign, path: '/admin/panel/payment-management' },
+        ],
+      },
+      {
+        title: 'ANALYTICS & REPORTS',
+        items: [
+          { label: 'Reports & Analytics', icon: BarChart3, path: '/admin/panel/reports-and-analytics' },
+          { label: 'Logs & Activity', icon: History, path: '/admin/panel/logs-and-activity' },
+        ],
+      },
+      {
+        title: 'OTHER',
+        items: [{ label: 'Settings', icon: SettingsIcon, path: '/admin/panel/settings' }],
+      },
     ],
   },
 
   cashier: {
-    // allowedRoles: 'Cashier', 'cashier'
     roleName: 'Cashier',
     portalTitle: 'Cashier Portal',
     subtitle: 'POS Billing & Transactions',
     brandName: 'RestoCashier',
     brandIcon: DollarSign,
     sections: [
-      { title: null, items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/cashier/dashboard' },
-      ]},
-      { title: 'BILLING & ORDERS', items: [
-        { label: 'New Bill', icon: Plus, path: '/cashier/new-bill' },
-        { label: 'Active Bills', icon: FileText, path: '/cashier/active-bills' },
-        { label: 'Hold Bills', icon: Clock, path: '/cashier/hold-bills' },
-        { label: 'Order History', icon: History, path: '/cashier/order-history' },
-      ]},
-      { title: 'PAYMENTS', items: [
-        { label: 'Payment History', icon: CreditCard, path: '/cashier/payment-history' },
-        { label: 'Refunds', icon: RotateCcw, path: '/cashier/refunds' },
-        { label: 'Receipts', icon: Printer, path: '/cashier/receipts' },
-      ]},
-      { title: 'REPORTS', items: [
-        { label: 'Sales Summary', icon: BarChart3, path: '/cashier/sales-summary' },
-        { label: 'Daily Cash Report', icon: FileText, path: '/cashier/daily-cash-report' },
-      ]},
-      { title: 'OTHER', items: [
-        { label: 'Customers', icon: Users, path: '/cashier/customers' },
-        { label: 'Settings', icon: SettingsIcon, path: '/cashier/settings' },
-      ]},
+      {
+        title: null,
+        items: [{ label: 'Dashboard', icon: LayoutDashboard, path: '/cashier/dashboard' }],
+      },
+      {
+        title: 'BILLING & ORDERS',
+        items: [
+          { label: 'New Bill', icon: Plus, path: '/cashier/new-bill' },
+          { label: 'Active Bills', icon: FileText, path: '/cashier/active-bills' },
+          { label: 'Hold Bills', icon: Clock, path: '/cashier/hold-bills' },
+          { label: 'Order History', icon: History, path: '/cashier/order-history' },
+        ],
+      },
+      {
+        title: 'PAYMENTS',
+        items: [
+          { label: 'Payment History', icon: CreditCard, path: '/cashier/payment-history' },
+          { label: 'Refunds', icon: RotateCcw, path: '/cashier/refunds' },
+          { label: 'Receipts', icon: Printer, path: '/cashier/receipts' },
+        ],
+      },
+      {
+        title: 'REPORTS',
+        items: [
+          { label: 'Sales Summary', icon: BarChart3, path: '/cashier/sales-summary' },
+          { label: 'Daily Cash Report', icon: FileText, path: '/cashier/daily-cash-report' },
+        ],
+      },
+      {
+        title: 'OTHER',
+        items: [
+          { label: 'Customers', icon: Users, path: '/cashier/customers' },
+          { label: 'Settings', icon: SettingsIcon, path: '/cashier/settings' },
+        ],
+      },
     ],
   },
 
   kitchen: {
-    // allowedRoles: 'Kitchen Staff', 'kitchen'
     roleName: 'Kitchen',
     portalTitle: 'Kitchen Portal',
     subtitle: 'Live Kitchen Order Management',
     brandName: 'RestoKitchen',
     brandIcon: ChefHat,
     sections: [
-      { title: null, items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/kitchen/dashboard' },
-      ]},
-      { title: 'KITCHEN OPERATIONS', items: [
-        { label: 'Incoming Orders', icon: Calendar, path: '/kitchen/incoming-orders' },
-        { label: 'In Progress', icon: Utensils, path: '/kitchen/in-progress' },
-        { label: 'Ready to Serve', icon: CheckCircle2, path: '/kitchen/ready-to-serve' },
-        { label: 'Completed Orders', icon: CheckSquare, path: '/kitchen/completed-orders' },
-      ]},
-      { title: 'INVENTORY', items: [
-        { label: 'Ingredients', icon: Boxes, path: '/kitchen/ingredients' },
-        { label: 'Stock Alerts', icon: AlertTriangle, path: '/kitchen/stock-alerts' },
-      ]},
-      { title: 'REPORTS', items: [
-        { label: 'Kitchen Reports', icon: FileText, path: '/kitchen/reports' },
-        { label: 'Performance', icon: BarChart3, path: '/kitchen/performance' },
-      ]},
-      { title: 'OTHER', items: [
-        { label: 'Settings', icon: SettingsIcon, path: '/kitchen/settings' },
-      ]},
+      {
+        title: null,
+        items: [{ label: 'Dashboard', icon: LayoutDashboard, path: '/kitchen/dashboard' }],
+      },
+      {
+        title: 'KITCHEN OPERATIONS',
+        items: [
+          { label: 'Incoming Orders', icon: Calendar, path: '/kitchen/incoming-orders' },
+          { label: 'In Progress', icon: Utensils, path: '/kitchen/in-progress' },
+          { label: 'Ready to Serve', icon: CheckCircle2, path: '/kitchen/ready-to-serve' },
+          { label: 'Completed Orders', icon: CheckSquare, path: '/kitchen/completed-orders' },
+        ],
+      },
+      {
+        title: 'INVENTORY',
+        items: [
+          { label: 'Ingredients', icon: Boxes, path: '/kitchen/ingredients' },
+          { label: 'Stock Alerts', icon: AlertTriangle, path: '/kitchen/stock-alerts' },
+        ],
+      },
+      {
+        title: 'REPORTS',
+        items: [
+          { label: 'Kitchen Reports', icon: FileText, path: '/kitchen/reports' },
+          { label: 'Performance', icon: BarChart3, path: '/kitchen/performance' },
+        ],
+      },
+      {
+        title: 'OTHER',
+        items: [{ label: 'Settings', icon: SettingsIcon, path: '/kitchen/settings' }],
+      },
     ],
   },
 
   manager: {
-    // allowedRoles: 'Restaurant Manager', 'manager'
     roleName: 'Manager',
     portalTitle: 'Manager Portal',
     subtitle: 'Operations & Staff Planning',
     brandName: 'RestoManager',
     brandIcon: UserCheck,
     sections: [
-      { title: null, items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/manager/dashboard' },
-      ]},
-      { title: 'OPERATIONS', items: [
-        { label: 'Orders', icon: Receipt, path: '/manager/orders' },
-        { label: 'Table Management', icon: Grid, path: '/manager/table-management' },
-        { label: 'Inventory Management', icon: Boxes, path: '/manager/inventory-management' },
-        { label: 'Reservations', icon: Calendar, path: '/manager/reservations' },
-        { label: 'Menu Management', icon: UtensilsCrossed, path: '/manager/menu-management' },
-        { label: 'Employees', icon: UserCog, path: '/manager/employees' },
-        { label: 'Customers', icon: UserCheck, path: '/manager/customers' },
-        { label: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
-      ]},
-      { title: 'REPORTS', items: [
-        { label: 'Reports', icon: FileText, path: '/manager/reports' },
-        { label: 'Sales & Revenue', icon: DollarSign, path: '/manager/sales-and-revenue' },
-        { label: 'Analytics', icon: BarChart3, path: '/manager/analytics' },
-        { label: 'Activity Log', icon: History, path: '/manager/activity-log' },
-      ]},
-      { title: 'OTHER', items: [
-        { label: 'Settings', icon: SettingsIcon, path: '/manager/settings' },
-      ]},
+      {
+        title: null,
+        items: [{ label: 'Dashboard', icon: LayoutDashboard, path: '/manager/dashboard' }],
+      },
+      {
+        title: 'OPERATIONS',
+        items: [
+          { label: 'Orders', icon: Receipt, path: '/manager/orders' },
+          { label: 'Table Management', icon: Grid, path: '/manager/table-management' },
+          { label: 'Inventory Management', icon: Boxes, path: '/manager/inventory-management' },
+          { label: 'Reservations', icon: Calendar, path: '/manager/reservations' },
+          { label: 'Menu Management', icon: UtensilsCrossed, path: '/manager/menu-management' },
+          { label: 'Employees', icon: UserCog, path: '/manager/employees' },
+          { label: 'Customers', icon: UserCheck, path: '/manager/customers' },
+          { label: 'Suppliers', icon: Truck, path: '/manager/suppliers' },
+        ],
+      },
+      {
+        title: 'REPORTS',
+        items: [
+          { label: 'Reports', icon: FileText, path: '/manager/reports' },
+          { label: 'Sales & Revenue', icon: DollarSign, path: '/manager/sales-and-revenue' },
+          { label: 'Analytics', icon: BarChart3, path: '/manager/analytics' },
+          { label: 'Activity Log', icon: History, path: '/manager/activity-log' },
+        ],
+      },
+      {
+        title: 'OTHER',
+        items: [{ label: 'Settings', icon: SettingsIcon, path: '/manager/settings' }],
+      },
     ],
   },
 
   waiter: {
-    // allowedRoles: 'Waiter', 'waiter'
     roleName: 'Waiter',
     portalTitle: 'Waiter Portal',
     subtitle: 'Table Service & Ordering',
     brandName: 'RestoWaiter',
     brandIcon: Utensils,
     sections: [
-      { title: null, items: [
-        { label: 'Dashboard', icon: LayoutDashboard, path: '/waiter/dashboard' },
-      ]},
-      { title: 'ORDER MANAGEMENT', items: [
-        { label: 'My Tables', icon: Grid, path: '/waiter/my-tables' },
-        { label: 'New Order', icon: Plus, path: '/waiter/new-order' },
-        { label: 'Orders', icon: Receipt, path: '/waiter/orders' },
-        { label: 'Order History', icon: History, path: '/waiter/order-history' },
-      ]},
-      { title: 'TABLE MANAGEMENT', items: [
-        { label: 'Tables', icon: Grid, path: '/waiter/tables' },
-        { label: 'Reservations', icon: Calendar, path: '/waiter/reservations' },
-      ]},
-      { title: 'CUSTOMER', items: [
-        { label: 'Customers', icon: Users, path: '/waiter/customers' },
-        { label: 'Customer Requests', icon: Bell, path: '/waiter/customer-requests' },
-      ]},
-      { title: 'OTHER', items: [
-        { label: 'Notifications', icon: Bell, path: '/waiter/notifications' },
-        { label: 'My Profile', icon: User, path: '/waiter/profile' },
-        { label: 'Settings', icon: SettingsIcon, path: '/waiter/settings' },
-      ]},
+      {
+        title: null,
+        items: [{ label: 'Dashboard', icon: LayoutDashboard, path: '/waiter/dashboard' }],
+      },
+      {
+        title: 'ORDER MANAGEMENT',
+        items: [
+          { label: 'My Tables', icon: Grid, path: '/waiter/my-tables' },
+          { label: 'New Order', icon: Plus, path: '/waiter/new-order' },
+          { label: 'Orders', icon: Receipt, path: '/waiter/orders' },
+          { label: 'Order History', icon: History, path: '/waiter/order-history' },
+        ],
+      },
+      {
+        title: 'TABLE MANAGEMENT',
+        items: [
+          { label: 'Tables', icon: Grid, path: '/waiter/tables' },
+          { label: 'Reservations', icon: Calendar, path: '/waiter/reservations' },
+        ],
+      },
+      {
+        title: 'CUSTOMER',
+        items: [
+          { label: 'Customers', icon: Users, path: '/waiter/customers' },
+          { label: 'Customer Requests', icon: Bell, path: '/waiter/customer-requests' },
+        ],
+      },
+      {
+        title: 'OTHER',
+        items: [
+          { label: 'Notifications', icon: Bell, path: '/waiter/notifications' },
+          { label: 'My Profile', icon: User, path: '/waiter/profile' },
+          { label: 'Settings', icon: SettingsIcon, path: '/waiter/settings' },
+        ],
+      },
     ],
   },
 };
@@ -196,9 +244,17 @@ const CUSTOMER_NAV = [
   { label: 'Help & Support', icon: HelpCircle, path: '/customer/help' },
 ];
 
-// Active when exact match, or when on a nested page of the item (but never for bare "/customer")
 const isPathActive = (current, itemPath) =>
   current === itemPath || (itemPath !== '/customer' && current.startsWith(itemPath + '/'));
+
+const resolvePortalFromPath = (pathname = '') => {
+  if (pathname.startsWith('/admin')) return 'admin';
+  if (pathname.startsWith('/cashier')) return 'cashier';
+  if (pathname.startsWith('/kitchen')) return 'kitchen';
+  if (pathname.startsWith('/manager')) return 'manager';
+  if (pathname.startsWith('/waiter')) return 'waiter';
+  return 'customer';
+};
 
 // ==========================================
 // 2. RESPONSIVE SIDEBAR WRAPPER
@@ -320,7 +376,7 @@ export function StaffSidebarContent({ role, onCloseMobile }) {
       if (auth?.logout) await auth.logout();
     } finally {
       if (onCloseMobile) onCloseMobile();
-      navigate('/admin', { replace: true }); // staff login lives at /admin
+      navigate('/admin', { replace: true });
     }
   };
 
@@ -376,7 +432,6 @@ export function StaffSidebarContent({ role, onCloseMobile }) {
             </div>
           ))}
 
-          {/* Logout (every staff portal) */}
           <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
             <button
               type="button"
@@ -416,7 +471,7 @@ const NOTIFICATIONS_BY_ROLE = {
     { id: 2, title: 'Stock alert', text: 'Cheese is below minimum level.', time: '15m ago', path: '/kitchen/stock-alerts' },
   ],
   manager: [
-    { id: 1, title: 'Daily report', text: 'Yesterday\'s sales report is ready.', time: '1h ago', path: '/manager/reports' },
+    { id: 1, title: 'Daily report', text: "Yesterday's sales report is ready.", time: '1h ago', path: '/manager/reports' },
     { id: 2, title: 'Inventory', text: '3 items need restocking.', time: '2h ago', path: '/manager/inventory-management' },
   ],
   waiter: [
@@ -436,12 +491,10 @@ export function NotificationBell({ role = 'customer' }) {
 
   const unread = items.filter((n) => !n.read).length;
 
-  // Close on page change
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handleOutside = (e) => {
@@ -552,12 +605,13 @@ export function NotificationBell({ role = 'customer' }) {
 // ==========================================
 // 5. CUSTOMER HEADER
 // ==========================================
-export function CustomerHeader({ onOpenCart, onOpenMobileMenu }) {
+export function CustomerHeader({ onOpenCart, onOpenMobileMenu, searchQuery = '', onSearchChange }) {
   const { isDarkMode, toggleTheme } = useTheme();
   const { cart } = useCart();
   const { user } = useAuth();
 
   const totalItemsCount = cart ? cart.reduce((sum, item) => sum + item.qty, 0) : 0;
+  const displayName = user?.name || user?.fullName || 'Customer';
 
   return (
     <header className="h-16 bg-white dark:bg-[#0B1426] border-b border-gray-100 dark:border-gray-800 px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-20 font-sans">
@@ -574,6 +628,8 @@ export function CustomerHeader({ onOpenCart, onOpenMobileMenu }) {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Search food, drinks..."
             className="w-full pl-9 pr-4 py-1.5 text-xs bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-emerald-600 transition-colors"
           />
@@ -607,10 +663,10 @@ export function CustomerHeader({ onOpenCart, onOpenMobileMenu }) {
 
         <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-800">
           <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-            {user?.name ? user.name[0].toUpperCase() : 'C'}
+            {displayName[0].toUpperCase()}
           </div>
           <span className="hidden sm:inline text-xs font-bold text-gray-800 dark:text-gray-200">
-            {user?.name || 'Customer'}
+            {displayName}
           </span>
         </div>
       </div>
@@ -624,6 +680,7 @@ export function CustomerHeader({ onOpenCart, onOpenMobileMenu }) {
 export function PortalHeader({ title, subtitle, roleName, onOpenMobileMenu }) {
   const { isDarkMode, toggleTheme } = useTheme();
   const { user } = useAuth();
+  const displayName = user?.name || user?.fullName || 'System User';
 
   return (
     <header className="h-16 bg-white dark:bg-[#0B1426] border-b border-gray-100 dark:border-gray-800 px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-20 font-sans">
@@ -657,11 +714,11 @@ export function PortalHeader({ title, subtitle, roleName, onOpenMobileMenu }) {
 
         <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-gray-800">
           <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
-            {user?.name ? user.name[0].toUpperCase() : roleName ? roleName[0].toUpperCase() : 'A'}
+            {displayName[0].toUpperCase()}
           </div>
           <div className="hidden sm:block text-left">
             <span className="text-xs font-bold text-gray-800 dark:text-gray-200 block leading-tight">
-              {user?.name || 'System User'}
+              {displayName}
             </span>
             <span className="text-[9px] text-emerald-600 font-extrabold uppercase block leading-tight">
               {roleName}
@@ -678,15 +735,18 @@ export function PortalHeader({ title, subtitle, roleName, onOpenMobileMenu }) {
 // ==========================================
 export function CustomerCartPanel({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const panelRef = useRef(null);
+
   const { cart, removeFromCart, updateQuantity, subtotal, totalAmount, clearCart } = useCart();
-  const { isAuthenticated, user, login, register, users = [] } = useAuth();
+  const { isAuthenticated, user, login, register } = useAuth();
 
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [checkoutStep, setCheckoutStep] = useState('cart');
   const [authMode, setAuthMode] = useState('login');
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [isLoyaltyApplied, setIsLoyaltyApplied] = useState(false);
-  const [authForm, setAuthForm] = useState({ fullName: '', email: '', phone: '' });
+  const [authForm, setAuthForm] = useState({ fullName: '', email: '', password: '', phone: '' });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -711,16 +771,11 @@ export function CustomerCartPanel({ isOpen, onClose }) {
   const discountAmount = isEligibleForLoyalty && isLoyaltyApplied ? subtotal * 0.1 : 0;
   const finalPayableAmount = Math.max(0, totalAmount - discountAmount);
 
-  const location = useLocation();
-  const panelRef = useRef(null);
-
-  // Collapse when the page changes
   useEffect(() => {
     if (isOpen) onClose();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  // Collapse when clicking anywhere outside the cart (sidebar, main, etc.)
   useEffect(() => {
     if (!isOpen) return;
     const handleOutside = (e) => {
@@ -741,14 +796,12 @@ export function CustomerCartPanel({ isOpen, onClose }) {
 
   const validateForm = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^[0-9+\s-]{8,15}$/;
-
     if (!emailRegex.test(authForm.email.trim())) {
       setFormError('Please enter a valid email address.');
       return false;
     }
-    if (!phoneRegex.test(authForm.phone.trim())) {
-      setFormError('Please enter a valid phone number.');
+    if (!authForm.password.trim()) {
+      setFormError('Please enter your password.');
       return false;
     }
     if (authMode === 'signup' && !authForm.fullName.trim()) {
@@ -772,29 +825,24 @@ export function CustomerCartPanel({ isOpen, onClose }) {
     setFormError('');
 
     try {
-      const emailInput = authForm.email.trim().toLowerCase();
-      const existingUser = users.find((u) => u.email?.toLowerCase() === emailInput);
-
       if (authMode === 'login') {
-        if (!existingUser) {
-          setFormError('Account not found! Please click "New customer? Sign up here".');
-          setIsSubmitting(false);
-          return;
-        }
-        if (login) await login({ email: authForm.email, phone: authForm.phone });
+        if (!login) throw new Error('Login handler unavailable.');
+        await login({ email: authForm.email.trim(), password: authForm.password });
       } else {
-        if (existingUser) {
-          setFormError('Account already exists with this email. Please login instead.');
-          setIsSubmitting(false);
-          return;
-        }
-        if (register) await register(authForm);
+        if (!register) throw new Error('Register handler unavailable.');
+        await register({
+          fullName: authForm.fullName.trim(),
+          name: authForm.fullName.trim(),
+          email: authForm.email.trim(),
+          password: authForm.password,
+          phone: authForm.phone.trim() || undefined,
+        });
       }
 
       setCheckoutStep('cart');
       setShowConfirmPopup(true);
     } catch (err) {
-      setFormError('Authentication failed. Please check your details.');
+      setFormError(err?.message || 'Authentication failed. Please check your details.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1049,9 +1097,15 @@ export function CustomerCartPanel({ isOpen, onClose }) {
                 <input type="email" name="email" value={authForm.email} onChange={handleInputChange} placeholder="name@example.com" className={inputCls} />
               </div>
               <div>
-                <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Phone Number</label>
-                <input type="tel" name="phone" value={authForm.phone} onChange={handleInputChange} placeholder="+1 234 567 890" className={inputCls} />
+                <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Password</label>
+                <input type="password" name="password" value={authForm.password} onChange={handleInputChange} placeholder="••••••••" className={inputCls} />
               </div>
+              {authMode === 'signup' && (
+                <div>
+                  <label className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mb-0.5">Phone Number</label>
+                  <input type="tel" name="phone" value={authForm.phone} onChange={handleInputChange} placeholder="+251 9XX XXX XXX" className={inputCls} />
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -1122,6 +1176,7 @@ export function CustomerCartPanel({ isOpen, onClose }) {
 export function CustomerLayout({ children, context }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   return (
     <ThemeLayout>
@@ -1137,11 +1192,15 @@ export function CustomerLayout({ children, context }) {
 
         <div className="flex-1 flex flex-col min-w-0 h-screen relative overflow-hidden">
           <CustomerHeader
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             onOpenCart={() => setIsCartOpen((v) => !v)}
             onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           />
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 dark:bg-[#070D19] relative pointer-events-auto">
-            {children || <Outlet context={{ ...context, isCartOpen, setIsCartOpen }} />}
+            {children || (
+              <Outlet context={{ ...context, searchQuery, setSearchQuery, isCartOpen, setIsCartOpen }} />
+            )}
             <CustomerCartPanel isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
           </main>
         </div>
@@ -1155,7 +1214,7 @@ export function CustomerLayout({ children, context }) {
 // ==========================================
 function StaffPortalLayout({ role, children, context }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const portal = PORTALS[role];
+  const portal = PORTALS[role] || PORTALS.admin;
 
   return (
     <ThemeLayout>
@@ -1181,10 +1240,20 @@ function StaffPortalLayout({ role, children, context }) {
 }
 
 // ==========================================
-// 10. STAFF LAYOUTS (names used by App.jsx)
+// 10. STAFF LAYOUTS + DEFAULT APPLAYOUT
 // ==========================================
 export const AdminLayout = (props) => <StaffPortalLayout role="admin" {...props} />;
 export const CashierLayout = (props) => <StaffPortalLayout role="cashier" {...props} />;
 export const KitchenLayout = (props) => <StaffPortalLayout role="kitchen" {...props} />;
 export const ManagerLayout = (props) => <StaffPortalLayout role="manager" {...props} />;
 export const WaiterLayout = (props) => <StaffPortalLayout role="waiter" {...props} />;
+
+export default function AppLayout({ children, context }) {
+  const location = useLocation();
+  const activePortal = resolvePortalFromPath(location.pathname);
+
+  if (activePortal === 'customer') {
+    return <CustomerLayout context={context}>{children}</CustomerLayout>;
+  }
+  return <StaffPortalLayout role={activePortal} context={context}>{children}</StaffPortalLayout>;
+}

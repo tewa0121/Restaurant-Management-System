@@ -7,7 +7,8 @@ if (!process.env.JWT_SECRET) {
 const db = require('./config/database');
 const app = require('./app');
 
-const PORT = process.env.PORT || 5000;
+const PORT = Number(process.env.PORT) || 5000;
+const HOST = process.env.HOST || 'localhost';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -15,7 +16,7 @@ async function waitForSchema(maxAttempts = 60, delayMs = 500) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const [[row]] = await db.query('SELECT COUNT(*) AS total FROM roles');
-      if (row.total >= 6) return true;
+      if (Number(row.total) >= 6) return true;
     } catch (err) {
       if (attempt === maxAttempts) throw err;
     }
@@ -30,10 +31,12 @@ async function start() {
     console.log('MySQL pool verified');
 
     const ready = await waitForSchema();
-    if (!ready) console.warn('Database schema is not fully seeded yet. Continuing anyway.');
+    if (!ready) {
+      console.warn('Database schema is not fully seeded yet. Continuing anyway.');
+    }
 
     const server = app.listen(PORT, () => {
-      console.log(`API running on http://localhost:${PORT}`);
+      console.log(`API running on http://${HOST}:${PORT}`);
     });
 
     const shutdown = (signal) => {
@@ -58,6 +61,10 @@ async function start() {
 
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
 });
 
 start();

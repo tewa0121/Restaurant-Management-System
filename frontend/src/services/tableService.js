@@ -3,10 +3,17 @@ import api from './api';
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
   if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.data?.tables)) return res.data.tables;
+  if (Array.isArray(res?.tables)) return res.tables;
   return [];
 };
 
-const unwrapItem = (res) => res?.data ?? res;
+const unwrapItem = (res) => {
+  if (res && typeof res === 'object' && 'data' in res && res.data !== undefined) {
+    return res.data;
+  }
+  return res;
+};
 
 export const tableService = {
   getTables: async (params = {}) => {
@@ -49,17 +56,19 @@ export const tableService = {
   },
 
   assignWaiter: async (tableId, waiterId) => {
-    const res = await api.patch(`/tables/${tableId}/assign-waiter`, { waiterId });
+    const res = await api.patch(`/tables/${tableId}/waiter`, { waiterId });
     return unwrapItem(res);
   },
 
   seatGuests: async (tableId, data = {}) => {
-    const res = await api.post(`/tables/${tableId}/seat`, data);
+    const payload = typeof data === 'number' ? { guestCount: data } : data;
+    const res = await api.post(`/tables/${tableId}/seat`, payload);
     return unwrapItem(res);
   },
 
   releaseTable: async (tableId, data = {}) => {
-    const res = await api.post(`/tables/${tableId}/release`, data);
+    const payload = typeof data === 'string' ? { status: data } : data;
+    const res = await api.post(`/tables/${tableId}/release`, payload);
     return unwrapItem(res);
   },
 

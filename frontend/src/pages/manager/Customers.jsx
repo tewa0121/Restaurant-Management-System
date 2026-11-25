@@ -1,131 +1,191 @@
-// src/pages/manager/Customers.jsx
-import React, { useState } from 'react';
-import { UserCheck, Plus, Search, Mail, Phone, ShoppingBag, Trash2, AlertTriangle, X } from 'lucide-react';
-import { mockDatabase } from '../../data/mockData';
-import { formatCurrency } from '../../utils/formatters';
+import React, { useEffect, useState } from 'react';
+import { UserCheck, Plus, Search, Trash2, X } from 'lucide-react';
+import customerService from '../../services/customerService';
 
 export default function Customers() {
-  const [customers, setCustomers] = useState(mockDatabase.customers || []);
+  const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [currentCust, setCurrentCust] = useState(null);
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '' });
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const loadCustomers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await customerService.getCustomers({ limit: 150 });
+      setCustomers(list);
+    } catch (err) {
+      setError(err.message || 'Failed to load customers.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filtered = customers.filter(c => 
-    (c.name || c.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (c.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    loadCustomers();
+  }, []);
 
-  const handleAdd = (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
-    const newCust = {
-      id: Date.now(),
-      name,
-      email: email || `${name.toLowerCase().replace(/\s+/g, '')}@example.com`,
-      phone: phone || '+1 (555) 019-2834',
-      total_orders: 1,
-      total_spent: 45.00
-    };
-    setCustomers([newCust, ...customers]);
-    setIsAddOpen(false);
-    setName('');
-    setEmail('');
-    setPhone('');
+    if (!formData.name.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      await customerService.createCustomer({
+        name: formData.name.trim(),
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        address: formData.address.trim() || undefined,
+      });
+      setIsAddOpen(false);
+      setFormData({ name: '', email: '', phone: '', address: '' });
+      await loadCustomers();
+    } catch (err) {
+      setError(err.message || 'Failed to create customer.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const confirmDelete = () => {
-    if (!currentCust) return;
-    setCustomers(customers.filter(c => c.id !== currentCust.id));
-    setIsDeleteOpen(false);
-    setCurrentCust(null);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this customer record?')) return;
+    setError('');
+    try {
+      await customerService.deleteCustomer(id);
+      setCustomers((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete customer.');
+    }
   };
+
+  const filtered = customers.filter((c) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      String(c.name || c.fullName || c.full_name || '').toLowerCase().includes(q) ||
+      String(c.email || '').toLowerCase().includes(q) ||
+      String(c.phone || '').toLowerCase().includes(q)
+    );
+  });
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-900 min-h-screen">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <UserCheck className="w-6 h-6 text-emerald-500" /> Customer Management
+          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
+            <UserCheck className="w-6 h-6 text-emerald-600" /> Customers
           </h1>
-          <p className="text-xs text-slate-500">Track regular guests, contact info, and total spend history.</p>
+          <p className="text-xs text-gray-500 mt-1">Manage guest profiles and loyalty records.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-60">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search customer..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              className="w-full bg-white dark:bg-slate-800 border rounded-xl pl-10 pr-4 py-2 text-xs"
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search customers..."
+              className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none"
             />
           </div>
-          <button type="button" onClick={() => setIsAddOpen(true)} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
-            <Plus className="w-4 h-4" /> Add Customer
+          <button
+            type="button"
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> <span>Add Customer</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filtered.map((cust) => (
-          <div key={cust.id} className="bg-white dark:bg-slate-800 p-5 rounded-2xl border shadow-sm space-y-3 flex flex-col justify-between">
-            <div className="space-y-2">
-              <div className="flex justify-between items-start">
-                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center text-xs">
-                  {(cust.name || cust.full_name || 'G')[0]}
-                </div>
-                <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full">
-                  {cust.total_orders || 2} Orders
-                </span>
-              </div>
-              <h3 className="font-bold text-slate-800 dark:text-white text-sm">{cust.name || cust.full_name || 'Valued Guest'}</h3>
-              <p className="text-[11px] text-slate-400 flex items-center gap-1"><Mail className="w-3 h-3" /> {cust.email || 'guest@restomanager.com'}</p>
-              <p className="text-[11px] text-slate-400 flex items-center gap-1"><Phone className="w-3 h-3" /> {cust.phone || '+1 (555) 019-2834'}</p>
-            </div>
-            <div className="pt-3 border-t flex justify-between items-center text-xs">
-              <span className="font-extrabold text-slate-800 dark:text-white">{formatCurrency(cust.total_spent || 120.00)}</span>
-              <button type="button" onClick={() => { setCurrentCust(cust); setIsDeleteOpen(true); }} className="p-1.5 bg-rose-50 text-rose-600 rounded-lg cursor-pointer" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Delete Confirmation */}
-      {isDeleteOpen && currentCust && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl text-xs">
-            <div className="flex items-center gap-3 text-rose-600">
-              <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Delete Customer?</h3>
-            </div>
-            <p className="text-slate-500">Are you sure you want to remove this customer record?</p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setIsDeleteOpen(false)} className="px-3 py-1.5 text-slate-500">Cancel</button>
-              <button type="button" onClick={confirmDelete} className="px-4 py-1.5 bg-rose-600 text-white rounded-xl font-semibold cursor-pointer">Delete</button>
-            </div>
-          </div>
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+          {error}
         </div>
       )}
 
-      {/* Add Modal */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-50 text-gray-400 uppercase font-extrabold text-[10px]">
+              <th className="p-4">Name</th>
+              <th className="p-4">Email</th>
+              <th className="p-4">Phone</th>
+              <th className="p-4">Loyalty Points</th>
+              <th className="p-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <tr><td colSpan="5" className="p-8 text-center text-gray-400">Loading customers...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan="5" className="p-8 text-center text-gray-400">No customers found.</td></tr>
+            ) : (
+              filtered.map((c) => (
+                <tr key={c.id} className="hover:bg-gray-50/70">
+                  <td className="p-4 font-bold text-gray-900">{c.name || c.fullName || c.full_name}</td>
+                  <td className="p-4 text-gray-600">{c.email || '-'}</td>
+                  <td className="p-4 text-gray-600">{c.phone || '-'}</td>
+                  <td className="p-4 font-bold text-emerald-600">{c.loyaltyPoints ?? c.loyalty_points ?? 0}</td>
+                  <td className="p-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(c.id)}
+                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
       {isAddOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl text-xs">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-4 text-xs">
             <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="font-bold text-slate-800 dark:text-white text-sm">Add New Customer</h3>
-              <button type="button" onClick={() => setIsAddOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
+              <h3 className="font-extrabold uppercase">Add Customer</h3>
+              <button type="button" onClick={() => setIsAddOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <form onSubmit={handleAdd} className="space-y-3">
-              <input type="text" placeholder="Customer Name" value={name} onChange={(e) => setName(e.target.value)} required className="w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-3 py-2" />
-              <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-3 py-2" />
-              <input type="text" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-700 border rounded-xl px-3 py-2" />
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsAddOpen(false)} className="px-3 py-1.5 text-slate-500">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 bg-emerald-600 text-white rounded-xl font-semibold">Save</button>
+            <form onSubmit={handleCreate} className="space-y-3">
+              <div>
+                <label className="font-bold block mb-1">FULL NAME</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
+                />
+              </div>
+              <div>
+                <label className="font-bold block mb-1">EMAIL</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
+                />
+              </div>
+              <div>
+                <label className="font-bold block mb-1">PHONE</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3">
+                <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Cancel</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold cursor-pointer">
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
               </div>
             </form>
           </div>

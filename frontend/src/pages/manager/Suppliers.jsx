@@ -1,338 +1,200 @@
-// src/pages/manager/Suppliers.jsx
-import React, { useState } from 'react';
-import { Truck, Plus, Search, Edit3, Trash2, X, Phone, Mail, Building2, AlertTriangle } from 'lucide-react';
-import { mockDatabase } from '../../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { Truck, Plus, Search, Trash2, X } from 'lucide-react';
+import supplierService from '../../services/supplierService';
 
 export default function Suppliers() {
-  const [suppliers, setSuppliers] = useState(mockDatabase.suppliers || []);
+  const [suppliers, setSuppliers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Modals state
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [currentSup, setCurrentSup] = useState(null);
+  const [formData, setFormData] = useState({ name: '', contactPerson: '', phone: '', email: '' });
 
-  // Form fields
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Produce');
-  const [contactPerson, setContactPerson] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const loadSuppliers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await supplierService.getSuppliers({ limit: 150 });
+      setSuppliers(list);
+    } catch (err) {
+      setError(err.message || 'Failed to load suppliers.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredSuppliers = suppliers.filter(sup => {
-    const supName = (sup.name || '').toLowerCase();
-    const contact = (sup.contact_person || sup.contact || '').toLowerCase();
-    const term = searchTerm.toLowerCase();
-    return supName.includes(term) || contact.includes(term);
+  useEffect(() => {
+    loadSuppliers();
+  }, []);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+    setSaving(true);
+    setError('');
+    try {
+      await supplierService.createSupplier({
+        name: formData.name.trim(),
+        contactPerson: formData.contactPerson.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        email: formData.email.trim() || undefined,
+      });
+      setIsAddOpen(false);
+      setFormData({ name: '', contactPerson: '', phone: '', email: '' });
+      await loadSuppliers();
+    } catch (err) {
+      setError(err.message || 'Failed to add supplier.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this supplier?')) return;
+    setError('');
+    try {
+      await supplierService.deleteSupplier(id);
+      setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete supplier.');
+    }
+  };
+
+  const filtered = suppliers.filter((s) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      String(s.name || '').toLowerCase().includes(q) ||
+      String(s.email || '').toLowerCase().includes(q) ||
+      String(s.phone || '').toLowerCase().includes(q)
+    );
   });
 
-  const handleAddSupplier = (e) => {
-    e.preventDefault();
-    const newSup = {
-      id: Date.now(),
-      name,
-      category,
-      contact_person: contactPerson,
-      email: email || `${name.toLowerCase().replace(/\s+/g, '')}@supplier.com`,
-      phone: phone || '+1 (555) 019-2834'
-    };
-    setSuppliers([newSup, ...suppliers]);
-    setIsAddOpen(false);
-    setName('');
-    setCategory('Produce');
-    setContactPerson('');
-    setEmail('');
-    setPhone('');
-  };
-
-  const handleOpenEdit = (sup) => {
-    setCurrentSup(sup);
-    setName(sup.name || '');
-    setCategory(sup.category || 'Produce');
-    setContactPerson(sup.contact_person || sup.contact || '');
-    setEmail(sup.email || '');
-    setPhone(sup.phone || '');
-    setIsEditOpen(true);
-  };
-
-  const handleEditSupplier = (e) => {
-    e.preventDefault();
-    if (!currentSup) return;
-    setSuppliers(suppliers.map(sup => sup.id === currentSup.id ? {
-      ...sup,
-      name,
-      category,
-      contact_person: contactPerson,
-      email,
-      phone
-    } : sup));
-    setIsEditOpen(false);
-    setCurrentSup(null);
-  };
-
-  const confirmDelete = () => {
-    if (!currentSup) return;
-    setSuppliers(suppliers.filter(sup => sup.id !== currentSup.id));
-    setIsDeleteOpen(false);
-    setCurrentSup(null);
-  };
-
   return (
-    <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-900 min-h-screen">
-      {/* Top Banner & Search */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <Truck className="w-6 h-6 text-indigo-500" /> Supplier Management
+          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
+            <Truck className="w-6 h-6 text-emerald-600" /> Suppliers
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Manage ingredient vendors, delivery contacts, and supply chain partners.
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Manage food and ingredient vendors.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-60">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search supplier..." 
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              placeholder="Search supplier..."
+              className="pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none"
             />
           </div>
-          <button 
+          <button
             type="button"
-            onClick={() => { setName(''); setCategory('Produce'); setContactPerson(''); setEmail(''); setPhone(''); setIsAddOpen(true); }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
+            onClick={() => setIsAddOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Add Supplier
+            <Plus className="w-4 h-4" /> <span>Add Supplier</span>
           </button>
         </div>
       </div>
 
-      {/* Suppliers Grid Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredSuppliers.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-400 text-xs">
-            No suppliers found matching your search.
-          </div>
-        ) : (
-          filteredSuppliers.map((sup) => (
-            <div 
-              key={sup.id}
-              className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 flex flex-col justify-between hover:shadow-md transition-shadow"
-            >
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-sm">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                    {sup.category || 'Produce'}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-800 dark:text-white text-sm">
-                    {sup.name}
-                  </h3>
-                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                    Contact: {sup.contact_person || sup.contact || 'N/A'}
-                  </p>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-2 truncate">
-                    <Mail className="w-3 h-3 shrink-0" /> {sup.email || 'No email provided'}
-                  </p>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-1">
-                    <Phone className="w-3 h-3 shrink-0" /> {sup.phone || 'No phone provided'}
-                  </p>
-                </div>
-              </div>
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-xs">
-                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
-                  Active Partner
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    type="button"
-                    onClick={() => handleOpenEdit(sup)}
-                    className="p-1.5 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                    title="Edit Supplier"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => { setCurrentSup(sup); setIsDeleteOpen(true); }}
-                    className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
-                    title="Delete Supplier"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-50 text-gray-400 uppercase font-extrabold text-[10px]">
+              <th className="p-4">Supplier Name</th>
+              <th className="p-4">Contact</th>
+              <th className="p-4">Phone</th>
+              <th className="p-4">Email</th>
+              <th className="p-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <tr><td colSpan="5" className="p-8 text-center text-gray-400">Loading suppliers...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan="5" className="p-8 text-center text-gray-400">No suppliers found.</td></tr>
+            ) : (
+              filtered.map((s) => (
+                <tr key={s.id} className="hover:bg-gray-50/70">
+                  <td className="p-4 font-bold text-gray-900">{s.name}</td>
+                  <td className="p-4 text-gray-600">{s.contactPerson || s.contact_person || '-'}</td>
+                  <td className="p-4 text-gray-600">{s.phone || '-'}</td>
+                  <td className="p-4 text-gray-600">{s.email || '-'}</td>
+                  <td className="p-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(s.id)}
+                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteOpen && currentSup && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-sm w-full space-y-4 shadow-xl text-xs">
-            <div className="flex items-center gap-3 text-rose-600">
-              <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Delete "{currentSup.name}"?</h3>
-            </div>
-            <p className="text-slate-500">Are you sure you want to remove this supplier? This action cannot be undone.</p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setIsDeleteOpen(false)} className="px-3 py-1.5 rounded-xl text-slate-500">Cancel</button>
-              <button type="button" onClick={confirmDelete} className="px-4 py-1.5 bg-rose-600 text-white rounded-xl font-semibold cursor-pointer">Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Supplier Modal */}
       {isAddOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-md w-full space-y-4 shadow-xl">
-            <div className="flex justify-between items-center border-b pb-3 border-slate-100 dark:border-slate-700">
-              <h3 className="font-bold text-slate-800 dark:text-white text-sm">Add New Supplier</h3>
-              <button type="button" onClick={() => setIsAddOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-extrabold uppercase">Add Supplier</h3>
+              <button type="button" onClick={() => setIsAddOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <form onSubmit={handleAddSupplier} className="space-y-3 text-xs">
+            <form onSubmit={handleCreate} className="space-y-3">
               <div>
-                <label className="block text-slate-500 mb-1">Company Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  required 
-                  placeholder="e.g. Fresh Valley Farms"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-500 mb-1">Category</label>
-                  <select 
-                    value={category} 
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                  >
-                    <option value="Produce">Produce</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Meat">Meat</option>
-                    <option value="Beverages">Beverages</option>
-                    <option value="Dry Goods">Dry Goods</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">Contact Person</label>
-                  <input 
-                    type="text" 
-                    value={contactPerson} 
-                    onChange={(e) => setContactPerson(e.target.value)} 
-                    placeholder="Jane Smith"
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-slate-500 mb-1">Email Address</label>
-                <input 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  placeholder="orders@freshvalley.com"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
+                <label className="font-bold block mb-1">SUPPLIER NAME</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 />
               </div>
               <div>
-                <label className="block text-slate-500 mb-1">Phone Number</label>
-                <input 
-                  type="text" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
-                  placeholder="+1 (555) 382-9100"
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
-                <button type="button" onClick={() => setIsAddOpen(false)} className="px-3 py-2 rounded-xl text-slate-500">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-semibold">Save Supplier</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Supplier Modal */}
-      {isEditOpen && currentSup && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-md w-full space-y-4 shadow-xl">
-            <div className="flex justify-between items-center border-b pb-3 border-slate-100 dark:border-slate-700">
-              <h3 className="font-bold text-slate-800 dark:text-white text-sm">Edit Supplier Details</h3>
-              <button type="button" onClick={() => setIsEditOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
-            </div>
-            <form onSubmit={handleEditSupplier} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-slate-500 mb-1">Company Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)} 
-                  required 
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-500 mb-1">Category</label>
-                  <select 
-                    value={category} 
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                  >
-                    <option value="Produce">Produce</option>
-                    <option value="Dairy">Dairy</option>
-                    <option value="Meat">Meat</option>
-                    <option value="Beverages">Beverages</option>
-                    <option value="Dry Goods">Dry Goods</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-500 mb-1">Contact Person</label>
-                  <input 
-                    type="text" 
-                    value={contactPerson} 
-                    onChange={(e) => setContactPerson(e.target.value)} 
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-slate-500 mb-1">Email Address</label>
-                <input 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
+                <label className="font-bold block mb-1">CONTACT PERSON</label>
+                <input
+                  type="text"
+                  value={formData.contactPerson}
+                  onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 />
               </div>
               <div>
-                <label className="block text-slate-500 mb-1">Phone Number</label>
-                <input 
-                  type="text" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
+                <label className="font-bold block mb-1">PHONE</label>
+                <input
+                  type="text"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 />
               </div>
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-700">
-                <button type="button" onClick={() => setIsEditOpen(false)} className="px-3 py-2 rounded-xl text-slate-500">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-semibold">Update Supplier</button>
+              <div>
+                <label className="font-bold block mb-1">EMAIL</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3">
+                <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Cancel</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold cursor-pointer">
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
               </div>
             </form>
           </div>

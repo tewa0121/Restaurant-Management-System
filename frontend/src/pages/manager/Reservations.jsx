@@ -1,185 +1,214 @@
-// src/pages/manager/Reservations.jsx
-import React, { useState } from 'react';
-import { Calendar, Plus, CheckCircle, XCircle, Search, X } from 'lucide-react';
-import { mockDatabase } from '../../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { Calendar, Plus, Trash2, X } from 'lucide-react';
+import reservationService from '../../services/reservationService';
 
 export default function Reservations() {
-  const [reservations, setReservations] = useState(mockDatabase.reservations || []);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    customerName: '',
+    customerPhone: '',
+    partySize: '4',
+    reservationDate: '',
+    reservationTime: '18:00',
+  });
 
-  // New Reservation Form State
-  const [customerName, setCustomerName] = useState('');
-  const [partySize, setPartySize] = useState('2');
-  const [resDate, setResDate] = useState('2025-05-20');
-  const [resTime, setResTime] = useState('19:00');
-
-  const filteredReservations = reservations.filter(r => 
-    (r.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleConfirm = (id) => {
-    setReservations(reservations.map(r => r.id === id ? { ...r, status: 'confirmed' } : r));
+  const loadReservations = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await reservationService.getReservations({ limit: 150 });
+      setReservations(list);
+    } catch (err) {
+      setError(err.message || 'Failed to load reservations.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCancel = (id) => {
-    setReservations(reservations.map(r => r.id === id ? { ...r, status: 'cancelled' } : r));
-  };
+  useEffect(() => {
+    loadReservations();
+  }, []);
 
-  const handleAddReservation = (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault();
-    const newRes = {
-      id: Date.now(),
-      customer_name: customerName,
-      party_size: parseInt(partySize, 10),
-      reservation_date: resDate,
-      reservation_time: resTime,
-      status: 'confirmed'
-    };
-    setReservations([newRes, ...reservations]);
-    setCustomerName('');
-    setIsAddModalOpen(false);
+    if (!formData.customerName.trim() || !formData.reservationDate) return;
+    setSaving(true);
+    setError('');
+    try {
+      await reservationService.createReservation({
+        customerName: formData.customerName.trim(),
+        customerPhone: formData.customerPhone.trim() || undefined,
+        partySize: Number(formData.partySize) || 2,
+        reservationDate: formData.reservationDate,
+        reservationTime: formData.reservationTime || '18:00',
+      });
+      setIsAddOpen(false);
+      setFormData({ customerName: '', customerPhone: '', partySize: '4', reservationDate: '', reservationTime: '18:00' });
+      await loadReservations();
+    } catch (err) {
+      setError(err.message || 'Failed to create reservation.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStatus = async (id, status) => {
+    setError('');
+    try {
+      await reservationService.updateReservationStatus(id, status);
+      await loadReservations();
+    } catch (err) {
+      setError(err.message || 'Failed to update reservation status.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this reservation?')) return;
+    setError('');
+    try {
+      await reservationService.deleteReservation(id);
+      setReservations((prev) => prev.filter((r) => r.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete reservation.');
+    }
   };
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-900 min-h-screen">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 font-sans">
+      <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-purple-500" /> Reservations
+          <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
+            <Calendar className="w-6 h-6 text-emerald-600" /> Reservations
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Bookings, party sizes, and reservation statuses.
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Manage guest table bookings and statuses.</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input 
-              type="text" 
-              placeholder="Search customer..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
-            />
-          </div>
-          <button 
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-purple-600/20 flex items-center gap-1.5 transition-all shrink-0 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" /> Add Reservation
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsAddOpen(true)}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer"
+        >
+          <Plus className="w-4 h-4" /> <span>New Reservation</span>
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs whitespace-nowrap">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-700/50 text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                <th className="p-4 font-semibold">Customer</th>
-                <th className="p-4 font-semibold">Party Size</th>
-                <th className="p-4 font-semibold">Date & Time</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-              {filteredReservations.map((res) => (
-                <tr key={res.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
-                  <td className="p-4 font-semibold text-slate-800 dark:text-white">{res.customer_name || 'Guest'}</td>
-                  <td className="p-4 text-slate-600 dark:text-slate-300">{res.party_size} Guests</td>
-                  <td className="p-4 text-slate-500">{res.reservation_date} at {res.reservation_time}</td>
-                  <td className="p-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${res.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : res.status === 'cancelled' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {res.status}
-                    </span>
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="bg-gray-50 text-gray-400 uppercase font-extrabold text-[10px]">
+              <th className="p-4">Guest</th>
+              <th className="p-4">Guests</th>
+              <th className="p-4">Date & Time</th>
+              <th className="p-4">Status</th>
+              <th className="p-4 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
+              <tr><td colSpan="5" className="p-8 text-center text-gray-400">Loading reservations...</td></tr>
+            ) : reservations.length === 0 ? (
+              <tr><td colSpan="5" className="p-8 text-center text-gray-400">No reservations found.</td></tr>
+            ) : (
+              reservations.map((r) => (
+                <tr key={r.id} className="hover:bg-gray-50/70">
+                  <td className="p-4 font-bold text-gray-900">{r.customerName || r.customer_name || 'Guest'}</td>
+                  <td className="p-4 text-gray-600">{r.partySize ?? r.party_size ?? r.guests ?? 2}</td>
+                  <td className="p-4 text-gray-600">
+                    {(r.reservationDate || r.reservation_date || '').slice(0, 10)}{' '}
+                    {r.reservationTime || r.reservation_time || ''}
                   </td>
-                  <td className="p-4 text-right flex justify-end gap-2">
-                    {res.status !== 'confirmed' && (
-                      <button 
-                        type="button"
-                        onClick={() => handleConfirm(res.id)} 
-                        className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer"
-                        title="Confirm"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    )}
-                    {res.status !== 'cancelled' && (
-                      <button 
-                        type="button"
-                        onClick={() => handleCancel(res.id)} 
-                        className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
-                        title="Cancel"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
-                    )}
+                  <td className="p-4">
+                    <select
+                      value={String(r.status || 'pending').toLowerCase()}
+                      onChange={(e) => handleStatus(r.id, e.target.value)}
+                      className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold capitalize outline-none"
+                    >
+                      <option value="pending">pending</option>
+                      <option value="confirmed">confirmed</option>
+                      <option value="seated">seated</option>
+                      <option value="completed">completed</option>
+                      <option value="cancelled">cancelled</option>
+                    </select>
+                  </td>
+                  <td className="p-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r.id)}
+                      className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Add Reservation Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 max-w-sm w-full space-y-4 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-slate-800 dark:text-white text-sm">Add New Reservation</h3>
-              <button type="button" onClick={() => setIsAddModalOpen(false)}><X className="w-4 h-4 text-slate-400" /></button>
+      {isAddOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-extrabold uppercase">New Reservation</h3>
+              <button type="button" onClick={() => setIsAddOpen(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <form onSubmit={handleAddReservation} className="space-y-3 text-xs">
+            <form onSubmit={handleCreate} className="space-y-3">
               <div>
-                <label className="block text-slate-500 mb-1">Customer Name</label>
-                <input 
-                  type="text" 
-                  value={customerName} 
-                  onChange={(e) => setCustomerName(e.target.value)} 
-                  required 
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                  placeholder="John Doe"
+                <label className="font-bold block mb-1">GUEST NAME</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.customerName}
+                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-slate-500 mb-1">Party Size</label>
-                <input 
-                  type="number" 
-                  value={partySize} 
-                  onChange={(e) => setPartySize(e.target.value)} 
-                  required 
-                  className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-slate-800 dark:text-white focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-500 mb-1">Date</label>
-                  <input 
-                    type="date" 
-                    value={resDate} 
-                    onChange={(e) => setResDate(e.target.value)} 
-                    required 
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-2 text-slate-800 dark:text-white focus:outline-none"
+                  <label className="font-bold block mb-1">DATE</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.reservationDate}
+                    onChange={(e) => setFormData({ ...formData, reservationDate: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-500 mb-1">Time</label>
-                  <input 
-                    type="time" 
-                    value={resTime} 
-                    onChange={(e) => setResTime(e.target.value)} 
-                    required 
-                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-2 text-slate-800 dark:text-white focus:outline-none"
+                  <label className="font-bold block mb-1">TIME</label>
+                  <input
+                    type="time"
+                    value={formData.reservationTime}
+                    onChange={(e) => setFormData({ ...formData, reservationTime: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-3 py-1.5 rounded-xl text-slate-500">Cancel</button>
-                <button type="submit" className="px-4 py-1.5 bg-purple-600 text-white rounded-xl font-semibold">Save Reservation</button>
+              <div>
+                <label className="font-bold block mb-1">PARTY SIZE</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.partySize}
+                  onChange={(e) => setFormData({ ...formData, partySize: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-3">
+                <button type="button" onClick={() => setIsAddOpen(false)} className="px-4 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer">Cancel</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold cursor-pointer">
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
               </div>
             </form>
           </div>

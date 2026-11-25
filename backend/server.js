@@ -65,6 +65,7 @@ process.on('unhandledRejection', (reason) => {
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception:', err);
+  process.exit(1); // let nodemon / pm2 restart a clean process
 });
 
 start();

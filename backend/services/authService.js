@@ -5,6 +5,7 @@ const UserModel = require('../models/userModel');
 const AppError = require('../utils/AppError');
 const { withTransaction } = require('../utils/transaction');
 const { logActivity } = require('../utils/activityLog');
+const { sendMail } = require('../utils/mailer');
 const { ROLES, getPrimaryRoleKey } = require('../utils/constants');
 const {
   jwtSecret,
@@ -205,6 +206,13 @@ const AuthService = {
     const rawToken = crypto.randomBytes(32).toString('hex');
     await UserModel.createResetToken({ userId: user.id, tokenHash: sha256(rawToken), ttlMinutes: resetTokenMinutes });
     logActivity({ userId: user.id, action: 'Password reset requested', activityType: 'auth', entityType: 'user', entityId: user.id });
+
+    const link = `${process.env.APP_URL || 'http://localhost:5173'}/reset-password?token=${rawToken}`;
+    sendMail({
+      to: user.email,
+      subject: 'Reset your password',
+      html: `<p>Click the link below to reset your password (valid for ${resetTokenMinutes} minutes):</p><p><a href="${link}">${link}</a></p>`,
+    }).catch((err) => console.error('Reset email failed:', err.message));
 
     if (process.env.NODE_ENV !== 'production') return { ...generic, resetToken: rawToken };
     return generic;

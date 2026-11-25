@@ -811,9 +811,8 @@ async function initializeDatabase() {
 // ==============================
 async function seedDatabase() {
   const promiseDb = dbConnection.promise();
-
   try {
-    // 1. Seed Roles
+    // 1. Seed Roles (safe in every environment)
     const roles = [
       { name: 'Admin', desc: 'Restaurant full access' },
       { name: 'Manager', desc: 'Restaurant operations, analytics, inventory, employees' },
@@ -822,7 +821,6 @@ async function seedDatabase() {
       { name: 'Kitchen', desc: 'Incoming orders and preparation status' },
       { name: 'Customer', desc: 'Online ordering portal' }
     ];
-
     for (const r of roles) {
       await promiseDb.execute('INSERT IGNORE INTO roles (name, description) VALUES (?, ?)', [r.name, r.desc]);
     }
@@ -831,9 +829,13 @@ async function seedDatabase() {
     await promiseDb.execute('INSERT IGNORE INTO restaurants (id, name, address) VALUES (1, "Main Branch", "123 Main St")');
     await promiseDb.execute('INSERT IGNORE INTO restaurant_settings (restaurant_id, setting_key, setting_value) VALUES (1, "currency", "ETB"), (1, "tax_rate", "15"), (1, "delivery_fee", "0")');
 
-    // 3. Seed Demo Users (Password: password123)
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    // 3. Demo accounts: development only, never in production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('🌱 Seed: roles and settings verified. Demo users skipped (production).');
+      return;
+    }
 
+    const hashedPassword = await bcrypt.hash('password123', 10);
     const people = [
       { username: 'admin', email: 'admin@resto.com', fullName: 'System Admin', role: 'Admin', extra: ['EMP-001', 'System', 'Admin', 'Manager', 'Management'] },
       { username: 'manager', email: 'manager@resto.com', fullName: 'John Manager', role: 'Manager', extra: ['EMP-002', 'John', 'Manager', 'Manager', 'Management'] },
@@ -844,10 +846,11 @@ async function seedDatabase() {
     ];
 
     for (const p of people) {
+      // password_hash is NOT updated on duplicate: a changed password survives restarts
       await promiseDb.execute(
-        `INSERT INTO users (restaurant_id, username, email, password_hash, full_name, is_active) 
-         VALUES (1, ?, ?, ?, ?, TRUE) 
-         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), full_name = VALUES(full_name), is_active = TRUE`,
+        `INSERT INTO users (restaurant_id, username, email, password_hash, full_name, is_active)
+         VALUES (1, ?, ?, ?, ?, TRUE)
+         ON DUPLICATE KEY UPDATE full_name = VALUES(full_name)`,
         [p.username, p.email, hashedPassword, p.fullName]
       );
 
@@ -862,22 +865,22 @@ async function seedDatabase() {
 
       if (Array.isArray(p.extra)) {
         await promiseDb.execute(
-          `INSERT INTO employees (restaurant_id, user_id, employee_code, first_name, last_name, position, department, hire_date) 
-           VALUES (1, ?, ?, ?, ?, ?, ?, CURDATE()) 
+          `INSERT INTO employees (restaurant_id, user_id, employee_code, first_name, last_name, position, department, hire_date)
+           VALUES (1, ?, ?, ?, ?, ?, ?, CURDATE())
            ON DUPLICATE KEY UPDATE first_name = VALUES(first_name), last_name = VALUES(last_name)`,
           [userId, ...p.extra]
         );
       } else if (p.extra === 'customer') {
         await promiseDb.execute(
-          `INSERT INTO customers (user_id, first_name, last_name, email, phone) 
-           VALUES (?, ?, ?, ?, ?) 
+          `INSERT INTO customers (user_id, first_name, last_name, email, phone)
+           VALUES (?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE phone = VALUES(phone)`,
           [userId, 'John', 'Smith', p.email, '0911000001']
         );
       }
     }
 
-    console.log("🌱 Seed data verified! (Demo login accounts ready: admin@resto.com, manager@resto.com, waiter@resto.com, cashier@resto.com, kitchen@resto.com, customer@resto.com with password 'password123')");
+    console.log("🌱 Seed data verified! (Dev demo accounts: admin@resto.com, manager@resto.com, waiter@resto.com, cashier@resto.com, kitchen@resto.com, customer@resto.com / password123)");
   } catch (err) {
     console.log("⚠️ Seed warning:", err.message);
   }

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { registerRequest } from '../../services/authService';
+import { getErrorMessage } from '../../services/http';
 
 export default function SignUp() {
   const [formData, setFormData] = useState({
@@ -10,24 +11,21 @@ export default function SignUp() {
     password: '',
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { register } = useAuth();
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
-
     try {
-      await register({
+      await registerRequest({
         fullName: formData.fullName.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
       });
-      navigate('/');
+      alert('Account created successfully! Please Log In.');
+      navigate('/login');
     } catch (err) {
-      setError(err.message || 'Could not create the account. Please try again.');
+      alert(getErrorMessage(err, 'Could not create account.'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +85,6 @@ export default function SignUp() {
               <input
                 type="password"
                 required
-                minLength={6}
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
@@ -95,8 +92,6 @@ export default function SignUp() {
               />
             </div>
           </div>
-
-          {error && <p className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
           <button
             type="submit"

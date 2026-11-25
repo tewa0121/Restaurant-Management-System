@@ -34,9 +34,10 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await authLogin(email, password, rememberMe);
-      const role = String(user.role || '').toLowerCase();
+      const role = String(user?.role || '').toLowerCase();
       const destinations = {
         admin: '/admin/panel/dashboard',
+        superadmin: '/admin/panel/dashboard',
         manager: '/manager/dashboard',
         cashier: '/cashier/dashboard',
         kitchen: '/kitchen/dashboard',
@@ -53,14 +54,12 @@ export default function Login() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white font-sans">
-      
       {/* LEFT SIDE: IMAGE */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-[#1a1a1a] h-full items-center justify-center p-3 overflow-hidden">
         <img
           src={loginImage}
           alt="Restaurant Background"
           onError={(e) => {
-            // Fallback if image isn't available in public folder
             e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80';
           }}
           className="w-full h-[90%] object-cover object-center rounded-2xl shadow-2xl"
@@ -68,7 +67,7 @@ export default function Login() {
       </div>
 
       {/* RIGHT SIDE: LOGIN FORM & BADGES */}
-      <div 
+      <div
         className="w-full lg:w-1/2 h-full flex flex-col items-center overflow-y-auto bg-[#fafafa] relative"
         style={{
           backgroundImage: 'radial-gradient(#d1d5db 1px, transparent 1px)',
@@ -79,7 +78,6 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#fafafa] via-[#fafafa] to-transparent pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-[420px] flex flex-col justify-between min-h-full py-4 px-4">
-          
           {/* Top Bar: Language Selector */}
           <div className="flex justify-end w-full mb-1">
             <label className="flex items-center gap-2 text-[12px] font-medium text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm cursor-pointer hover:bg-gray-50 transition">
@@ -97,7 +95,6 @@ export default function Login() {
 
           {/* Login Card */}
           <div className="w-full bg-white p-6 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 mb-4 mt-2">
-            
             <div className="text-center mb-5">
               <h2 className="text-[22px] font-bold text-[#1a1f36] tracking-tight">
                 Welcome Back!
@@ -165,8 +162,8 @@ export default function Login() {
                   />
                   <span className="text-gray-600 font-medium">Remember me</span>
                 </label>
-                <span 
-                  onClick={() => navigate('/forgot-password')} 
+                <span
+                  onClick={() => navigate('/forgot-password')}
                   className="text-[#1b8b30] hover:text-green-700 font-medium transition cursor-pointer"
                 >
                   Forgot Password?
@@ -228,8 +225,8 @@ export default function Login() {
 
             <p className="text-center text-[11px] text-gray-500 mt-3">
               Don&apos;t have an account?{' '}
-              <span 
-                onClick={() => navigate('/signup')} 
+              <span
+                onClick={() => navigate('/signup')}
                 className="text-[#1b8b30] font-bold hover:underline cursor-pointer"
               >
                 Sign Up
@@ -259,7 +256,6 @@ export default function Login() {
               <span className="font-bold text-[9px] text-gray-800 leading-tight">Access<br/>Anywhere</span>
             </div>
           </div>
-
         </div>
       </div>
     </div>

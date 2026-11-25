@@ -1,46 +1,88 @@
-// src/pages/waiter/Reservations.jsx
-import React, { useState } from 'react';
-import { CalendarDays, Clock, Users, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CalendarDays, RefreshCw } from 'lucide-react';
+import reservationService from '../../services/reservationService';
 
 export default function WaiterReservations() {
-  const [reservations] = useState([
-    { id: 1, guestName: 'Alice Cooper', table: 'Table 8', partySize: 4, time: '7:00 PM', status: 'Confirmed' },
-    { id: 2, guestName: 'Robert Johnson', table: 'Table 14', partySize: 2, time: '8:30 PM', status: 'Pending' },
-    { id: 3, guestName: 'Michael Brown', table: 'Table 2', partySize: 6, time: '9:00 PM', status: 'Confirmed' },
-  ]);
+  const [reservations, setReservations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadReservations = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await reservationService.getReservations({ limit: 100 });
+      setReservations(list);
+    } catch (err) {
+      setError(err.message || 'Failed to load reservations.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReservations();
+  }, []);
+
+  const handleSeat = async (id) => {
+    setError('');
+    try {
+      await reservationService.updateReservationStatus(id, 'seated');
+      await loadReservations();
+    } catch (err) {
+      setError(err.message || 'Failed to seat guest.');
+    }
+  };
 
   return (
-    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen text-slate-800 font-sans">
-      <div className="flex justify-between items-center border-b pb-4 border-slate-200">
+    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen text-slate-800 font-sans text-xs">
+      <div className="flex items-center justify-between border-b pb-4 border-slate-200">
         <div>
           <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-purple-500" /> Shift Reservations
+            <CalendarDays className="w-6 h-6 text-emerald-600" /> Floor Reservations
           </h1>
-          <p className="text-xs text-slate-500 font-medium">View guest bookings and table reservations for today.</p>
+          <p className="text-slate-500">Upcoming and active guest reservations.</p>
         </div>
+        <button
+          type="button"
+          onClick={loadReservations}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white rounded-xl font-bold cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" /> <span>Refresh</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {reservations.map(res => (
-          <div key={res.id} className="p-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold text-sm text-slate-900">{res.guestName}</h3>
-                <span className="text-xs font-bold text-blue-600">{res.table}</span>
-              </div>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                res.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-              }`}>
-                {res.status}
-              </span>
-            </div>
+      {error && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-semibold">{error}</div>}
 
-            <div className="flex items-center gap-4 text-xs text-slate-500 border-t border-slate-100 pt-3">
-              <span className="flex items-center gap-1 font-semibold"><Users className="w-3.5 h-3.5" /> {res.partySize} Guests</span>
-              <span className="flex items-center gap-1 font-semibold"><Clock className="w-3.5 h-3.5" /> {res.time}</span>
-            </div>
-          </div>
-        ))}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm divide-y divide-slate-100">
+        {loading ? (
+          <div className="p-8 text-center text-slate-400">Loading reservations...</div>
+        ) : reservations.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">No reservations found.</div>
+        ) : (
+          reservations.map((r) => {
+            const st = String(r.status || 'pending').toLowerCase();
+            return (
+              <div key={r.id} className="p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-slate-900">{r.customerName || r.customer_name || 'Guest'}</p>
+                  <p className="text-slate-500">
+                    Guests: {r.partySize ?? r.party_size ?? 2} • {(r.reservationDate || r.reservation_date || '').slice(0, 10)} {r.reservationTime || r.reservation_time || ''} • <span className="capitalize font-semibold">{st}</span>
+                  </p>
+                </div>
+                {st !== 'seated' && st !== 'completed' && (
+                  <button
+                    type="button"
+                    onClick={() => handleSeat(r.id)}
+                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold cursor-pointer"
+                  >
+                    Seat Guest
+                  </button>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

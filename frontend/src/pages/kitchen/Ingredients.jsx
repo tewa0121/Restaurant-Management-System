@@ -1,49 +1,87 @@
-// src/pages/kitchen/Ingredients.jsx
-import React, { useState } from 'react';
-import { UtensilsCrossed, Plus, Search } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { UtensilsCrossed, Search, RefreshCw } from 'lucide-react';
+import inventoryService from '../../services/inventoryService';
 
 export default function Ingredients() {
-  const [ingredients] = useState([
-    { id: 1, name: 'Chicken Breast', category: 'Meat & Poultry', quantity: '1.5 kg', status: 'Low Stock', unit: 'kg' },
-    { id: 2, name: 'Cooking Oil', category: 'Oils & Condiments', quantity: '1.0 L', status: 'Low Stock', unit: 'L' },
-    { id: 3, name: 'Mozzarella Cheese', category: 'Dairy', quantity: '8.5 kg', status: 'In Stock', unit: 'kg' },
-    { id: 4, name: 'Basmati Rice', category: 'Grains', quantity: '25.0 kg', status: 'In Stock', unit: 'kg' },
-    { id: 5, name: 'Tomatoes', category: 'Produce', quantity: '4.2 kg', status: 'In Stock', unit: 'kg' },
-  ]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [ingredients, setIngredients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadIngredients = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await inventoryService.getInventory({ limit: 200 });
+      setIngredients(list);
+    } catch (err) {
+      setError(err.message || 'Failed to load kitchen ingredients.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadIngredients();
+  }, []);
+
+  const filtered = ingredients.filter((i) =>
+    String(i.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
+    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen text-slate-800 font-sans text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4 border-slate-200">
         <div>
-          <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <UtensilsCrossed className="w-6 h-6 text-emerald-500" /> Kitchen Raw Ingredients
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <UtensilsCrossed className="w-6 h-6 text-emerald-600" /> Kitchen Ingredients
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Inventory directory of all active recipe components.</p>
+          <p className="text-slate-500">Live ingredient stock levels from inventory.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search ingredient..."
+              className="pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl outline-none"
+            />
+          </div>
+          <button type="button" onClick={loadIngredients} className="p-2 bg-slate-900 text-white rounded-xl cursor-pointer">
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {ingredients.map(item => (
-          <div key={item.id} className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-bold text-sm text-slate-900 dark:text-white">{item.name}</h4>
-                <p className="text-[10px] text-slate-400">{item.category}</p>
-              </div>
-              <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
-                item.status === 'Low Stock' 
-                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400' 
-                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
-              }`}>
-                {item.status}
-              </span>
-            </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs">
-              <span className="text-slate-400">Available Stock:</span>
-              <span className="font-black text-slate-800 dark:text-white">{item.quantity}</span>
-            </div>
-          </div>
-        ))}
+      {error && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-semibold">{error}</div>}
+
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50 text-slate-400 uppercase font-extrabold text-[10px]">
+              <th className="p-4">Ingredient</th>
+              <th className="p-4">Available Stock</th>
+              <th className="p-4">Unit</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr><td colSpan="3" className="p-8 text-center text-slate-400">Loading ingredients...</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan="3" className="p-8 text-center text-slate-400">No ingredients found.</td></tr>
+            ) : (
+              filtered.map((ing) => (
+                <tr key={ing.id} className="hover:bg-slate-50/70">
+                  <td className="p-4 font-bold text-slate-900">{ing.name}</td>
+                  <td className="p-4 font-extrabold text-emerald-600">{ing.currentStock ?? ing.current_stock ?? ing.quantity ?? 0}</td>
+                  <td className="p-4 text-slate-600">{ing.unit || 'unit'}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export const CartContext = createContext();
 
-// Add this export helper inside CartContext.jsx:
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
@@ -15,7 +14,8 @@ export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem('resto_cart');
-      return savedCart ? JSON.parse(savedCart) : [];
+      const parsed = savedCart ? JSON.parse(savedCart) : [];
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
@@ -30,34 +30,60 @@ export const CartProvider = ({ children }) => {
   }, [cart]);
 
   const addToCart = (item) => {
+    const qtyToAdd = Math.max(1, Number(item.quantity ?? item.qty ?? 1) || 1);
+    const unitPrice = Number(item.price ?? 0) || 0;
+
     setCart((prevCart) => {
-      const existingItem = prevCart.find((i) => i.id === item.id);
+      const existingItem = prevCart.find((i) => String(i.id) === String(item.id));
       if (existingItem) {
         return prevCart.map((i) =>
-          i.id === item.id ? { ...i, qty: i.qty + 1 } : i
+          String(i.id) === String(item.id)
+            ? {
+                ...i,
+                price: unitPrice,
+                qty: (Number(i.qty ?? i.quantity ?? 1) || 1) + qtyToAdd,
+                quantity: (Number(i.qty ?? i.quantity ?? 1) || 1) + qtyToAdd,
+              }
+            : i
         );
       }
-      return [...prevCart, { ...item, qty: 1 }];
+      return [
+        ...prevCart,
+        {
+          ...item,
+          price: unitPrice,
+          qty: qtyToAdd,
+          quantity: qtyToAdd,
+        },
+      ];
     });
   };
 
   const removeFromCart = (id) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+    setCart((prevCart) => prevCart.filter((item) => String(item.id) !== String(id)));
   };
 
   const updateQuantity = (id, newQty) => {
-    if (newQty <= 0) {
+    const numericQty = Number(newQty) || 0;
+    if (numericQty <= 0) {
       removeFromCart(id);
       return;
     }
     setCart((prevCart) =>
-      prevCart.map((item) => (item.id === id ? { ...item, qty: newQty } : item))
+      prevCart.map((item) =>
+        String(item.id) === String(id)
+          ? { ...item, qty: numericQty, quantity: numericQty }
+          : item
+      )
     );
   };
 
   const clearCart = () => setCart([]);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subtotal = cart.reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty ?? item.quantity ?? 1) || 1),
+    0
+  );
   const deliveryFee = cart.length > 0 ? 2.99 : 0;
   const tax = subtotal * 0.08;
   const totalAmount = subtotal + deliveryFee + tax;
@@ -73,7 +99,7 @@ export const CartProvider = ({ children }) => {
         subtotal,
         deliveryFee,
         tax,
-        totalAmount
+        totalAmount,
       }}
     >
       {children}

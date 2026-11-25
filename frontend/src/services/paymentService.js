@@ -1,4 +1,5 @@
 import api from './api';
+import invoiceService from './invoiceService';
 
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
@@ -23,6 +24,20 @@ const sanitizeParams = (params = {}) => {
   return clean;
 };
 
+async function resolveInvoiceId(paymentData) {
+  if (paymentData.invoiceId) return Number(paymentData.invoiceId);
+  if (paymentData.invoice_id) return Number(paymentData.invoice_id);
+
+  const orderId = paymentData.orderId ?? paymentData.order_id;
+  if (!orderId) return null;
+
+  const existing = await invoiceService.getInvoiceByOrder(orderId, { generateIfMissing: false });
+  if (existing?.id) return Number(existing.id);
+
+  const generated = await invoiceService.generateInvoice(orderId);
+  return generated?.id ? Number(generated.id) : null;
+}
+
 export const paymentService = {
   getPayments: async (params = {}) => {
     const cleanParams = sanitizeParams(params);
@@ -34,12 +49,24 @@ export const paymentService = {
   },
 
   processPayment: async (paymentData) => {
+    const invoiceId = await resolveInvoiceId(paymentData);
+    if (!invoiceId) {
+      throw new Error('Invoice ID or valid Order ID is required to process payment.');
+    }
+
+    const method =
+      paymentData.method ?? paymentData.paymentMethod ?? paymentData.payment_method ?? 'cash';
+    const transactionId =
+      paymentData.transactionId ?? paymentData.transaction_id ?? paymentData.reference;
+
     const payload = {
-      orderId: paymentData.orderId ?? paymentData.order_id,
-      amount: Number(paymentData.amount ?? 0),
-      paymentMethod: paymentData.paymentMethod ?? paymentData.payment_method ?? paymentData.method ?? 'cash',
-      ...(paymentData.reference ? { reference: paymentData.reference } : {}),
+      invoiceId,
+      method,
+      ...(paymentData.amount !== undefined ? { amount: Number(paymentData.amount) } : {}),
+      ...(paymentData.tendered !== undefined ? { tendered: Number(paymentData.tendered) } : {}),
+      ...(transactionId ? { transactionId: String(transactionId).trim() } : {}),
     };
+
     const res = await api.post('/payments', payload);
     return unwrapItem(res);
   },

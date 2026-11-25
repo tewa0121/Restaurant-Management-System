@@ -1,30 +1,37 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Globe, LogIn } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 const loginImage = '/assets/food-placeholders/login.png';
 
 const resolveDestination = (user) => {
-  const rawRole = String(
-    user?.role || user?.userType || user?.type || user?.designation || ''
-  )
-    .trim()
-    .toLowerCase();
+  const roleList = [
+    ...(Array.isArray(user?.roles) ? user.roles : []),
+    user?.role,
+    user?.primaryRole,
+    user?.userType,
+    user?.type,
+    user?.designation,
+  ]
+    .filter(Boolean)
+    .map((r) => String(r).trim().toLowerCase());
 
-  if (['admin', 'superadmin', 'super administrator', 'administrator'].includes(rawRole)) {
+  const has = (candidates) => roleList.some((r) => candidates.includes(r));
+
+  if (has(['admin', 'superadmin', 'super administrator', 'administrator'])) {
     return '/admin/panel/dashboard';
   }
-  if (['manager', 'restaurant manager'].includes(rawRole)) {
+  if (has(['manager', 'restaurant manager'])) {
     return '/manager/dashboard';
   }
-  if (['cashier'].includes(rawRole)) {
+  if (has(['cashier'])) {
     return '/cashier/dashboard';
   }
-  if (['kitchen', 'chef'].includes(rawRole)) {
+  if (has(['kitchen', 'kitchen staff', 'chef'])) {
     return '/kitchen/dashboard';
   }
-  if (['waiter'].includes(rawRole)) {
+  if (has(['waiter'])) {
     return '/waiter/dashboard';
   }
   return '/';
@@ -37,9 +44,9 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [language, setLanguage] = useState('English');
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { login: authLogin } = useAuth();
 
   const handleLogin = async (e) => {
@@ -48,7 +55,11 @@ export default function Login() {
     setLoading(true);
     try {
       const loggedInUser = await authLogin(email, password, rememberMe);
-      const destination = resolveDestination(loggedInUser);
+      const fromPath = location.state?.from?.pathname;
+      const destination =
+        fromPath && !['/admin', '/login'].includes(fromPath)
+          ? fromPath
+          : resolveDestination(loggedInUser);
       navigate(destination, { replace: true });
     } catch (err) {
       const msg =
@@ -62,107 +73,106 @@ export default function Login() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-white font-sans text-xs">
       <div className="hidden lg:flex lg:w-1/2 relative bg-[#1a1a1a] h-full items-center justify-center p-3 overflow-hidden">
         <img
           src={loginImage}
           alt="Restaurant Background"
           onError={(e) => {
-            e.target.src =
-              'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80';
+            if (!e.currentTarget.src.endsWith('/assets/food-placeholders/food-burger.png')) {
+              e.currentTarget.src = '/assets/food-placeholders/food-burger.png';
+            }
           }}
           className="w-full h-[90%] object-cover object-center rounded-2xl shadow-2xl"
         />
       </div>
 
-      <div className="w-full lg:w-1/2 h-full flex flex-col items-center justify-center bg-[#fafafa] px-6">
-        <div className="w-full max-w-[420px] bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-black text-gray-900">Staff & Admin Sign In</h1>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Sign in to access your role dashboard
-              </p>
-            </div>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
-              <Globe className="w-3.5 h-3.5 text-gray-500" />
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="bg-transparent outline-none cursor-pointer"
-              >
-                <option value="English">English</option>
-                <option value="Amharic">አማርኛ</option>
-              </select>
-            </label>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 bg-gray-50/50">
+        <form
+          onSubmit={handleLogin}
+          className="w-full max-w-md bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-5"
+        >
+          <div>
+            <h1 className="text-xl font-black text-gray-900">Sign In</h1>
+            <p className="text-gray-500 mt-1">
+              Access your staff portal or customer account.
+            </p>
           </div>
 
           {error && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 font-semibold">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4 text-xs">
-            <div>
-              <label className="font-bold text-gray-700 block mb-1">Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@restaurant.com"
-                  className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
-                />
-              </div>
+          <div className="space-y-1.5">
+            <label className="block font-bold text-gray-700">Email</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
+              />
             </div>
+          </div>
 
-            <div>
-              <label className="font-bold text-gray-700 block mb-1">Password</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="text-gray-400 hover:text-gray-600 absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+          <div className="space-y-1.5">
+            <label className="block font-bold text-gray-700">Password</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-9 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <label className="inline-flex items-center gap-2 text-gray-600 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <span>Remember me</span>
-              </label>
-            </div>
+          <div className="flex items-center justify-between">
+            <label className="inline-flex items-center gap-2 text-gray-600 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <span>Remember me</span>
+            </label>
+            <Link to="/forgot-password" className="text-emerald-600 font-bold hover:underline">
+              Forgot password?
+            </Link>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl font-extrabold flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <LogIn className="w-4 h-4" />
-              <span>{loading ? 'Signing in...' : 'Sign In'}</span>
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl font-extrabold cursor-pointer transition"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>{loading ? 'Signing in...' : 'Sign In'}</span>
+          </button>
+
+          <p className="text-center text-gray-500 pt-1">
+            New customer?{' '}
+            <Link to="/signup" className="text-emerald-600 font-bold hover:underline">
+              Create account
+            </Link>
+          </p>
+        </form>
       </div>
     </div>
   );

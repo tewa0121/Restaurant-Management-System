@@ -26,9 +26,19 @@ export const invoiceService = {
     return unwrapList(res);
   },
 
-  getInvoiceByOrder: async (orderId) => {
-    const res = await api.get(`/invoices/order/${orderId}`);
-    return unwrapItem(res);
+  getInvoiceByOrder: async (orderId, { generateIfMissing = false } = {}) => {
+    try {
+      const res = await api.get(`/invoices/order/${orderId}`);
+      return unwrapItem(res);
+    } catch (err) {
+      if (err?.status === 404) {
+        if (generateIfMissing) {
+          return invoiceService.generateInvoice(orderId);
+        }
+        return null;
+      }
+      throw err;
+    }
   },
 
   getInvoice: async (id) => {

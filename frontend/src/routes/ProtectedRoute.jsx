@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const normalizeRole = (r) =>
@@ -8,7 +8,21 @@ const normalizeRole = (r) =>
     .toLowerCase()
     .replace(/[\s_-]+/g, ' ');
 
+const extractUserRoles = (user) => {
+  if (!user) return [];
+  const raw = [
+    ...(Array.isArray(user.roles) ? user.roles : []),
+    user.role,
+    user.primaryRole,
+    user.userType,
+    user.type,
+    user.designation,
+  ].filter(Boolean);
+  return raw.map(normalizeRole);
+};
+
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
+  const location = useLocation();
   let user = null;
   let token = null;
 
@@ -17,7 +31,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     user = auth?.user || null;
     token = auth?.token || null;
   } catch {
-    // fallback below
+    // fallback to storage
   }
 
   if (!token) {
@@ -32,14 +46,15 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   if (!token || !user) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/admin" state={{ from: location }} replace />;
   }
 
   if (allowedRoles.length > 0) {
-    const userRole = normalizeRole(
-      user?.role || user?.userType || user?.type || user?.designation
-    );
-    const hasPermission = allowedRoles.some((allowed) => normalizeRole(allowed) === userRole);
+    const userRoles = extractUserRoles(user);
+    const wanted = allowedRoles.map(normalizeRole);
+    const hasPermission =
+      userRoles.includes('admin') ||
+      userRoles.some((r) => wanted.includes(r));
 
     if (!hasPermission) {
       return <Navigate to="/" replace />;

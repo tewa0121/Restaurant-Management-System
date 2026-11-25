@@ -4,14 +4,23 @@ import orderService from '../../services/orderService';
 import menuService from '../../services/menuService';
 import tableService from '../../services/tableService';
 
-const ORDER_STATUSES = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'preparing', label: 'Preparing' },
-  { value: 'ready', label: 'Ready' },
-  { value: 'served', label: 'Served' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
+const STATUS_LABELS = {
+  pending: 'Pending',
+  preparing: 'Preparing',
+  ready: 'Ready',
+  served: 'Served',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+const ALLOWED_TRANSITIONS = {
+  pending: ['pending', 'preparing', 'cancelled'],
+  preparing: ['preparing', 'ready', 'cancelled'],
+  ready: ['ready', 'served', 'completed', 'preparing', 'cancelled'],
+  served: ['served', 'completed'],
+  completed: ['completed'],
+  cancelled: ['cancelled'],
+};
 
 export default function OrderManagement() {
   const [orders, setOrders] = useState([]);
@@ -78,6 +87,7 @@ export default function OrderManagement() {
   };
 
   const handleOpenEdit = (ord) => {
+    const currentStatus = String(ord.status || 'pending').toLowerCase();
     setEditingOrder(ord);
     setFormData({
       customerName: ord.customerName || ord.customer_name || '',
@@ -85,7 +95,7 @@ export default function OrderManagement() {
       tableId: ord.tableId || ord.table_id ? String(ord.tableId || ord.table_id) : '',
       menuItemId: '',
       quantity: 1,
-      status: String(ord.status || 'pending').toLowerCase(),
+      status: currentStatus,
       notes: ord.notes || '',
     });
     setIsModalOpen(true);
@@ -144,6 +154,12 @@ export default function OrderManagement() {
     }
     return 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400';
   };
+
+  const editingCurrentStatus = String(editingOrder?.status || 'pending').toLowerCase();
+  const allowedStatusOptions = (ALLOWED_TRANSITIONS[editingCurrentStatus] || [editingCurrentStatus]).map(
+    (value) => ({ value, label: STATUS_LABELS[value] || value })
+  );
+  const isFinalStatus = ['completed', 'cancelled'].includes(editingCurrentStatus);
 
   return (
     <div className="space-y-6 font-sans">
@@ -265,16 +281,22 @@ export default function OrderManagement() {
                 <div>
                   <label className="font-bold block mb-1">ORDER STATUS</label>
                   <select
+                    disabled={isFinalStatus}
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0b1d3a] border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-semibold text-gray-800 dark:text-white"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#0b1d3a] border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-semibold text-gray-800 dark:text-white disabled:opacity-60"
                   >
-                    {ORDER_STATUSES.map((st) => (
+                    {allowedStatusOptions.map((st) => (
                       <option key={st.value} value={st.value}>
                         {st.label}
                       </option>
                     ))}
                   </select>
+                  {isFinalStatus && (
+                    <p className="text-[11px] text-amber-600 mt-1 font-semibold">
+                      Completed or cancelled orders cannot change status.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>
@@ -375,7 +397,7 @@ export default function OrderManagement() {
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || (editingOrder && isFinalStatus)}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl font-bold shadow-lg cursor-pointer"
                 >
                   {saving ? 'Saving...' : editingOrder ? 'Update Status' : 'Save Order'}

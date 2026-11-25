@@ -2,14 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw, Truck, X } from 'lucide-react';
 import deliveryService from '../../services/deliveryService';
 
-const DELIVERY_STATUSES = [
+const ALL_DELIVERY_STATUSES = [
+  'unassigned',
   'assigned',
   'picked_up',
-  'out_for_delivery',
+  'on_the_way',
   'delivered',
   'failed',
-  'cancelled',
 ];
+
+const NEXT_STATUS_OPTIONS = {
+  assigned: ['picked_up', 'failed'],
+  picked_up: ['on_the_way', 'delivered', 'failed'],
+  on_the_way: ['delivered', 'failed'],
+  unassigned: [],
+  delivered: [],
+  failed: [],
+};
 
 export default function DeliveryManagement() {
   const [deliveries, setDeliveries] = useState([]);
@@ -27,7 +36,7 @@ export default function DeliveryManagement() {
     setError('');
     try {
       const [list, driverList] = await Promise.all([
-        deliveryService.getDeliveries({ limit: 100 }),
+        deliveryService.getDeliveries({ limit: 50 }),
         deliveryService.getDrivers().catch(() => []),
       ]);
       setDeliveries(list);
@@ -138,8 +147,11 @@ export default function DeliveryManagement() {
                   const address =
                     del.deliveryAddress || del.delivery_address || del.address || '-';
                   const driverName =
-                    del.driverName || del.driver_name || (del.driverId ? `Driver #${del.driverId}` : 'Unassigned');
-                  const currentStatus = String(del.status || 'pending').toLowerCase();
+                    del.driverName ||
+                    del.driver_name ||
+                    (del.driverId ? `Driver #${del.driverId}` : 'Unassigned');
+                  const currentStatus = String(del.status || 'unassigned').toLowerCase();
+                  const allowedNext = NEXT_STATUS_OPTIONS[currentStatus] || [];
 
                   return (
                     <tr key={del.id || orderId} className="hover:bg-gray-50/70">
@@ -147,27 +159,47 @@ export default function DeliveryManagement() {
                       <td className="p-4 text-gray-600">{address}</td>
                       <td className="p-4 font-semibold">{driverName}</td>
                       <td className="p-4">
-                        <select
-                          value={currentStatus}
-                          onChange={(e) => handleStatusChange(del, e.target.value)}
-                          className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold capitalize outline-none"
-                        >
-                          {DELIVERY_STATUSES.map((st) => (
-                            <option key={st} value={st}>
-                              {st.replace(/_/g, ' ')}
+                        {allowedNext.length > 0 ? (
+                          <select
+                            value={currentStatus}
+                            onChange={(e) => {
+                              if (e.target.value !== currentStatus) {
+                                handleStatusChange(del, e.target.value);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold capitalize outline-none"
+                          >
+                            <option value={currentStatus}>
+                              {currentStatus.replace(/_/g, ' ')} (current)
                             </option>
-                          ))}
-                        </select>
+                            {allowedNext.map((st) => (
+                              <option key={st} value={st}>
+                                {st.replace(/_/g, ' ')}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-bold capitalize">
+                            {(ALL_DELIVERY_STATUSES.includes(currentStatus)
+                              ? currentStatus
+                              : 'unassigned'
+                            ).replace(/_/g, ' ')}
+                          </span>
+                        )}
                       </td>
                       <td className="p-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openAssignModal(del)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold cursor-pointer"
-                        >
-                          <Truck className="w-3.5 h-3.5" />
-                          <span>Assign Driver</span>
-                        </button>
+                        {!['delivered', 'failed'].includes(currentStatus) ? (
+                          <button
+                            type="button"
+                            onClick={() => openAssignModal(del)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold cursor-pointer"
+                          >
+                            <Truck className="w-3.5 h-3.5" />
+                            <span>Assign Driver</span>
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-gray-400 font-semibold">Closed</span>
+                        )}
                       </td>
                     </tr>
                   );

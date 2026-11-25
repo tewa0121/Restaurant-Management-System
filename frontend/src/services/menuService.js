@@ -32,8 +32,21 @@ export const menuService = {
     return unwrapItem(res);
   },
 
+  addMenuItem: async (data) => {
+    return menuService.createMenuItem(data);
+  },
+
   updateMenuItem: async (id, data) => {
     const res = await api.put(`/menu/items/${id}`, data);
+    return unwrapItem(res);
+  },
+
+  setAvailability: async (id, isAvailable) => {
+    const flag = Boolean(isAvailable);
+    const res = await api.patch(`/menu/items/${id}/availability`, {
+      isAvailable: flag,
+      available: flag,
+    });
     return unwrapItem(res);
   },
 

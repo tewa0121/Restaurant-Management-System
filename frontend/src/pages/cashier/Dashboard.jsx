@@ -2,22 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { Wallet, RefreshCw, CheckCircle2 } from 'lucide-react';
 import orderService from '../../services/orderService';
 import paymentService from '../../services/paymentService';
+import invoiceService from '../../services/invoiceService';
 
 export default function CashierDashboard() {
   const [orders, setOrders] = useState([]);
+  const [paidOrderIds, setPaidOrderIds] = useState(() => new Set());
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [payingId, setPayingId] = useState(null);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const loadCashierData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [ordersData, paymentsRes] = await Promise.all([
+      const [ordersData, paymentsRes, invoices] = await Promise.all([
         orderService.getOrders({ limit: 100 }),
         paymentService.getPayments({ limit: 50 }),
+        invoiceService.getInvoices({ limit: 50 }).catch(() => []),
       ]);
+
+      const paidIds = new Set(
+        invoices
+          .filter((inv) => String(inv.status || '').toLowerCase() === 'paid')
+          .map((inv) => Number(inv.orderId ?? inv.order_id))
+          .filter(Boolean)
+      );
+
       setOrders(ordersData);
+      setPaidOrderIds(paidIds);
       setPayments(paymentsRes.rows || []);
     } catch (err) {
       setError(err.message || 'Failed to load billing data.');
@@ -32,22 +46,46 @@ export default function CashierDashboard() {
 
   const handleSettleOrder = async (order) => {
     const amount = Number(order.totalAmount ?? order.total_amount ?? order.total ?? 0);
+    setPayingId(order.id);
     setError('');
+    setSuccessMsg('');
     try {
+      const invoice = await invoiceService.generateInvoice(order.id);
+      if (String(invoice?.status || '').toLowerCase() === 'paid') {
+        setSuccessMsg(`${order.orderNumber || order.order_number || `#${order.id}`} is already paid.`);
+        await loadCashierData();
+        return;
+      }
+
+      const balance = Number(invoice?.balance ?? amount);
       await paymentService.processPayment({
+        invoiceId: invoice?.id,
         orderId: order.id,
-        amount,
+        amount: balance > 0 ? balance : amount,
         method: 'cash',
       });
+      setSuccessMsg(`Settled ${order.orderNumber || order.order_number || `#${order.id}`}.`);
+      setTimeout(() => setSuccessMsg(''), 3000);
       await loadCashierData();
     } catch (err) {
-      setError(err.message || 'Failed to process payment.');
+      const msg =
+        err?.code === 'NO_CASH_SESSION'
+          ? 'Open your cash session first before accepting cash payments.'
+          : err?.message || 'Failed to process payment.';
+      setError(msg);
+      if (err?.code === 'ALREADY_PAID') {
+        await loadCashierData();
+      }
+    } finally {
+      setPayingId(null);
     }
   };
 
   const openOrders = orders.filter((o) => {
     const st = String(o.status || '').toLowerCase();
-    return st !== 'completed' && st !== 'cancelled';
+    if (st === 'completed' || st === 'cancelled' || st === 'paid') return false;
+    if (paidOrderIds.has(Number(o.id))) return false;
+    return true;
   });
 
   return (
@@ -81,6 +119,12 @@ export default function CashierDashboard() {
         </div>
       )}
 
+      {successMsg && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-bold">
+          {successMsg}
+        </div>
+      )}
+
       {loading ? (
         <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center text-xs text-gray-400">
           Loading cashier records...
@@ -109,11 +153,12 @@ export default function CashierDashboard() {
                       </div>
                       <button
                         type="button"
+                        disabled={payingId === ord.id}
                         onClick={() => handleSettleOrder(ord)}
-                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                        className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>Pay Cash</span>
+                        <span>{payingId === ord.id ? 'Paying...' : 'Pay Cash'}</span>
                       </button>
                     </div>
                   );

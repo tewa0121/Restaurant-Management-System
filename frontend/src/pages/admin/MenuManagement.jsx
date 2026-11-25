@@ -99,14 +99,14 @@ export default function MenuManagement() {
         price: Number(formData.price),
         description: formData.description.trim(),
         preparationTime: Number(formData.preparationTime) || 0,
-        imageUrl: formData.imageUrl.trim() || undefined,
+        ...(formData.imageUrl.trim() ? { imageUrl: formData.imageUrl.trim() } : {}),
         isAvailable: Boolean(formData.isAvailable),
       };
 
       if (editingItem) {
         await menuService.updateMenuItem(editingItem.id, payload);
       } else {
-        await menuService.addMenuItem(payload);
+        await menuService.createMenuItem(payload);
       }
 
       setIsModalOpen(false);
@@ -127,7 +127,12 @@ export default function MenuManagement() {
       setMenuItems((prev) =>
         prev.map((m) =>
           m.id === item.id
-            ? { ...m, isAvailable: !currentAvail, available: !currentAvail, is_available: !currentAvail }
+            ? {
+                ...m,
+                isAvailable: !currentAvail,
+                available: !currentAvail,
+                is_available: !currentAvail,
+              }
             : m
         )
       );
@@ -170,6 +175,7 @@ export default function MenuManagement() {
           </p>
         </div>
         <button
+          type="button"
           onClick={handleOpenAdd}
           className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-emerald-600/20 transition cursor-pointer"
         >
@@ -238,7 +244,10 @@ export default function MenuManagement() {
                 filteredItems.map((item) => {
                   const isAvail = Boolean(item.isAvailable ?? item.available ?? item.is_available);
                   return (
-                    <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <tr
+                      key={item.id}
+                      className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition"
+                    >
                       <td className="p-4 font-bold text-gray-900 dark:text-white">{item.name}</td>
                       <td className="p-4 text-gray-500 dark:text-gray-400">
                         {item.category || item.category_name || '-'}

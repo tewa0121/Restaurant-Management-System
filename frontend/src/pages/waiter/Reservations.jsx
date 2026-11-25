@@ -5,6 +5,7 @@ import reservationService from '../../services/reservationService';
 export default function WaiterReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [seatingId, setSeatingId] = useState(null);
   const [error, setError] = useState('');
 
   const loadReservations = async () => {
@@ -25,12 +26,18 @@ export default function WaiterReservations() {
   }, []);
 
   const handleSeat = async (id) => {
+    setSeatingId(id);
     setError('');
     try {
       await reservationService.updateReservationStatus(id, 'seated');
       await loadReservations();
     } catch (err) {
       setError(err.message || 'Failed to seat guest.');
+      if (err?.status === 409) {
+        await loadReservations();
+      }
+    } finally {
+      setSeatingId(null);
     }
   };
 
@@ -52,7 +59,11 @@ export default function WaiterReservations() {
         </button>
       </div>
 
-      {error && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-semibold">{error}</div>}
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-semibold">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm divide-y divide-slate-100">
         {loading ? (
@@ -62,21 +73,33 @@ export default function WaiterReservations() {
         ) : (
           reservations.map((r) => {
             const st = String(r.status || 'pending').toLowerCase();
+            const canSeat = !['seated', 'completed', 'cancelled', 'no_show'].includes(st);
             return (
               <div key={r.id} className="p-4 flex items-center justify-between gap-4">
                 <div>
-                  <p className="font-bold text-slate-900">{r.customerName || r.customer_name || 'Guest'}</p>
+                  <p className="font-bold text-slate-900">
+                    {r.customerName || r.customer_name || 'Guest'}{' '}
+                    {(r.tableNumber || r.table_number) && (
+                      <span className="text-slate-500 font-semibold">
+                        • Table {r.tableNumber || r.table_number}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-slate-500">
-                    Guests: {r.partySize ?? r.party_size ?? 2} • {(r.reservationDate || r.reservation_date || '').slice(0, 10)} {r.reservationTime || r.reservation_time || ''} • <span className="capitalize font-semibold">{st}</span>
+                    Guests: {r.partySize ?? r.party_size ?? r.guests ?? 2} •{' '}
+                    {(r.reservationDate || r.reservation_date || '').slice(0, 10)}{' '}
+                    {r.reservationTime || r.reservation_time || ''} •{' '}
+                    <span className="capitalize font-semibold">{st}</span>
                   </p>
                 </div>
-                {st !== 'seated' && st !== 'completed' && (
+                {canSeat && (
                   <button
                     type="button"
+                    disabled={seatingId === r.id}
                     onClick={() => handleSeat(r.id)}
-                    className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg font-bold cursor-pointer"
+                    className="px-3 py-1.5 bg-emerald-600 disabled:opacity-60 text-white rounded-lg font-bold cursor-pointer"
                   >
-                    Seat Guest
+                    {seatingId === r.id ? 'Seating...' : 'Seat Guest'}
                   </button>
                 )}
               </div>

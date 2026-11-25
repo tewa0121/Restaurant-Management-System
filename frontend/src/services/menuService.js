@@ -11,7 +11,7 @@ const unwrapItem = (res) => res?.data ?? res;
 
 export const menuService = {
   getCategories: async (params = {}) => {
-    const res = await api.get('/menu/categories', params);
+    const res = await api.get('/menu/categories', params, { auth: false });
     return unwrapList(res);
   },
 
@@ -31,12 +31,12 @@ export const menuService = {
   },
 
   getMenuItems: async (params = {}) => {
-    const res = await api.get('/menu/items', params);
+    const res = await api.get('/menu/items', params, { auth: false });
     return unwrapList(res);
   },
 
   getMenuItem: async (id) => {
-    const res = await api.get(`/menu/items/${id}`);
+    const res = await api.get(`/menu/items/${id}`, undefined, { auth: false });
     return unwrapItem(res);
   },
 
@@ -64,7 +64,7 @@ export const menuService = {
   },
 
   getModifiers: async (itemId) => {
-    const res = await api.get(`/menu/items/${itemId}/modifiers`);
+    const res = await api.get(`/menu/items/${itemId}/modifiers`, undefined, { auth: false });
     return unwrapList(res);
   },
 

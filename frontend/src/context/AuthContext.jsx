@@ -1,29 +1,55 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import authService from '../services/authService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Restore user from localStorage on initial load, or provide a default dev admin user so layout testing isn't blocked
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        return JSON.parse(savedUser);
-      } catch (e) {
-        return null;
-      }
+    try {
+      const saved = localStorage.getItem('user') || sessionStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
     }
-    return null;
   });
 
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
+  });
 
-  const login = (userData, userToken) => {
-    setUser(userData);
-    setToken(userToken);
-    localStorage.setItem('token', userToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = async (emailOrUser, passwordOrToken, remember = true) => {
+    // Support both direct (userData, userToken) and credentials (email, password, remember)
+    if (typeof emailOrUser === 'object' && emailOrUser !== null) {
+      const userData = emailOrUser;
+      const userToken = passwordOrToken || '';
+      const store = remember ? localStorage : sessionStorage;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      if (userToken) store.setItem('token', userToken);
+      store.setItem('user', JSON.stringify(userData));
+      setToken(userToken || null);
+      setUser(userData);
+      return userData;
+    }
+
+    const res = await authService.loginRequest(emailOrUser, passwordOrToken, remember);
+    const userData = res?.user || res?.data?.user || res;
+    const userToken = res?.token || res?.data?.token || '';
+
+    const store = remember ? localStorage : sessionStorage;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+
+    if (userToken) store.setItem('token', userToken);
+    if (userData) store.setItem('user', JSON.stringify(userData));
+
+    setToken(userToken || null);
+    setUser(userData || null);
+    return userData;
   };
 
   const logout = () => {
@@ -31,6 +57,9 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    authService.logoutRequest().catch(() => {});
   };
 
   return (
@@ -40,7 +69,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to consume AuthContext safely
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

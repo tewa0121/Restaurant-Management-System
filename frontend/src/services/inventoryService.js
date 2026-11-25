@@ -3,6 +3,7 @@ import api from './api';
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
   if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.items)) return res.items;
   return [];
 };
 
@@ -15,37 +16,37 @@ export const inventoryService = {
   },
 
   getLowStock: async () => {
-    const res = await api.get('/inventory/low');
+    const res = await api.get('/inventory/ingredients/low');
     return unwrapList(res);
   },
 
   getInventory: async (params = {}) => {
-    const res = await api.get('/inventory', params);
+    const res = await api.get('/inventory/ingredients', params);
     return unwrapList(res);
   },
 
   getIngredient: async (id) => {
-    const res = await api.get(`/inventory/${id}`);
+    const res = await api.get(`/inventory/ingredients/${id}`);
     return unwrapItem(res);
   },
 
   createIngredient: async (data) => {
-    const res = await api.post('/inventory', data);
+    const res = await api.post('/inventory/ingredients', data);
     return unwrapItem(res);
   },
 
   updateIngredient: async (id, data) => {
-    const res = await api.put(`/inventory/${id}`, data);
+    const res = await api.put(`/inventory/ingredients/${id}`, data);
     return unwrapItem(res);
   },
 
   deleteIngredient: async (id) => {
-    const res = await api.delete(`/inventory/${id}`);
+    const res = await api.delete(`/inventory/ingredients/${id}`);
     return unwrapItem(res);
   },
 
   addMovement: async (ingredientId, movementData) => {
-    const res = await api.post(`/inventory/${ingredientId}/movements`, movementData);
+    const res = await api.post(`/inventory/ingredients/${ingredientId}/movements`, movementData);
     return unwrapItem(res);
   },
 
@@ -54,7 +55,7 @@ export const inventoryService = {
       typeof payload === 'object' && payload !== null
         ? payload
         : { movementType: 'adjustment', quantity: payload };
-    const res = await api.post(`/inventory/${ingredientId}/movements`, body);
+    const res = await api.post(`/inventory/ingredients/${ingredientId}/movements`, body);
     return unwrapItem(res);
   },
 

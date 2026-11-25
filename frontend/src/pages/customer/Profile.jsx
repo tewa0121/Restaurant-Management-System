@@ -1,92 +1,112 @@
-import React, { useState } from 'react';
-import { User, Mail, Phone, MapPin, Save } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { User, Save } from 'lucide-react';
+import authService from '../../services/authService';
+import http from '../../services/http';
 
 export default function CustomerProfile() {
-  // Controlled component state storing profile fields
-  const [profile, setProfile] = useState({
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    phone: '+1 (555) 234-5678',
-    address: '123 Main Street, Apt 4B, New York, NY 10001'
-  });
+  const [profile, setProfile] = useState({ name: '', email: '', phone: '' });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [error, setError] = useState('');
 
-  // Handle form submission and save action
-  const handleSave = (e) => {
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoading(true);
+      setError('');
+      try {
+        const user = await authService.fetchMe();
+        if (active && user) {
+          setProfile({
+            name: user.fullName || user.full_name || user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+          });
+        }
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load profile.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    alert('Profile and address updated successfully!');
+    setSaving(true);
+    setMsg('');
+    setError('');
+    try {
+      await http.put('/auth/profile', {
+        fullName: profile.name.trim(),
+        phone: profile.phone.trim() || undefined,
+      });
+      setMsg('Profile updated.');
+      setTimeout(() => setMsg(''), 2500);
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || 'Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (loading) {
+    return <div className="bg-white p-8 rounded-2xl border text-xs text-gray-400">Loading profile...</div>;
+  }
+
   return (
-    <div className="space-y-5 pb-8 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold text-gray-900">Account Profile</h1>
-        <p className="text-xs text-gray-400">Update your personal details and primary delivery address</p>
+    <div className="max-w-2xl mx-auto space-y-6 font-sans">
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-3">
+        <User className="w-6 h-6 text-emerald-600" />
+        <div>
+          <h1 className="text-xl font-extrabold text-gray-900">My Profile</h1>
+          <p className="text-xs text-gray-500">Update your account contact information.</p>
+        </div>
       </div>
 
-      <form onSubmit={handleSave} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-4">
-        
-        {/* Input Field: Full Name */}
-        <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">Full Name</label>
-          <div className="relative">
-            <User size={15} className="absolute left-3 top-2.5 text-gray-400" />
-            <input 
-              type="text" 
-              value={profile.name} 
-              onChange={e => setProfile({...profile, name: e.target.value})}
-              className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
-            />
-          </div>
-        </div>
+      {error && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">{error}</div>}
+      {msg && <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold">{msg}</div>}
 
-        {/* Input Field: Email */}
+      <form onSubmit={handleSave} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4 text-xs">
         <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">Email Address</label>
-          <div className="relative">
-            <Mail size={15} className="absolute left-3 top-2.5 text-gray-400" />
-            <input 
-              type="email" 
-              value={profile.email} 
-              onChange={e => setProfile({...profile, email: e.target.value})}
-              className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
-            />
-          </div>
+          <label className="font-bold block mb-1">FULL NAME</label>
+          <input
+            type="text"
+            required
+            value={profile.name}
+            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+            className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none font-semibold"
+          />
         </div>
-
-        {/* Input Field: Phone */}
         <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">Phone Number</label>
-          <div className="relative">
-            <Phone size={15} className="absolute left-3 top-2.5 text-gray-400" />
-            <input 
-              type="text" 
-              value={profile.phone} 
-              onChange={e => setProfile({...profile, phone: e.target.value})}
-              className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
-            />
-          </div>
+          <label className="font-bold block mb-1">EMAIL</label>
+          <input
+            type="email"
+            disabled
+            value={profile.email}
+            className="w-full px-3 py-2 bg-gray-100 border rounded-xl text-gray-500 outline-none"
+          />
         </div>
-
-        {/* Textarea Field: Delivery Address */}
         <div>
-          <label className="text-xs font-bold text-gray-700 block mb-1">Primary Delivery Address</label>
-          <div className="relative">
-            <MapPin size={15} className="absolute left-3 top-2.5 text-gray-400" />
-            <textarea 
-              rows="2"
-              value={profile.address} 
-              onChange={e => setProfile({...profile, address: e.target.value})}
-              className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-1 focus:ring-green-500 focus:outline-none"
-            />
-          </div>
+          <label className="font-bold block mb-1">PHONE</label>
+          <input
+            type="text"
+            value={profile.phone}
+            onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none font-semibold"
+          />
         </div>
-
-        {/* Submit Save Button */}
-        <button 
+        <button
           type="submit"
-          className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+          disabled={saving}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold cursor-pointer"
         >
-          <Save size={14} /> Save Changes
+          <Save className="w-4 h-4" /> <span>{saving ? 'Saving...' : 'Save Changes'}</span>
         </button>
       </form>
     </div>

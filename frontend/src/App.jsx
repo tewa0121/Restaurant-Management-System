@@ -38,7 +38,7 @@ import DeliveryManagement from './pages/admin/DeliveryManagement';
 import PaymentManagement from './pages/admin/PaymentManagement';
 import ReportsAndAnalytics from './pages/admin/ReportsAndAnalytics';
 import LogsAndActivity from './pages/admin/LogsAndActivity';
-import Restaurants from './pages/admin/Restaurants';
+// import Restaurants from './pages/admin/Restaurants'; // hidden: single-restaurant system
 import Settings from './pages/admin/Settings';
 
 // --- CASHIER PAGES ---
@@ -191,7 +191,7 @@ export default function App() {
                     <Route path="payment-management" element={<PaymentManagement />} />
                     <Route path="reports-and-analytics" element={<ReportsAndAnalytics />} />
                     <Route path="logs-and-activity" element={<LogsAndActivity />} />
-                    <Route path="restaurants" element={<Restaurants />} />
+                    {/* <Route path="restaurants" element={<Restaurants />} /> */}
                     <Route path="settings" element={<Settings />} />
                   </Route>
                 </Route>

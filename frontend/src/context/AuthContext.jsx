@@ -1,86 +1,164 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import authService from '../services/authService';
 
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
+
+const STORAGE_KEYS = {
+  user: 'user',
+  token: 'token',
+};
+
+const safeGetItem = (storage, key) => {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const safeSetItem = (storage, key, value) => {
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const safeRemoveItem = (storage, key) => {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Ignore storage access errors
+  }
+};
+
+const readStoredValue = (key) => {
+  return safeGetItem(localStorage, key) ?? safeGetItem(sessionStorage, key) ?? null;
+};
+
+const clearAllAuthStorage = () => {
+  safeRemoveItem(localStorage, STORAGE_KEYS.token);
+  safeRemoveItem(localStorage, STORAGE_KEYS.user);
+  safeRemoveItem(sessionStorage, STORAGE_KEYS.token);
+  safeRemoveItem(sessionStorage, STORAGE_KEYS.user);
+};
 
 const normalizeUser = (rawUser) => {
   if (!rawUser || typeof rawUser !== 'object') return null;
-  const roles = Array.isArray(rawUser.roles)
+
+  const rawRoles = Array.isArray(rawUser.roles)
     ? rawUser.roles
-    : rawUser.role
-    ? [rawUser.role]
+    : typeof rawUser.role === 'string' && rawUser.role.trim()
+    ? [rawUser.role.trim()]
     : [];
-  const primaryRole = rawUser.role || rawUser.primaryRole || roles[0] || 'Customer';
+
+  const roles = rawRoles
+    .filter((r) => typeof r === 'string' && r.trim())
+    .map((r) => r.trim());
+
+  const primaryRole =
+    (typeof rawUser.role === 'string' && rawUser.role.trim()) ||
+    (typeof rawUser.primaryRole === 'string' && rawUser.primaryRole.trim()) ||
+    roles[0] ||
+    'Customer';
+
+  const normalizedRoles = roles.length > 0 ? roles : [primaryRole];
+
   return {
     ...rawUser,
-    roles,
+    roles: normalizedRoles,
     role: primaryRole,
   };
 };
 
+const parseStoredUser = () => {
+  const saved = readStoredValue(STORAGE_KEYS.user);
+  if (!saved) return null;
+  try {
+    return normalizeUser(JSON.parse(saved));
+  } catch {
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('user') || sessionStorage.getItem('user');
-      return saved ? normalizeUser(JSON.parse(saved)) : null;
-    } catch {
-      return null;
+  const [user, setUser] = useState(() => parseStoredUser());
+  const [token, setToken] = useState(() => readStoredValue(STORAGE_KEYS.token));
+
+  const persistAuthState = useCallback((nextUser, nextToken, remember = true) => {
+    const normalizedUser = normalizeUser(nextUser);
+    const normalizedToken = typeof nextToken === 'string' && nextToken.trim() ? nextToken.trim() : null;
+    const targetStorage = remember ? localStorage : sessionStorage;
+
+    clearAllAuthStorage();
+
+    if (normalizedToken) {
+      safeSetItem(targetStorage, STORAGE_KEYS.token, normalizedToken);
     }
-  });
-
-  const [token, setToken] = useState(() => {
-    return localStorage.getItem('token') || sessionStorage.getItem('token') || null;
-  });
-
-  const login = async (emailOrUser, passwordOrToken, remember = true) => {
-    if (typeof emailOrUser === 'object' && emailOrUser !== null) {
-      const userData = normalizeUser(emailOrUser);
-      const userToken = passwordOrToken || '';
-      const store = remember ? localStorage : sessionStorage;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      if (userToken) store.setItem('token', userToken);
-      if (userData) store.setItem('user', JSON.stringify(userData));
-      setToken(userToken || null);
-      setUser(userData);
-      return userData;
+    if (normalizedUser) {
+      safeSetItem(targetStorage, STORAGE_KEYS.user, JSON.stringify(normalizedUser));
     }
 
-    const res = await authService.loginRequest(emailOrUser, passwordOrToken, remember);
-    const userData = normalizeUser(res?.user || res?.data?.user || res);
-    const userToken = res?.token || res?.data?.token || '';
+    setToken(normalizedToken);
+    setUser(normalizedUser);
+    return normalizedUser;
+  }, []);
 
-    const store = remember ? localStorage : sessionStorage;
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
+  const login = useCallback(
+    async (emailOrUser, passwordOrToken, remember = true) => {
+      if (typeof emailOrUser === 'object' && emailOrUser !== null) {
+        return persistAuthState(emailOrUser, passwordOrToken || null, remember);
+      }
 
-    if (userToken) store.setItem('token', userToken);
-    if (userData) store.setItem('user', JSON.stringify(userData));
+      const res = await authService.loginRequest(emailOrUser, passwordOrToken, remember);
+      const rawUser = res?.user ?? res?.data?.user ?? res;
+      const rawToken = res?.token ?? res?.data?.token ?? null;
 
-    setToken(userToken || null);
-    setUser(userData || null);
-    return userData;
-  };
+      return persistAuthState(rawUser, rawToken, remember);
+    },
+    [persistAuthState]
+  );
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    clearAllAuthStorage();
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-    authService.logoutRequest().catch(() => {});
-  };
+    Promise.resolve(authService.logoutRequest?.()).catch(() => {});
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key !== STORAGE_KEYS.user && event.key !== STORAGE_KEYS.token) {
+        return;
+      }
+      setUser(parseStoredUser());
+      setToken(readStoredValue(STORAGE_KEYS.token));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      isAuthenticated: Boolean(token || user),
+      login,
+      logout,
+    }),
+    [user, token, login, logout]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

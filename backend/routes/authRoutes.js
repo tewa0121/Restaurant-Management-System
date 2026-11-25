@@ -39,7 +39,7 @@ router.post(
     body: {
       fullName: { type: 'string', required: true, minLength: 2, maxLength: 100, label: 'Full name' },
       email: { type: 'email', required: true, label: 'Email' },
-      password: { type: 'string', required: true, trim: false, minLength: 6, maxLength: 128, label: 'Password' },
+      password: { type: 'string', required: true, trim: false, minLength: 8, maxLength: 128, label: 'Password' },
       phone: { type: 'string', maxLength: 20, label: 'Phone' },
     },
   }),
@@ -59,7 +59,7 @@ router.post(
   validate({
     body: {
       token: { type: 'string', required: true, maxLength: 128, label: 'Reset token' },
-      password: { type: 'string', required: true, trim: false, minLength: 6, maxLength: 128, label: 'Password' },
+      password: { type: 'string', required: true, trim: false, minLength: 8, maxLength: 128, label: 'Password' },
     },
   }),
   controller.resetPassword
@@ -87,7 +87,7 @@ router.put(
   validate({
     body: {
       currentPassword: { type: 'string', required: true, trim: false, label: 'Current password' },
-      newPassword: { type: 'string', required: true, trim: false, minLength: 6, maxLength: 128, label: 'New password' },
+      newPassword: { type: 'string', required: true, trim: false, minLength: 8, maxLength: 128, label: 'New password' },
     },
   }),
   controller.changePassword

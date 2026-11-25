@@ -32,7 +32,7 @@ const PORTALS = {
         title: 'MANAGEMENT',
         items: [
           { label: 'Users & Roles', icon: Users, path: '/admin/panel/users-and-roles' },
-          { label: 'Restaurants', icon: Store, path: '/admin/panel/restaurants' },
+          { label: 'Restaurants', icon: Store, path: '/admin/panel/restaurants' }, // hidden: single-restaurant system
           { label: 'Menu Management', icon: UtensilsCrossed, path: '/admin/panel/menu-management' },
           { label: 'Table Management', icon: Grid, path: '/admin/panel/table-management' },
           { label: 'Order Management', icon: Receipt, path: '/admin/panel/order-management' },

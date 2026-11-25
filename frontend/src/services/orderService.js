@@ -1,22 +1,95 @@
-export const orderService = {
-  getOrders: async () => {
-    return JSON.parse(localStorage.getItem('restaurantOrders') || JSON.stringify([
-      { id: '#ORD-1250', table: 'Table 5', customer: 'John Smith', items: '3 items', amount: '$45.50', status: 'Completed', time: '10:30 AM' },
-      { id: '#ORD-1249', table: 'Table 12', customer: 'Sarah Johnson', items: '5 items', amount: '$78.20', status: 'Preparing', time: '10:25 AM' },
-      { id: '#ORD-1248', table: 'Table 3', customer: 'Michael Brown', items: '2 items', amount: '$32.00', status: 'Preparing', time: '10:20 AM' },
-    ]));
-  },
-  createOrder: async (orderData) => {
-    const orders = JSON.parse(localStorage.getItem('restaurantOrders') || '[]');
-    const newOrder = { id: `#ORD-${Math.floor(1000 + Math.random() * 9000)}`, ...orderData, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-    orders.unshift(newOrder);
-    localStorage.setItem('restaurantOrders', JSON.stringify(orders));
-    return newOrder;
-  },
-  updateOrderStatus: async (orderId, status) => {
-    const orders = JSON.parse(localStorage.getItem('restaurantOrders') || '[]');
-    const updated = orders.map(o => o.id === orderId ? { ...o, status } : o);
-    localStorage.setItem('restaurantOrders', JSON.stringify(updated));
-    return updated;
-  }
+import api from './api';
+
+const unwrapList = (res) => {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  if (Array.isArray(res?.items)) return res.items;
+  return [];
 };
+
+const unwrapItem = (res) => res?.data ?? res;
+
+export const orderService = {
+  previewOrder: async (orderData) => {
+    const res = await api.post('/orders/preview', orderData);
+    return unwrapItem(res);
+  },
+
+  getOrders: async (params = {}) => {
+    const res = await api.get('/orders', params);
+    return unwrapList(res);
+  },
+
+  getKitchenOrders: async (params = {}) => {
+    const res = await api.get('/orders/kitchen', params);
+    return unwrapList(res);
+  },
+
+  getMyOrders: async (params = {}) => {
+    const res = await api.get('/orders/mine', params);
+    return unwrapList(res);
+  },
+
+  getOrder: async (id) => {
+    const res = await api.get(`/orders/${id}`);
+    return unwrapItem(res);
+  },
+
+  trackOrder: async (id) => {
+    const res = await api.get(`/orders/${id}/track`);
+    return unwrapItem(res);
+  },
+
+  createOrder: async (orderData) => {
+    const res = await api.post('/orders', orderData);
+    return unwrapItem(res);
+  },
+
+  updateOrder: async (orderId, data) => {
+    const res = await api.patch(`/orders/${orderId}`, data);
+    return unwrapItem(res);
+  },
+
+  updateOrderStatus: async (orderId, status) => {
+    const res = await api.patch(`/orders/${orderId}/status`, { status });
+    return unwrapItem(res);
+  },
+
+  cancelMyOrder: async (orderId) => {
+    const res = await api.patch(`/orders/${orderId}/cancel`);
+    return unwrapItem(res);
+  },
+
+  setPriority: async (orderId, priority) => {
+    const res = await api.patch(`/orders/${orderId}/priority`, { priority });
+    return unwrapItem(res);
+  },
+
+  addOrderItems: async (orderId, items) => {
+    const res = await api.post(`/orders/${orderId}/items`, { items });
+    return unwrapItem(res);
+  },
+
+  removeOrderItem: async (orderId, itemId) => {
+    const res = await api.delete(`/orders/${orderId}/items/${itemId}`);
+    return unwrapItem(res);
+  },
+
+  updateOrderItemStatus: async (orderId, itemId, payload) => {
+    const body = typeof payload === 'string' ? { status: payload } : payload;
+    const res = await api.patch(`/orders/${orderId}/items/${itemId}/status`, body);
+    return unwrapItem(res);
+  },
+
+  addFeedback: async (orderId, feedback) => {
+    const res = await api.post(`/orders/${orderId}/feedback`, feedback);
+    return unwrapItem(res);
+  },
+
+  getFeedback: async (params = {}) => {
+    const res = await api.get('/orders/feedback', params);
+    return unwrapList(res);
+  },
+};
+
+export default orderService;

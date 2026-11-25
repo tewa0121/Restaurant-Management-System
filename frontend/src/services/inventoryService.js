@@ -1,16 +1,87 @@
-export const inventoryService = {
-  getInventory: async () => {
-    return JSON.parse(localStorage.getItem('restaurantInventory') || JSON.stringify([
-      { id: 1, name: 'Tomato', qty: '2 kg left', threshold: '5 kg', status: 'Low' },
-      { id: 2, name: 'Chicken Breast', qty: '1.5 kg left', threshold: '4 kg', status: 'Low' },
-      { id: 3, name: 'Cooking Oil', qty: '1 L left', threshold: '3 L', status: 'Low' },
-      { id: 4, name: 'Cheese', qty: '1.2 kg left', threshold: '2 kg', status: 'Adequate' },
-    ]));
-  },
-  updateStock: async (id, qty) => {
-    const items = await inventoryService.getInventory();
-    const updated = items.map(i => i.id === id ? { ...i, qty } : i);
-    localStorage.setItem('restaurantInventory', JSON.stringify(updated));
-    return updated;
-  }
+import api from './api';
+
+const unwrapList = (res) => {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
 };
+
+const unwrapItem = (res) => res?.data ?? res;
+
+export const inventoryService = {
+  getSummary: async () => {
+    const res = await api.get('/inventory/summary');
+    return unwrapItem(res);
+  },
+
+  getLowStock: async () => {
+    const res = await api.get('/inventory/low');
+    return unwrapList(res);
+  },
+
+  getInventory: async (params = {}) => {
+    const res = await api.get('/inventory', params);
+    return unwrapList(res);
+  },
+
+  getIngredient: async (id) => {
+    const res = await api.get(`/inventory/${id}`);
+    return unwrapItem(res);
+  },
+
+  createIngredient: async (data) => {
+    const res = await api.post('/inventory', data);
+    return unwrapItem(res);
+  },
+
+  updateIngredient: async (id, data) => {
+    const res = await api.put(`/inventory/${id}`, data);
+    return unwrapItem(res);
+  },
+
+  deleteIngredient: async (id) => {
+    const res = await api.delete(`/inventory/${id}`);
+    return unwrapItem(res);
+  },
+
+  addMovement: async (ingredientId, movementData) => {
+    const res = await api.post(`/inventory/${ingredientId}/movements`, movementData);
+    return unwrapItem(res);
+  },
+
+  updateStock: async (ingredientId, payload) => {
+    const body =
+      typeof payload === 'object' && payload !== null
+        ? payload
+        : { movementType: 'adjustment', quantity: payload };
+    const res = await api.post(`/inventory/${ingredientId}/movements`, body);
+    return unwrapItem(res);
+  },
+
+  getMovements: async (params = {}) => {
+    const res = await api.get('/inventory/movements', params);
+    return unwrapList(res);
+  },
+
+  getItemRecipe: async (menuItemId) => {
+    const res = await api.get(`/inventory/recipes/items/${menuItemId}`);
+    return unwrapItem(res);
+  },
+
+  setItemRecipe: async (menuItemId, data) => {
+    const res = await api.put(`/inventory/recipes/items/${menuItemId}`, data);
+    return unwrapItem(res);
+  },
+
+  getModifierRecipe: async (modifierId) => {
+    const res = await api.get(`/inventory/recipes/modifiers/${modifierId}`);
+    return unwrapItem(res);
+  },
+
+  setModifierRecipe: async (modifierId, data) => {
+    const res = await api.put(`/inventory/recipes/modifiers/${modifierId}`, data);
+    return unwrapItem(res);
+  },
+};
+
+export default inventoryService;

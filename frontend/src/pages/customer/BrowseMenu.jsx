@@ -1,145 +1,108 @@
-import React, { useState } from 'react';
-import { 
-  Search, 
-  Star, 
-  Heart, 
-  Plus, 
-  Filter, 
-  SlidersHorizontal 
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Plus } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
+import menuService from '../../services/menuService';
+
+const DEFAULT_FOOD_IMAGE = '/assets/food-placeholders/food-burger.png';
 
 export default function BrowseMenu() {
   const { addToCart } = useCart();
+  const [menuItems, setMenuItems] = useState([]);
+  const [categories, setCategories] = useState([{ id: 'all', label: 'All Items' }]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Category filter tabs
-  const categories = [
-    { id: 'all', label: 'All Items' },
-    { id: 'burgers', label: 'Burgers' },
-    { id: 'pizza', label: 'Pizza' },
-    { id: 'chicken', label: 'Chicken' },
-    { id: 'pasta', label: 'Pasta' },
-    { id: 'drinks', label: 'Drinks & Beverages' },
-    { id: 'desserts', label: 'Desserts' },
-  ];
-
-  // Complete Menu Items List
-  const menuItems = [
-    {
-      id: 'menu-1',
-      name: 'Classic Cheeseburger',
-      category: 'burgers',
-      price: 9.99,
-      rating: 4.8,
-      reviews: 140,
-      description: 'Juicy beef patty topped with melted cheddar cheese, lettuce, and pickles.',
-      image: '/assets/food-placeholders/food-burger.png'
-    },
-    {
-      id: 'menu-2',
-      name: 'Margherita Pizza',
-      category: 'pizza',
-      price: 11.99,
-      rating: 4.9,
-      reviews: 310,
-      description: 'Fresh mozzarella, basil, and signature tomato sauce on a thin crust.',
-      image: '/assets/food-placeholders/food-pizza.png'
-    },
-    {
-      id: 'menu-3',
-      name: 'Grilled Chicken Veggie Plate',
-      category: 'chicken',
-      price: 12.99,
-      rating: 4.7,
-      reviews: 220,
-      description: 'Tender grilled chicken breast served with steamed veggies.',
-      image: '/assets/food-placeholders/food-grilled-chicken.png'
-    },
-    {
-      id: 'menu-4',
-      name: 'Creamy Pasta Alfredo',
-      category: 'pasta',
-      price: 11.49,
-      rating: 4.6,
-      reviews: 180,
-      description: 'Fettuccine tossed in a rich parmesan cream sauce.',
-      image: '/assets/food-placeholders/food-pasta-alfredo.png'
-    },
-    {
-      id: 'menu-5',
-      name: 'Special Chicken Biryani',
-      category: 'chicken',
-      price: 13.49,
-      rating: 4.8,
-      reviews: 290,
-      description: 'Aromatic basmati rice cooked with spiced tender chicken.',
-      image: '/assets/food-placeholders/food-biryani.png'
-    },
-    {
-      id: 'menu-6',
-      name: 'Fresh Berry Smoothie',
-      category: 'drinks',
-      price: 5.99,
-      rating: 4.5,
-      reviews: 95,
-      description: 'Blended strawberries, blueberries, yogurt, and honey.',
-      image: '/assets/food-placeholders/food-berry-smoothie.png'
-    },
-    {
-      id: 'menu-7',
-      name: 'Chocolate Lava Cake',
-      category: 'desserts',
-      price: 6.99,
-      rating: 4.9,
-      reviews: 410,
-      description: 'Warm chocolate cake with a molten chocolate center.',
-      image: '/assets/food-placeholders/food-lava-cake.png'
+  useEffect(() => {
+    let active = true;
+    async function fetchMenu() {
+      setLoading(true);
+      setError('');
+      try {
+        const [itemsData, catsData] = await Promise.all([
+          menuService.getMenuItems({ limit: 200 }),
+          menuService.getCategories(),
+        ]);
+        if (!active) return;
+        setMenuItems(itemsData);
+        const mappedCats = [
+          { id: 'all', label: 'All Items' },
+          ...catsData.map((c) => ({
+            id: String(c.id),
+            slug: c.slug,
+            name: c.name,
+            label: c.name,
+          })),
+        ];
+        setCategories(mappedCats);
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load menu.');
+      } finally {
+        if (active) setLoading(false);
+      }
     }
-  ];
+    fetchMenu();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  // Filter menu items by category and search query
   const filteredItems = menuItems.filter((item) => {
-    const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const isAvail = item.isAvailable ?? item.available ?? item.is_available ?? true;
+    if (!isAvail) return false;
+
+    const itemCatId = String(item.categoryId ?? item.category_id ?? '');
+    const itemCatName = String(item.category || item.category_name || '').toLowerCase();
+    const selectedObj = categories.find((c) => c.id === activeCategory);
+
+    const matchesCategory =
+      activeCategory === 'all' ||
+      (selectedObj &&
+        (itemCatId === String(selectedObj.id) ||
+          itemCatName === String(selectedObj.name || '').toLowerCase()));
+
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      String(item.name || '').toLowerCase().includes(q) ||
+      String(item.description || '').toLowerCase().includes(q);
+
     return matchesCategory && matchesSearch;
   });
 
   return (
-    <div className="p-6 space-y-6 max-w-[1600px] mx-auto text-gray-900 dark:text-white">
-      
-      {/* Header Title & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-100 dark:border-gray-800">
+    <div className="max-w-7xl mx-auto space-y-6 pb-12 px-4 font-sans">
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white">Browse Full Menu</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Discover and customize your favorite dishes</p>
+          <h1 className="text-2xl font-extrabold text-gray-900">Browse Menu</h1>
+          <p className="text-xs text-gray-500 mt-1">
+            Explore fresh dishes, drinks, and specials prepared for you.
+          </p>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-80">
+        <div className="relative w-full md:w-80">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search in menu..."
+            placeholder="Search dishes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#0B1426] border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:border-emerald-500"
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-emerald-600"
           />
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         </div>
       </div>
 
-      {/* Category Pills */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex items-center gap-2 flex-wrap">
         {categories.map((cat) => (
           <button
             key={cat.id}
+            type="button"
             onClick={() => setActiveCategory(cat.id)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeCategory === cat.id
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-white dark:bg-[#0B1426] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-100 dark:border-gray-800'
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
             }`}
           >
             {cat.label}
@@ -147,64 +110,74 @@ export default function BrowseMenu() {
         ))}
       </div>
 
-      {/* Food Items Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {filteredItems.length === 0 ? (
-          <div className="col-span-full py-16 text-center text-gray-400 text-xs">
-            No food items found matching your search. Try adjusting filters!
-          </div>
-        ) : (
-          filteredItems.map((dish) => (
-            <div 
-              key={dish.id} 
-              className="bg-white dark:bg-[#0B1426] border border-gray-100 dark:border-gray-800 rounded-2xl p-4 shadow-2xs space-y-3 relative group flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="relative">
-                  <button className="absolute top-3 right-3 p-1.5 bg-white/80 dark:bg-gray-800/80 rounded-full text-gray-400 hover:text-rose-500 transition-colors z-10 cursor-pointer">
-                    <Heart size={14} />
-                  </button>
-                  <img
-                    src={dish.image}
-                    alt={dish.name}
-                    className="w-full h-36 object-cover rounded-xl bg-gray-50"
-                    onError={(e) => { e.target.src = '/assets/food-placeholders/food-burger.png'; }}
-                  />
-                </div>
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-extrabold text-xs text-gray-900 dark:text-white truncate">{dish.name}</h4>
-                    <div className="flex items-center gap-1 text-[10px] text-amber-500 font-bold shrink-0">
-                      <Star size={11} fill="currentColor" />
-                      <span>{dish.rating}</span>
-                    </div>
+      {loading ? (
+        <div className="bg-white p-10 rounded-2xl border border-gray-100 text-center text-xs text-gray-400">
+          Loading menu items...
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="bg-white p-10 rounded-2xl border border-gray-100 text-center text-xs text-gray-400">
+          No menu items match your filter.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredItems.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between"
+            >
+              <div>
+                <img
+                  src={item.imageUrl || item.image_url || item.image || DEFAULT_FOOD_IMAGE}
+                  alt={item.name}
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_FOOD_IMAGE;
+                  }}
+                  className="w-full h-44 object-cover bg-gray-100"
+                />
+                <div className="p-4 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-bold text-sm text-gray-900">{item.name}</h3>
+                    <span className="font-extrabold text-sm text-emerald-600">
+                      ${Number(item.price || 0).toFixed(2)}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">{dish.description}</p>
+                  <p className="text-[11px] text-gray-400 font-semibold">
+                    {item.category || item.category_name || 'Menu'}
+                  </p>
+                  <p className="text-xs text-gray-500 line-clamp-2">
+                    {item.description || 'Freshly prepared restaurant specialty.'}
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-gray-800">
-                <span className="font-black text-sm text-gray-900 dark:text-white">${dish.price.toFixed(2)}</span>
+              <div className="px-4 pb-4 pt-2">
                 <button
                   type="button"
-                  onClick={() => addToCart({
-                    id: dish.id,
-                    name: dish.name,
-                    price: Number(dish.price),
-                    image: dish.image
-                  })}
-                  className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                  onClick={() =>
+                    addToCart({
+                      id: item.id,
+                      menuItemId: item.id,
+                      name: item.name,
+                      price: Number(item.price || 0),
+                      image: item.imageUrl || item.image_url || DEFAULT_FOOD_IMAGE,
+                    })
+                  }
+                  className="w-full flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
                 >
-                  <span>Add</span> <Plus size={12} />
+                  <Plus className="w-4 h-4" />
+                  <span>Add to Cart</span>
                 </button>
               </div>
-
             </div>
-          ))
-        )}
-      </div>
-
+          ))}
+        </div>
+      )}
     </div>
   );
 }

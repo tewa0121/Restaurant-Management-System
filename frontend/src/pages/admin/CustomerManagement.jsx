@@ -1,138 +1,144 @@
-// src/pages/admin/CustomerManagement.jsx
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Edit3, 
-  Trash2, 
-  Phone, 
-  Mail, 
-  Award, 
-  X, 
-  CheckCircle 
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Plus, Edit3, Trash2, X } from 'lucide-react';
+import customerService from '../../services/customerService';
 import { useNotification } from '../../context/NotificationContext';
 import { formatCurrency } from '../../utils/formatters';
 
-const initialCustomers = [
-  { id: 1, name: 'Abebe Bikila', email: 'abebe@example.com', phone: '+251911223344', visits: 12, totalSpent: 240.50, status: 'VIP' },
-  { id: 2, name: 'Kebede Tassew', email: 'kebede@example.com', phone: '+251922334455', visits: 5, totalSpent: 85.00, status: 'Regular' },
-  { id: 3, name: 'Marta Hailu', email: 'marta@example.com', phone: '+251933445566', visits: 1, totalSpent: 18.25, status: 'New' },
-];
-
 export default function CustomerManagement() {
-  const [customers, setCustomers] = useState(initialCustomers);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    status: 'Regular',
+    status: 'regular',
   });
 
   const { showNotification } = useNotification();
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.phone.includes(searchTerm) ||
-      c.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const loadCustomers = async () => {
+    setLoading(true);
+    try {
+      const data = await customerService.getCustomers({ limit: 100 });
+      setCustomers(data);
+    } catch (err) {
+      showNotification(err.message || 'Failed to load customers.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const filteredCustomers = customers.filter((c) => {
+    const name = String(c.name || c.fullName || c.full_name || '').toLowerCase();
+    const phone = String(c.phone || '');
+    const email = String(c.email || '').toLowerCase();
+    const q = searchTerm.trim().toLowerCase();
+    return !q || name.includes(q) || phone.includes(q) || email.includes(q);
+  });
 
   const handleOpenModal = (customer = null) => {
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-        status: customer.status,
+        name: customer.name || customer.fullName || customer.full_name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        status: String(customer.status || 'regular').toLowerCase(),
       });
     } else {
       setEditingCustomer(null);
-      setFormData({ name: '', email: '', phone: '', status: 'Regular' });
+      setFormData({ name: '', email: '', phone: '', status: 'regular' });
     }
     setIsModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingCustomer(null);
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingCustomer) {
-      setCustomers((prev) =>
-        prev.map((c) =>
-          c.id === editingCustomer.id ? { ...c, ...formData } : c
-        )
-      );
-      showNotification('Customer updated successfully!', 'success');
-    } else {
-      const newCustomer = {
-        id: Date.now(),
-        ...formData,
-        visits: 0,
-        totalSpent: 0,
+    if (!formData.name.trim()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim() || undefined,
+        phone: formData.phone.trim() || undefined,
+        status: String(formData.status || 'regular').toLowerCase(),
       };
-      setCustomers((prev) => [newCustomer, ...prev]);
-      showNotification('New customer added successfully!', 'success');
+
+      if (editingCustomer) {
+        await customerService.updateCustomer(editingCustomer.id, payload);
+        showNotification('Customer updated successfully.', 'success');
+      } else {
+        await customerService.createCustomer(payload);
+        showNotification('Customer added successfully.', 'success');
+      }
+
+      setIsModalOpen(false);
+      setEditingCustomer(null);
+      await loadCustomers();
+    } catch (err) {
+      showNotification(err.message || 'Failed to save customer.', 'error');
+    } finally {
+      setSaving(false);
     }
-    handleCloseModal();
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
+  const handleDelete = async (id, name) => {
+    if (!window.confirm(`Delete customer ${name}?`)) return;
+    try {
+      await customerService.deleteCustomer(id);
       setCustomers((prev) => prev.filter((c) => c.id !== id));
-      showNotification('Customer deleted successfully!', 'error');
+      showNotification('Customer deleted.', 'success');
+    } catch (err) {
+      showNotification(err.message || 'Failed to delete customer.', 'error');
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 font-sans">
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <Users className="w-7 h-7 text-emerald-600" /> Customer Management
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Manage restaurant customers, track visits, and view loyalty status.
+          <h1 className="text-2xl font-extrabold text-gray-900">Customer Management</h1>
+          <p className="text-xs text-gray-500 mt-1">
+            Manage customer profiles, contact details, visits, and loyalty status.
           </p>
         </div>
         <button
+          type="button"
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium transition-all shadow-md"
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Add New Customer
+          <Plus className="w-4 h-4" />
+          <span>Add Customer</span>
         </button>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="relative max-w-sm">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, phone, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none"
           />
         </div>
       </div>
 
-      {/* Customers Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 dark:border-slate-700">
+              <tr className="bg-gray-50 text-gray-400 uppercase font-extrabold text-[10px]">
                 <th className="p-4">Customer</th>
                 <th className="p-4">Contact</th>
                 <th className="p-4">Visits</th>
@@ -141,147 +147,127 @@ export default function CustomerManagement() {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-              {filteredCustomers.length > 0 ? (
-                filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                    <td className="p-4 font-semibold text-slate-800 dark:text-white">
-                      {customer.name}
-                    </td>
-                    <td className="p-4 space-y-1">
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-xs">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" /> {customer.email}
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 text-xs">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" /> {customer.phone}
-                      </div>
-                    </td>
-                    <td className="p-4 font-medium text-slate-700 dark:text-slate-300">
-                      {customer.visits} visits
-                    </td>
-                    <td className="p-4 font-bold text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(customer.totalSpent)}
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
-                        customer.status === 'VIP'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-                          : customer.status === 'Regular'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                          : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
-                      }`}>
-                        {customer.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <button
-                        onClick={() => handleOpenModal(customer)}
-                        className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
+            <tbody className="divide-y divide-gray-100 text-gray-700">
+              {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center p-8 text-slate-500 dark:text-slate-400">
-                    No customers found matching your search.
+                  <td colSpan="6" className="p-8 text-center text-gray-400">
+                    Loading customers...
                   </td>
                 </tr>
+              ) : filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-gray-400">
+                    No customers found.
+                  </td>
+                </tr>
+              ) : (
+                filteredCustomers.map((c) => {
+                  const displayName = c.name || c.fullName || c.full_name || 'Customer';
+                  const visits = Number(c.visits ?? c.totalVisits ?? c.total_visits ?? 0);
+                  const spent = Number(c.totalSpent ?? c.total_spent ?? 0);
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50/70">
+                      <td className="p-4 font-bold text-gray-900">{displayName}</td>
+                      <td className="p-4 text-gray-500">
+                        <div>{c.phone || '-'}</div>
+                        <div className="text-[11px] text-gray-400">{c.email || ''}</div>
+                      </td>
+                      <td className="p-4 font-semibold">{visits}</td>
+                      <td className="p-4 font-extrabold text-emerald-600">
+                        {formatCurrency ? formatCurrency(spent) : `$${spent.toFixed(2)}`}
+                      </td>
+                      <td className="p-4 capitalize font-bold">{c.status || 'regular'}</td>
+                      <td className="p-4 text-right space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(c)}
+                          className="p-1.5 bg-blue-50 text-blue-600 rounded-lg cursor-pointer"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(c.id, displayName)}
+                          className="p-1.5 bg-rose-50 text-rose-600 rounded-lg cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Add / Edit Customer Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-center pb-4 mb-4 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white">
-                {editingCustomer ? 'Edit Customer Details' : 'Add New Customer'}
-              </h2>
-              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-4 text-xs text-gray-800">
+            <div className="flex justify-between items-center border-b pb-3 border-gray-100">
+              <h3 className="font-extrabold uppercase">
+                {editingCustomer ? 'Edit Customer' : 'Add Customer'}
+              </h3>
+              <button type="button" onClick={() => setIsModalOpen(false)}>
+                <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Full Name
-                </label>
+                <label className="font-bold block mb-1">NAME</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Email Address
-                </label>
+                <label className="font-bold block mb-1">PHONE</label>
                 <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  required
+                  type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
-                  Status Level
-                </label>
+                <label className="font-bold block mb-1">EMAIL</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
+                />
+              </div>
+              <div>
+                <label className="font-bold block mb-1">STATUS</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 >
-                  <option value="New">New</option>
-                  <option value="Regular">Regular</option>
-                  <option value="VIP">VIP</option>
+                  <option value="new">New</option>
+                  <option value="regular">Regular</option>
+                  <option value="vip">VIP</option>
                 </select>
               </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex justify-end gap-2 pt-3">
                 <button
                   type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 rounded-xl font-bold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-xl shadow-md"
+                  disabled={saving}
+                  className="px-4 py-2 bg-emerald-600 disabled:opacity-60 text-white rounded-xl font-bold cursor-pointer"
                 >
-                  {editingCustomer ? 'Save Changes' : 'Create Customer'}
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </form>

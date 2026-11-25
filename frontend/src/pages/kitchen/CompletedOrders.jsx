@@ -1,75 +1,113 @@
-// src/pages/kitchen/CompletedOrders.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { History, Search, CheckCircle2 } from 'lucide-react';
+import orderService from '../../services/orderService';
 
 export default function CompletedOrders() {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const completedOrders = [
-    { id: '#ORD-1239', table: 'Table 5', items: '3 items', prepTime: '14 min', completedAt: '10:00 AM', chef: 'Chef Alex' },
-    { id: '#ORD-1238', table: 'Table 7', items: '4 items', prepTime: '18 min', completedAt: '9:58 AM', chef: 'Chef Sarah' },
-    { id: '#ORD-1237', table: 'Table 12', items: '2 items', prepTime: '11 min', completedAt: '9:55 AM', chef: 'Chef Daniel' },
-    { id: '#ORD-1236', table: 'Table 1', items: '3 items', prepTime: '16 min', completedAt: '9:50 AM', chef: 'Chef Alex' },
-    { id: '#ORD-1235', table: 'Table 10', items: '4 items', prepTime: '21 min', completedAt: '9:45 AM', chef: 'Chef Sarah' },
-    { id: '#ORD-1234', table: 'Table 3', items: '2 items', prepTime: '12 min', completedAt: '9:40 AM', chef: 'Chef Daniel' },
-  ];
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const filtered = completedOrders.filter(o => 
-    o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    o.table.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setLoading(true);
+      setError('');
+      try {
+        const list = await orderService.getOrders({ status: 'completed', limit: 100 });
+        if (active) setOrders(list);
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load completed orders.');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filtered = orders.filter((o) => {
+    const q = searchTerm.toLowerCase();
+    const num = String(o.orderNumber || o.order_number || o.id || '').toLowerCase();
+    const tbl = String(o.tableNumber || o.table_number || '').toLowerCase();
+    return num.includes(q) || tbl.includes(q);
+  });
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4 border-slate-200 dark:border-slate-800">
+    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen text-slate-800 font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 border-slate-200">
         <div>
-          <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <History className="w-6 h-6 text-blue-500" /> Completed Orders Log
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <History className="w-6 h-6 text-emerald-600" /> Completed Kitchen Orders
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Historical performance and fulfilled kitchen tickets.</p>
+          <p className="text-xs text-slate-500">History of completed orders.</p>
         </div>
-
         <div className="relative w-full sm:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input 
+          <input
             type="text"
-            placeholder="Search order or table..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none"
+            placeholder="Search order or table..."
+            className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"
           />
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-slate-800">
-            <tr>
-              <th className="p-4">Order ID</th>
-              <th className="p-4">Table</th>
-              <th className="p-4">Items Summary</th>
-              <th className="p-4">Prep Duration</th>
-              <th className="p-4">Assigned Chef</th>
-              <th className="p-4">Completed Time</th>
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="bg-slate-50 text-slate-400 uppercase font-extrabold text-[10px]">
+              <th className="p-4">Order #</th>
+              <th className="p-4">Table / Type</th>
+              <th className="p-4">Total</th>
               <th className="p-4">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
-            {filtered.map(o => (
-              <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                <td className="p-4 font-bold text-emerald-600">{o.id}</td>
-                <td className="p-4">{o.table}</td>
-                <td className="p-4">{o.items}</td>
-                <td className="p-4 text-slate-500">{o.prepTime}</td>
-                <td className="p-4">{o.chef}</td>
-                <td className="p-4 text-slate-400">{o.completedAt}</td>
-                <td className="p-4">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                    <CheckCircle2 className="w-3 h-3" /> Done
-                  </span>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr>
+                <td colSpan="4" className="p-8 text-center text-slate-400">
+                  Loading completed orders...
                 </td>
               </tr>
-            ))}
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan="4" className="p-8 text-center text-slate-400">
+                  No completed orders found.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((o) => (
+                <tr key={o.id} className="hover:bg-slate-50/70">
+                  <td className="p-4 font-bold text-slate-900">
+                    {o.orderNumber || o.order_number || `#${o.id}`}
+                  </td>
+                  <td className="p-4">
+                    {o.tableNumber || o.table_number
+                      ? `Table ${o.tableNumber || o.table_number}`
+                      : o.orderType || o.order_type || 'Order'}
+                  </td>
+                  <td className="p-4 font-extrabold text-slate-900">
+                    ${Number(o.totalAmount ?? o.total_amount ?? o.total ?? 0).toFixed(2)}
+                  </td>
+                  <td className="p-4">
+                    <span className="inline-flex items-center gap-1 text-emerald-600 font-bold capitalize">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {o.status || 'completed'}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

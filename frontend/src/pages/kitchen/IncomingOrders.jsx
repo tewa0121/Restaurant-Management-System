@@ -1,70 +1,116 @@
-// src/pages/kitchen/IncomingOrders.jsx
-import React, { useState } from 'react';
-import { Flame, Clock, Play, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Flame, Play, RefreshCw } from 'lucide-react';
+import orderService from '../../services/orderService';
 
 export default function IncomingOrders() {
-  const [orders, setOrders] = useState([
-    { id: '#ORD-1250', table: 'Table 5', items: ['Grilled Chicken Breast x2', 'Caesar Salad x1'], time: '10:20 AM', priority: 'High', elapsed: '15 min' },
-    { id: '#ORD-1249', table: 'Table 7', items: ['Beef Burger x2', 'French Fries x2', 'Coke x2'], time: '10:18 AM', priority: 'High', elapsed: '17 min' },
-    { id: '#ORD-1248', table: 'Table 12', items: ['Margherita Pizza x1', 'Garlic Bread x1'], time: '10:15 AM', priority: 'Medium', elapsed: '20 min' },
-    { id: '#ORD-1247', table: 'Table 3', items: ['Pasta Carbonara x2'], time: '10:10 AM', priority: 'Medium', elapsed: '25 min' },
-    { id: '#ORD-1246', table: 'Table 15', items: ['Seafood Soup x1', 'Steak x1'], time: '10:08 AM', priority: 'Low', elapsed: '27 min' },
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleStartOrder = (id) => {
-    setOrders(prev => prev.filter(o => o.id !== id));
+  const loadIncoming = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await orderService.getKitchenOrders().catch(() => orderService.getOrders({ status: 'pending' }));
+      const incoming = list.filter((o) => {
+        const st = String(o.status || '').toLowerCase();
+        return st === 'pending' || st === 'confirmed' || st === 'new';
+      });
+      setOrders(incoming);
+    } catch (err) {
+      setError(err.message || 'Failed to load incoming kitchen orders.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadIncoming();
+  }, []);
+
+  const startPreparing = async (id) => {
+    setError('');
+    try {
+      await orderService.updateOrderStatus(id, 'preparing');
+      await loadIncoming();
+    } catch (err) {
+      setError(err.message || 'Failed to start preparing order.');
+    }
   };
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 dark:bg-slate-950 min-h-screen text-slate-800 dark:text-slate-100">
-      <div className="flex justify-between items-center border-b pb-4 border-slate-200 dark:border-slate-800">
+    <div className="p-6 space-y-6 bg-[#F8FAFC] min-h-screen text-slate-800 font-sans">
+      <div className="flex items-center justify-between border-b pb-4 border-slate-200">
         <div>
-          <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <Flame className="w-6 h-6 text-rose-500" /> Incoming Orders Queue
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <Flame className="w-6 h-6 text-orange-500" /> Incoming Kitchen Orders
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Manage and start new orders placed by waiters/customers.</p>
+          <p className="text-xs text-slate-500">New tickets waiting to be prepared.</p>
         </div>
-        <span className="px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 text-xs font-bold">
-          {orders.length} Pending Approval
-        </span>
+        <button
+          type="button"
+          onClick={loadIncoming}
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Refresh</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {orders.map(order => (
-          <div key={order.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="font-extrabold text-sm text-emerald-600 dark:text-emerald-400">{order.id}</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  order.priority === 'High' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400' :
-                  order.priority === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400' :
-                  'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
-                }`}>
-                  {order.priority} Priority
-                </span>
-              </div>
-              <div className="text-xs font-bold text-slate-700 dark:text-slate-200">{order.table}</div>
-              <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl">
-                {order.items.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-1.5">• {item}</li>
-                ))}
-              </ul>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Placed: {order.time}</span>
-                <span className="text-amber-600 font-bold">Waiting: {order.elapsed}</span>
-              </div>
-            </div>
+      {error && (
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
-            <button
-              type="button"
-              onClick={() => handleStartOrder(order.id)}
-              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+      {loading ? (
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
+          Loading incoming orders...
+        </div>
+      ) : orders.length === 0 ? (
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">
+          No incoming orders right now.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+          {orders.map((o) => (
+            <div
+              key={o.id}
+              className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-4"
             >
-              <Play className="w-4 h-4 fill-current" /> Start Preparing Order
-            </button>
-          </div>
-        ))}
-      </div>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-sm text-slate-900">
+                    {o.orderNumber || o.order_number || `#${o.id}`}
+                  </span>
+                  <span className="text-slate-500 font-bold">
+                    {o.tableNumber || o.table_number
+                      ? `Table ${o.tableNumber || o.table_number}`
+                      : o.orderType || o.order_type || 'Order'}
+                  </span>
+                </div>
+                <ul className="mt-3 space-y-1 text-slate-700">
+                  {(o.items || []).map((it, idx) => (
+                    <li key={it.id || idx}>
+                      • {it.name || it.itemName || it.item_name || `Item #${it.menuItemId || idx + 1}`} x
+                      {it.quantity || 1}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => startPreparing(o.id)}
+                className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>Start Preparing</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

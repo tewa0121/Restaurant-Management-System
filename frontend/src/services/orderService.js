@@ -10,9 +10,11 @@ const unwrapList = (res) => {
 const unwrapItem = (res) => res?.data ?? res;
 
 const getRole = () => {
-  const u = getStoredUser();
-  return String(u?.role || u?.primaryRole || '').trim().toLowerCase();
+  const user = getStoredUser();
+  return String(user?.role || user?.primaryRole || '').trim().toLowerCase();
 };
+
+const isAuthOrForbidden = (err) => err?.status === 401 || err?.status === 403;
 
 export const orderService = {
   previewOrder: async (orderData) => {
@@ -24,35 +26,39 @@ export const orderService = {
     const role = getRole();
     try {
       let endpoint = '/orders';
-      if (role === 'customer') endpoint = '/orders/mine';
-      else if (role === 'kitchen') endpoint = '/orders/kitchen';
+      if (role === 'customer') {
+        endpoint = '/orders/mine';
+      } else if (role === 'kitchen') {
+        endpoint = '/orders/kitchen';
+      }
 
       const res = await api.get(endpoint, params);
       return unwrapList(res);
     } catch (err) {
-      if (err?.status === 401 || err?.status === 403) {
-        return [];
-      }
+      if (isAuthOrForbidden(err)) return [];
       throw err;
     }
   },
 
   getKitchenOrders: async (params = {}) => {
+    const role = getRole();
+    if (!['admin', 'manager', 'kitchen', 'waiter'].includes(role)) return [];
     try {
       const res = await api.get('/orders/kitchen', params);
       return unwrapList(res);
     } catch (err) {
-      if (err?.status === 401 || err?.status === 403) return [];
+      if (isAuthOrForbidden(err)) return [];
       throw err;
     }
   },
 
   getMyOrders: async (params = {}) => {
+    if (getRole() !== 'customer') return [];
     try {
       const res = await api.get('/orders/mine', params);
       return unwrapList(res);
     } catch (err) {
-      if (err?.status === 401 || err?.status === 403) return [];
+      if (isAuthOrForbidden(err)) return [];
       throw err;
     }
   },
@@ -114,8 +120,13 @@ export const orderService = {
   },
 
   getFeedback: async (params = {}) => {
-    const res = await api.get('/orders/feedback', params);
-    return unwrapList(res);
+    try {
+      const res = await api.get('/orders/feedback', params);
+      return unwrapList(res);
+    } catch (err) {
+      if (isAuthOrForbidden(err)) return [];
+      throw err;
+    }
   },
 };
 

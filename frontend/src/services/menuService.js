@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getStoredUser } from './api';
 
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
@@ -9,9 +9,41 @@ const unwrapList = (res) => {
 
 const unwrapItem = (res) => res?.data ?? res;
 
+const getRole = () => {
+  const user = getStoredUser();
+  return String(user?.role || user?.primaryRole || '').trim().toLowerCase();
+};
+
+const isAuthOrForbidden = (err) => err?.status === 401 || err?.status === 403;
+
 export const menuService = {
+  getMenuItems: async (params = {}) => {
+    const res = await api.get('/menu/items', params);
+    return unwrapList(res);
+  },
+
+  getMenuItem: async (id) => {
+    const res = await api.get(`/menu/items/${id}`);
+    return unwrapItem(res);
+  },
+
+  createMenuItem: async (data) => {
+    const res = await api.post('/menu/items', data);
+    return unwrapItem(res);
+  },
+
+  updateMenuItem: async (id, data) => {
+    const res = await api.put(`/menu/items/${id}`, data);
+    return unwrapItem(res);
+  },
+
+  deleteMenuItem: async (id) => {
+    const res = await api.delete(`/menu/items/${id}`);
+    return unwrapItem(res);
+  },
+
   getCategories: async (params = {}) => {
-    const res = await api.get('/menu/categories', params, { auth: false });
+    const res = await api.get('/menu/categories', params);
     return unwrapList(res);
   },
 
@@ -30,71 +62,20 @@ export const menuService = {
     return unwrapItem(res);
   },
 
-  getMenuItems: async (params = {}) => {
-    const res = await api.get('/menu/items', params, { auth: false });
-    return unwrapList(res);
-  },
-
-  getMenuItem: async (id) => {
-    const res = await api.get(`/menu/items/${id}`, undefined, { auth: false });
-    return unwrapItem(res);
-  },
-
-  addMenuItem: async (item) => {
-    const res = await api.post('/menu/items', item);
-    return unwrapItem(res);
-  },
-
-  updateMenuItem: async (id, item) => {
-    const res = await api.put(`/menu/items/${id}`, item);
-    return unwrapItem(res);
-  },
-
-  setAvailability: async (id, isAvailable) => {
-    const res = await api.patch(`/menu/items/${id}/availability`, {
-      isAvailable,
-      available: isAvailable,
-    });
-    return unwrapItem(res);
-  },
-
-  deleteMenuItem: async (id) => {
-    const res = await api.delete(`/menu/items/${id}`);
-    return unwrapItem(res);
-  },
-
-  getModifiers: async (itemId) => {
-    const res = await api.get(`/menu/items/${itemId}/modifiers`, undefined, { auth: false });
-    return unwrapList(res);
-  },
-
-  addModifier: async (itemId, modifier) => {
-    const res = await api.post(`/menu/items/${itemId}/modifiers`, modifier);
-    return unwrapItem(res);
-  },
-
-  updateModifier: async (modifierId, modifier) => {
-    const res = await api.put(`/menu/modifiers/${modifierId}`, modifier);
-    return unwrapItem(res);
-  },
-
-  deleteModifier: async (modifierId) => {
-    const res = await api.delete(`/menu/modifiers/${modifierId}`);
-    return unwrapItem(res);
-  },
-
   getFavorites: async () => {
-    const res = await api.get('/menu/favorites');
-    return unwrapList(res);
+    if (getRole() !== 'customer') return [];
+    try {
+      const res = await api.get('/menu/favorites');
+      return unwrapList(res);
+    } catch (err) {
+      if (isAuthOrForbidden(err)) return [];
+      throw err;
+    }
   },
 
-  addFavorite: async (itemId) => {
-    const res = await api.post(`/menu/favorites/${itemId}`);
-    return unwrapItem(res);
-  },
-
-  removeFavorite: async (itemId) => {
-    const res = await api.delete(`/menu/favorites/${itemId}`);
+  toggleFavorite: async (menuItemId) => {
+    if (getRole() !== 'customer') return null;
+    const res = await api.post(`/menu/favorites/${menuItemId}`);
     return unwrapItem(res);
   },
 };

@@ -5,6 +5,9 @@ const { createRateLimiter } = require('../middleware/rateLimiter');
 const { validate } = require('../utils/validate');
 
 const router = express.Router();
+const { body } = require('express-validator');
+const authController = require('../controllers/authController');
+const verifyToken = require('../middleware/authMiddleware');
 
 const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,

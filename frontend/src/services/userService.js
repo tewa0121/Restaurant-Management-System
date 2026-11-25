@@ -1,16 +1,48 @@
-export const userService = {
-  getUsers: async () => {
-    return JSON.parse(localStorage.getItem('restaurantUsers') || JSON.stringify([
-      { id: 1, name: 'John Manager', role: 'Manager', email: 'manager@resto.com', status: 'Active' },
-      { id: 2, name: 'Alice Cashier', role: 'Cashier', email: 'cashier@resto.com', status: 'Active' },
-      { id: 3, name: 'Chef Gordon', role: 'Kitchen Staff', email: 'chef@resto.com', status: 'Active' },
-    ]));
-  },
-  addUser: async (user) => {
-    const users = await userService.getUsers();
-    const newUser = { ...user, id: Date.now() };
-    users.push(newUser);
-    localStorage.setItem('restaurantUsers', JSON.stringify(users));
-    return newUser;
-  }
+import api from './api';
+
+const unwrapList = (res) => {
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
 };
+
+const unwrapItem = (res) => res?.data ?? res;
+
+export const userService = {
+  getUsers: async (params = {}) => {
+    const res = await api.get('/users', params);
+    return unwrapList(res);
+  },
+
+  getUser: async (id) => {
+    const res = await api.get(`/users/${id}`);
+    return unwrapItem(res);
+  },
+
+  addUser: async (userData) => {
+    const res = await api.post('/users', userData);
+    return res;
+  },
+
+  updateUser: async (id, userData) => {
+    const res = await api.put(`/users/${id}`, userData);
+    return unwrapItem(res);
+  },
+
+  setUserStatus: async (id, statusData) => {
+    const res = await api.patch(`/users/${id}/status`, statusData);
+    return unwrapItem(res);
+  },
+
+  resetPassword: async (id, password) => {
+    const res = await api.post(`/users/${id}/reset-password`, password ? { password } : {});
+    return res;
+  },
+
+  deleteUser: async (id) => {
+    const res = await api.delete(`/users/${id}`);
+    return res;
+  },
+};
+
+export default userService;

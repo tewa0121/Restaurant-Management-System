@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getStoredUser } from './api';
 
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
@@ -9,6 +9,11 @@ const unwrapList = (res) => {
 
 const unwrapItem = (res) => res?.data ?? res;
 
+const getRole = () => {
+  const u = getStoredUser();
+  return String(u?.role || u?.primaryRole || '').trim().toLowerCase();
+};
+
 export const orderService = {
   previewOrder: async (orderData) => {
     const res = await api.post('/orders/preview', orderData);
@@ -16,18 +21,40 @@ export const orderService = {
   },
 
   getOrders: async (params = {}) => {
-    const res = await api.get('/orders', params);
-    return unwrapList(res);
+    const role = getRole();
+    try {
+      let endpoint = '/orders';
+      if (role === 'customer') endpoint = '/orders/mine';
+      else if (role === 'kitchen') endpoint = '/orders/kitchen';
+
+      const res = await api.get(endpoint, params);
+      return unwrapList(res);
+    } catch (err) {
+      if (err?.status === 401 || err?.status === 403) {
+        return [];
+      }
+      throw err;
+    }
   },
 
   getKitchenOrders: async (params = {}) => {
-    const res = await api.get('/orders/kitchen', params);
-    return unwrapList(res);
+    try {
+      const res = await api.get('/orders/kitchen', params);
+      return unwrapList(res);
+    } catch (err) {
+      if (err?.status === 401 || err?.status === 403) return [];
+      throw err;
+    }
   },
 
   getMyOrders: async (params = {}) => {
-    const res = await api.get('/orders/mine', params);
-    return unwrapList(res);
+    try {
+      const res = await api.get('/orders/mine', params);
+      return unwrapList(res);
+    } catch (err) {
+      if (err?.status === 401 || err?.status === 403) return [];
+      throw err;
+    }
   },
 
   getOrder: async (id) => {

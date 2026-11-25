@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getStoredUser } from './api';
 
 const unwrapList = (res) => {
   if (Array.isArray(res)) return res;
@@ -9,6 +9,12 @@ const unwrapList = (res) => {
 
 const unwrapItem = (res) => res?.data ?? res;
 
+const getRole = () => {
+  const user = getStoredUser();
+  return String(user?.role || user?.primaryRole || '').trim().toLowerCase();
+};
+
+const isCustomerRole = () => getRole() === 'customer';
 const isAuthOrForbidden = (err) => err?.status === 401 || err?.status === 403;
 
 export const customerService = {
@@ -43,6 +49,7 @@ export const customerService = {
   },
 
   getMyProfile: async () => {
+    if (!isCustomerRole()) return null;
     try {
       const res = await api.get('/customers/me');
       return unwrapItem(res);
@@ -58,6 +65,7 @@ export const customerService = {
   },
 
   getMyAddresses: async () => {
+    if (!isCustomerRole()) return [];
     try {
       const res = await api.get('/customers/me/addresses');
       return unwrapList(res);

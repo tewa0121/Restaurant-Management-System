@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Flame, Play, RefreshCw } from 'lucide-react';
 import orderService from '../../services/orderService';
+import useNewItemAlert from '../../hooks/useNewItemAlert';
+import { readPrefs, KITCHEN_PREFS } from '../../utils/preferences';
 
 export default function IncomingOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [prefs] = useState(() => readPrefs(KITCHEN_PREFS.scope, KITCHEN_PREFS.defaults));
 
-  const loadIncoming = async () => {
-    setLoading(true);
+  const loadIncoming = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await orderService.getKitchenOrders().catch(() => orderService.getOrders({ status: 'pending' }));
@@ -23,6 +27,9 @@ export default function IncomingOrders() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadIncoming(true), 8000);
+  useNewItemAlert(orders.map((o) => o.id), { ready: !loading, enabled: prefs.soundEnabled, kind: 'new' });
 
   useEffect(() => {
     loadIncoming();
@@ -76,7 +83,11 @@ export default function IncomingOrders() {
           {orders.map((o) => (
             <div
               key={o.id}
-              className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-4"
+              className={`bg-white p-5 rounded-2xl border shadow-sm flex flex-col justify-between space-y-4 ${
+                prefs.priorityAlerts && (Number(o.priority) > 0 || Number(o.elapsedMinutes) >= 15)
+                  ? 'border-rose-400 animate-pulse'
+                  : 'border-slate-200/80'
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between">

@@ -1,17 +1,35 @@
 // src/pages/kitchen/Settings.jsx
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Volume2, ShieldCheck, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Check, Play } from 'lucide-react';
+import { readPrefs, writePrefs, playBeep, KITCHEN_PREFS } from '../../utils/preferences';
+
+const OPTIONS = [
+  {
+    key: 'soundEnabled',
+    label: 'Beep when a new order arrives',
+    hint: 'Plays a short sound on the Incoming Orders screen when a new ticket appears.',
+  },
+  {
+    key: 'priorityAlerts',
+    label: 'Highlight urgent orders with a flashing border',
+    hint: 'Marks tickets that are high priority or have waited 15+ minutes.',
+  },
+];
 
 export default function KitchenSettings() {
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [autoAccept, setAutoAccept] = useState(false);
-  const [priorityAlerts, setPriorityAlerts] = useState(true);
+  const [prefs, setPrefs] = useState(() => readPrefs(KITCHEN_PREFS.scope, KITCHEN_PREFS.defaults));
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSave = (e) => {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    if (writePrefs(KITCHEN_PREFS.scope, prefs)) {
+      setError('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } else {
+      setError('Could not save - browser storage is unavailable.');
+    }
   };
 
   return (
@@ -20,7 +38,9 @@ export default function KitchenSettings() {
         <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
           <SettingsIcon className="w-6 h-6 text-emerald-500" /> Kitchen Portal Settings
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400">Configure notification alerts, terminal audio, and operational preferences.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Preferences for this kitchen screen. They are stored on this device only.
+        </p>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
@@ -30,42 +50,37 @@ export default function KitchenSettings() {
           </h3>
 
           <div className="space-y-3 text-xs">
-            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
-              <span className="font-medium text-slate-700 dark:text-slate-300">Enable Audible Order Alerts (Beep on new orders)</span>
-              <input 
-                type="checkbox" 
-                checked={soundEnabled} 
-                onChange={(e) => setSoundEnabled(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
-              <span className="font-medium text-slate-700 dark:text-slate-300">Auto-accept incoming waiter orders into preparation queue</span>
-              <input 
-                type="checkbox" 
-                checked={autoAccept} 
-                onChange={(e) => setAutoAccept(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
-              <span className="font-medium text-slate-700 dark:text-slate-300">Highlight high-priority urgent orders with flashing border</span>
-              <input 
-                type="checkbox" 
-                checked={priorityAlerts} 
-                onChange={(e) => setPriorityAlerts(e.target.checked)}
-                className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-              />
-            </label>
+            {OPTIONS.map(({ key, label, hint }) => (
+              <label key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 cursor-pointer">
+                <span>
+                  <span className="block font-medium text-slate-700 dark:text-slate-300">{label}</span>
+                  <span className="block text-[10px] text-slate-400 mt-0.5">{hint}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(prefs[key])}
+                  onChange={(e) => setPrefs((p) => ({ ...p, [key]: e.target.checked }))}
+                  className="w-4 h-4 accent-emerald-600"
+                />
+              </label>
+            ))}
           </div>
+
+          <button
+            type="button"
+            onClick={() => playBeep('new')}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5" /> Test sound
+          </button>
         </div>
+
+        {error && <p className="text-xs font-bold text-rose-600">{error}</p>}
 
         <div className="flex items-center justify-between">
           {saved && (
             <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-              <Check className="w-4 h-4" /> Settings updated successfully!
+              <Check className="w-4 h-4" /> Settings saved on this device.
             </span>
           )}
           <button

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { UtensilsCrossed, Search, RefreshCw } from 'lucide-react';
 import inventoryService from '../../services/inventoryService';
 
@@ -8,8 +9,8 @@ export default function Ingredients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadIngredients = async () => {
-    setLoading(true);
+  const loadIngredients = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await inventoryService.getInventory({ limit: 200 });
@@ -20,6 +21,8 @@ export default function Ingredients() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadIngredients(true), 30000);
 
   useEffect(() => {
     loadIngredients();

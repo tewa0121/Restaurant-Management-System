@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Clock, CheckCircle2, RefreshCw } from 'lucide-react';
 import orderService from '../../services/orderService';
 
@@ -7,8 +8,8 @@ export default function InProgress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadPreparing = async () => {
-    setLoading(true);
+  const loadPreparing = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await orderService.getKitchenOrders().catch(() => orderService.getOrders({ status: 'preparing' }));
@@ -20,6 +21,8 @@ export default function InProgress() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadPreparing(true), 8000);
 
   useEffect(() => {
     loadPreparing();

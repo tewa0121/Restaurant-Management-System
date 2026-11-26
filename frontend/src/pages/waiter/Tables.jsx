@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Grid, Users, RefreshCw } from 'lucide-react';
 import tableService from '../../services/tableService';
 
@@ -8,8 +9,8 @@ export default function WaiterTablesGrid() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadTables = async () => {
-    setLoading(true);
+  const loadTables = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await tableService.getTables();
@@ -20,6 +21,8 @@ export default function WaiterTablesGrid() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadTables(true), 10000);
 
   useEffect(() => {
     loadTables();

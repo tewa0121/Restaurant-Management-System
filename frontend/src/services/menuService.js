@@ -86,11 +86,20 @@ export const menuService = {
     }
   },
 
-  toggleFavorite: async (menuItemId) => {
+    addFavorite: async (menuItemId) => {
     if (getRole() !== 'customer') return null;
     const res = await api.post(`/menu/favorites/${menuItemId}`);
     return unwrapItem(res);
   },
+
+  removeFavorite: async (menuItemId) => {
+    if (getRole() !== 'customer') return null;
+    const res = await api.delete(`/menu/favorites/${menuItemId}`);
+    return res;
+  },
+
+  // kept for older callers: the server only adds, removing needs removeFavorite
+  toggleFavorite: async (menuItemId) => menuService.addFavorite(menuItemId),
 };
 
 export default menuService;

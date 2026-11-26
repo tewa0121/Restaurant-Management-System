@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Search,
   Plus,
@@ -7,58 +7,26 @@ import {
   ShoppingBag,
   X,
   ArrowUpDown,
-  Images,
   Clock,
   RotateCcw,
+  Heart,
 } from 'lucide-react';
-import { useCart } from '../../hooks/useCart';
+import { useCart } from '../../context/CartContext';
 import menuService from '../../services/menuService';
-
-export const FOOD_PLACEHOLDER_FILES = [
-  'food-biryani.png',
-  'food-burger-fries.png',
-  'food-burger.png',
-  'food-chocolate-cake.png',
-  'food-dessert.png',
-  'food-grilled-chicken.png',
-  'food-healthy-bowl.png',
-  'food-juice.png',
-  'food-pasta-alfredo.png',
-  'food-pizza.png',
-  'food-salad.png',
-  'food-steak.png',
-  'login.png',
-];
-
-export const PLACEHOLDER_IMAGES = FOOD_PLACEHOLDER_FILES.map(
-  (file) => `/assets/food-placeholders/${file}`
-);
-
-const formatPlaceholderTitle = (fileName) =>
-  fileName
-    .replace(/\.(png|jpg|jpeg|webp)$/i, '')
-    .replace(/[-_]+/g, ' ')
-    .trim();
-
-const resolveImageSrc = (item, index = 0) => {
-  const raw = item?.imageUrl || item?.image_url || item?.image || '';
-  if (raw && typeof raw === 'string' && raw.trim()) {
-    const clean = raw.trim();
-    if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('/')) {
-      return clean;
-    }
-    return `/assets/food-placeholders/${clean.replace(/^\/+/, '')}`;
-  }
-  return PLACEHOLDER_IMAGES[index % PLACEHOLDER_IMAGES.length];
-};
+import { getStoredUser } from '../../services/api';
+import { PLACEHOLDER_IMAGES, resolveImageSrc, categoryOf } from '../../utils/menuImages';
 
 export default function BrowseMenu() {
   const navigate = useNavigate();
-  const { cart = [], addToCart } = useCart();
+  const location = useLocation();
+  const { cart = [], addToCart, formatMoney } = useCart();
+
+  const isCustomer = String(getStoredUser()?.role || '').toLowerCase() === 'customer';
 
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [favoriteIds, setFavoriteIds] = useState(() => new Set());
+  const [selectedCategory, setSelectedCategory] = useState(location.state?.categoryName || 'All');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('default');
   const [loading, setLoading] = useState(true);
@@ -76,13 +44,15 @@ export default function BrowseMenu() {
       setLoading(true);
       setError('');
       try {
-        const [menuRes, catRes] = await Promise.all([
+        const [menuRes, catRes, favRes] = await Promise.all([
           menuService.getMenuItems({ limit: 100 }),
           menuService.getCategories().catch(() => []),
+          menuService.getFavorites().catch(() => []),
         ]);
         if (!active) return;
         setItems(Array.isArray(menuRes) ? menuRes : []);
         setCategories(Array.isArray(catRes) ? catRes : []);
+        setFavoriteIds(new Set((Array.isArray(favRes) ? favRes : []).map((f) => String(f.id))));
       } catch (err) {
         if (active) setError(err.message || 'Failed to load menu.');
       } finally {
@@ -95,44 +65,23 @@ export default function BrowseMenu() {
     };
   }, []);
 
-  const menuList = useMemo(() => {
-    if (items.length > 0) return items;
-    return FOOD_PLACEHOLDER_FILES.filter((f) => f !== 'login.png').map((file, idx) => ({
-      id: `placeholder-item-${idx + 1}`,
-      name: formatPlaceholderTitle(file),
-      description: 'Prepared fresh to order with quality ingredients.',
-      categoryName: idx < 4 ? 'Mains' : idx < 8 ? 'Sides & Drinks' : 'Desserts & Bowls',
-      preparationTime: 15 + (idx % 4) * 5,
-      price: Number((9.5 + idx * 1.5).toFixed(2)),
-      image: `/assets/food-placeholders/${file}`,
-      isAvailable: true,
-    }));
-  }, [items]);
-
   const categoryNames = useMemo(() => {
     const names = new Set(['All']);
     categories.forEach((c) => {
       const label = typeof c === 'string' ? c : c?.name;
       if (label) names.add(label);
     });
-    menuList.forEach((m) => {
-      const label =
-        m?.categoryName ||
-        m?.category?.name ||
-        (typeof m?.category === 'string' ? m.category : '');
+    items.forEach((m) => {
+      const label = categoryOf(m);
       if (label) names.add(label);
     });
     return Array.from(names);
-  }, [categories, menuList]);
+  }, [categories, items]);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = menuList.filter((item) => {
-      const cat =
-        item?.categoryName ||
-        item?.category?.name ||
-        (typeof item?.category === 'string' ? item.category : '') ||
-        '';
+    const list = items.filter((item) => {
+      const cat = categoryOf(item);
       const matchesCategory =
         selectedCategory === 'All' || cat.toLowerCase() === selectedCategory.toLowerCase();
       const matchesSearch =
@@ -153,7 +102,7 @@ export default function BrowseMenu() {
       return [...list].sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
     }
     return list;
-  }, [menuList, selectedCategory, search, sortBy]);
+  }, [items, selectedCategory, search, sortBy]);
 
   const cartTotalCount = useMemo(() => {
     if (!Array.isArray(cart)) return 0;
@@ -167,19 +116,41 @@ export default function BrowseMenu() {
   };
 
   const triggerAdd = (item, imgSrc, quantity = 1, notes = '') => {
-    const id = item.id ?? item.name;
     addToCart({
       ...item,
-      id,
       price: Number(item.price || 0),
       quantity,
       specialInstructions: notes || undefined,
       image: imgSrc,
     });
-    setJustAddedId(id);
+    setJustAddedId(item.id);
     setTimeout(() => {
-      setJustAddedId((prev) => (prev === id ? null : prev));
+      setJustAddedId((prev) => (prev === item.id ? null : prev));
     }, 1200);
+  };
+
+  const toggleFavorite = async (item) => {
+    const key = String(item.id);
+    const wasFavorite = favoriteIds.has(key);
+    // optimistic update, roll back if the server refuses
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (wasFavorite) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+    try {
+      if (wasFavorite) await menuService.removeFavorite(item.id);
+      else await menuService.addFavorite(item.id);
+    } catch (err) {
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (wasFavorite) next.add(key);
+        else next.delete(key);
+        return next;
+      });
+      setError(err.message || 'Could not update favorites.');
+    }
   };
 
   const openDetailsModal = (item, imgSrc) => {
@@ -241,7 +212,7 @@ export default function BrowseMenu() {
 
             <button
               type="button"
-              onClick={() => navigate('/cart')}
+              onClick={() => navigate('/customer/cart')}
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold cursor-pointer transition"
             >
               <ShoppingBag className="w-4 h-4" />
@@ -296,6 +267,10 @@ export default function BrowseMenu() {
         <div className="bg-white p-8 rounded-2xl border text-center text-gray-400">
           Loading menu items...
         </div>
+      ) : items.length === 0 ? (
+        <div className="bg-white p-8 rounded-2xl border text-center text-gray-500 font-semibold">
+          The menu is empty right now. Please check back soon.
+        </div>
       ) : filteredItems.length === 0 ? (
         <div className="bg-white p-8 rounded-2xl border text-center space-y-3">
           <p className="text-gray-500 font-semibold">No dishes match your current filter.</p>
@@ -310,16 +285,17 @@ export default function BrowseMenu() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredItems.map((item, idx) => {
-            const id = item.id ?? idx;
             const imgSrc = resolveImageSrc(item, idx);
             const fallbackSrc = PLACEHOLDER_IMAGES[idx % PLACEHOLDER_IMAGES.length];
-            const inCartQty = getItemCartQty(id);
-            const wasJustAdded = justAddedId === id;
+            const inCartQty = getItemCartQty(item.id);
+            const wasJustAdded = justAddedId === item.id;
             const isAvailable = item.isAvailable !== false && item.available !== false;
+            const isFavorite = favoriteIds.has(String(item.id));
+            const prep = item.preparationTime || item.preparation_time_minutes;
 
             return (
               <div
-                key={id}
+                key={item.id}
                 className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between hover:border-emerald-200 transition"
               >
                 <div>
@@ -342,6 +318,21 @@ export default function BrowseMenu() {
                         {inCartQty} in cart
                       </span>
                     )}
+                    {isCustomer && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(item);
+                        }}
+                        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                        className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-white/90 hover:bg-white shadow cursor-pointer"
+                      >
+                        <Heart
+                          className={`w-4 h-4 ${isFavorite ? 'text-rose-500 fill-rose-500' : 'text-gray-500'}`}
+                        />
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-4 space-y-1.5">
@@ -354,18 +345,18 @@ export default function BrowseMenu() {
                         {item.name}
                       </button>
                       <span className="font-black text-emerald-600 text-sm shrink-0">
-                        ${Number(item.price || 0).toFixed(2)}
+                        {formatMoney(item.price)}
                       </span>
                     </div>
 
                     <p className="text-gray-500 line-clamp-2">{item.description || ''}</p>
 
-                    {(item.preparationTime || item.preparation_time) && (
+                    {prep ? (
                       <div className="flex items-center gap-1 text-[11px] text-gray-400 pt-1">
                         <Clock className="w-3 h-3" />
-                        <span>~{item.preparationTime || item.preparation_time} min</span>
+                        <span>~{prep} min</span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -402,73 +393,6 @@ export default function BrowseMenu() {
         </div>
       )}
 
-      {/* All 13 Local Placeholder Assets with Quick Search & Add */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Images className="w-4 h-4 text-emerald-600" />
-            <h2 className="text-sm font-black text-gray-900">
-              Placeholder Assets ({FOOD_PLACEHOLDER_FILES.length})
-            </h2>
-          </div>
-          <span className="text-[11px] text-gray-400">
-            Click a dish image to filter or quick-add
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {FOOD_PLACEHOLDER_FILES.map((fileName, idx) => {
-            const src = `/assets/food-placeholders/${fileName}`;
-            const title = formatPlaceholderTitle(fileName);
-            const isFood = fileName.startsWith('food-');
-
-            return (
-              <div
-                key={fileName}
-                className="border border-gray-100 rounded-xl overflow-hidden bg-gray-50 flex flex-col justify-between"
-              >
-                <div>
-                  <img
-                    src={src}
-                    alt={fileName}
-                    onClick={() => setSearch(isFood ? title : '')}
-                    className="w-full h-24 object-cover bg-gray-200 cursor-pointer hover:opacity-90"
-                  />
-                  <p
-                    className="px-2 pt-1.5 text-[10px] font-bold text-gray-700 truncate"
-                    title={fileName}
-                  >
-                    {fileName}
-                  </p>
-                </div>
-                {isFood && (
-                  <div className="p-2 pt-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        triggerAdd(
-                          {
-                            id: `asset-${fileName}`,
-                            name: title,
-                            price: Number((10 + idx).toFixed(2)),
-                            description: `Quick item from ${fileName}`,
-                          },
-                          src,
-                          1
-                        )
-                      }
-                      className="w-full py-1 bg-white hover:bg-emerald-50 border border-gray-200 text-gray-800 rounded-lg text-[10px] font-bold cursor-pointer"
-                    >
-                      + Add ${(10 + idx).toFixed(2)}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Item Details & Notes Modal */}
       {activeItem && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
@@ -500,7 +424,7 @@ export default function BrowseMenu() {
                   <p className="text-gray-500 mt-0.5">{activeItem.description || ''}</p>
                 </div>
                 <span className="text-base font-black text-emerald-600">
-                  ${Number(activeItem.price || 0).toFixed(2)}
+                  {formatMoney(activeItem.price)}
                 </span>
               </div>
 
@@ -510,6 +434,7 @@ export default function BrowseMenu() {
                 </label>
                 <input
                   type="text"
+                  maxLength={500}
                   value={modalNotes}
                   onChange={(e) => setModalNotes(e.target.value)}
                   placeholder="e.g., Less spicy, no onions..."
@@ -525,16 +450,17 @@ export default function BrowseMenu() {
                     min="1"
                     max="99"
                     value={modalQty}
-                    onChange={(e) => setModalQty(Math.max(1, Number(e.target.value) || 1))}
+                    onChange={(e) => setModalQty(Math.min(99, Math.max(1, Number(e.target.value) || 1)))}
                     className="w-16 px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-center font-bold outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-extrabold cursor-pointer transition"
+                  disabled={activeItem.isAvailable === false || activeItem.available === false}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-extrabold cursor-pointer transition"
                 >
-                  Add to Cart (${(Number(activeItem.price || 0) * modalQty).toFixed(2)})
+                  Add to Cart ({formatMoney((Number(activeItem.price) || 0) * modalQty)})
                 </button>
               </div>
             </div>

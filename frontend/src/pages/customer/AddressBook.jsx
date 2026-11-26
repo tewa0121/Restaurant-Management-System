@@ -33,9 +33,9 @@ export default function AddressBook() {
     setSaving(true);
     setError('');
     try {
-      await customerService.createMyAddress({
-        title: title.trim() || 'Address',
-        address: address.trim(),
+           await customerService.addMyAddress({
+        label: title.trim() || 'Address',
+        addressLine: address.trim(),
         isDefault: addresses.length === 0,
       });
       setAddress('');
@@ -106,8 +106,15 @@ export default function AddressBook() {
           addresses.map((addr) => (
             <div key={addr.id} className="p-4 flex items-center justify-between gap-4">
               <div>
-                <p className="font-bold text-gray-900">{addr.title || addr.label || 'Address'}</p>
-                <p className="text-gray-600 mt-0.5">{addr.address || addr.street || ''}</p>
+                               <p className="font-bold text-gray-900">
+                  {addr.label || addr.title || 'Address'}
+                  {addr.isDefault ? (
+                    <span className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                      Default
+                    </span>
+                  ) : null}
+                </p>
+                <p className="text-gray-600 mt-0.5">{addr.addressLine || addr.address_line || ''}</p>
               </div>
               <button
                 type="button"

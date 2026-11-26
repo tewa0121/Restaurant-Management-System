@@ -33,9 +33,8 @@ export const userService = {
     const res = await api.patch(`/users/${id}/status`, statusData);
     return unwrapItem(res);
   },
-
   resetPassword: async (id, password) => {
-    const res = await api.post(`/users/${id}/reset-password`, password ? { password } : {});
+    const res = await api.put(`/users/${id}/password`, { password });
     return res;
   },
 

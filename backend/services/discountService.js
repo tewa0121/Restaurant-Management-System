@@ -75,6 +75,41 @@ const DiscountService = {
     return { rows: rows.map(toDto), pagination: pageMeta(page, limit, total) };
   },
 
+  // Offers shown to customers (and staff). Only fields that are safe to
+  // publish; usage counters stay private. First-order-only codes are hidden
+  // from customers who have already ordered.
+  async listActive(user) {
+    const rows = await DiscountModel.listActive(todayString());
+
+    let hasOrdered = false;
+    if (!hasRole(user, STAFF_ROLES)) {
+      const customer = await CustomerModel.findByUserId(user.id);
+      hasOrdered = customer ? await DiscountModel.hasPreviousOrders(customer.id) : false;
+    }
+
+    return rows
+      .filter((row) => !(Boolean(row.first_order_only) && hasOrdered))
+      .map((row) => {
+        const dto = toDto(row);
+        return {
+          id: dto.id,
+          code: dto.code,
+          description: dto.description,
+          discountType: dto.discountType,
+          discount_type: dto.discountType,
+          value: dto.value,
+          minOrderAmount: dto.minOrderAmount,
+          min_order_amount: dto.minOrderAmount,
+          firstOrderOnly: dto.firstOrderOnly,
+          first_order_only: dto.firstOrderOnly,
+          startDate: dto.startDate,
+          endDate: dto.endDate,
+          end_date: dto.endDate,
+          remaining: dto.remaining,
+        };
+      });
+  },
+
   async get(id) {
     return toDto(await requireDiscount(id));
   },

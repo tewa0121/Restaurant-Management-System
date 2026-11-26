@@ -38,6 +38,10 @@ router.post(
   controller.validate
 );
 
+// Customer-facing list of codes that can be used right now.
+// Declared before '/:id' so "active" is not read as an id.
+router.get('/active', authorize([...STAFF_ROLES, ROLES.CUSTOMER]), controller.active);
+
 router.get(
   '/',
   authorize(managers),

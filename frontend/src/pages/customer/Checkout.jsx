@@ -148,7 +148,7 @@ export default function Checkout() {
 
         {invalidItems.length > 0 && (
           <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl font-semibold">
-            Some items in your cart are sample items and cannot be ordered: {invalidItems.map((i) => i.name).join(', ')}.
+            Some items in your cart are no longer valid menu items and cannot be ordered: {invalidItems.map((i) => i.name).join(', ')}.
             Please remove them from your cart.
           </div>
         )}

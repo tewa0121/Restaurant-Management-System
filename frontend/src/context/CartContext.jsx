@@ -23,7 +23,10 @@ export const CartProvider = ({ children }) => {
     try {
       const savedCart = localStorage.getItem('resto_cart');
       const parsed = savedCart ? JSON.parse(savedCart) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      // keep only real menu items (numeric database ids); older builds could
+      // have saved sample items with ids like "overview-1"
+      return parsed.filter((i) => Number.isInteger(Number(i?.id)) && Number(i.id) >= 1);
     } catch (e) {
       return [];
     }

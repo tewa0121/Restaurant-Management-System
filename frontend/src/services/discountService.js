@@ -21,6 +21,12 @@ export const discountService = {
     return unwrapItem(res);
   },
 
+  // Codes a customer can use right now (GET /discounts/active)
+  getActiveDiscounts: async () => {
+    const res = await api.get('/discounts/active');
+    return unwrapList(res);
+  },
+
   getDiscounts: async (params = {}) => {
     const res = await api.get('/discounts', params);
     return unwrapList(res);

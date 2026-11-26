@@ -1,202 +1,238 @@
-// src/pages/manager/Reports.jsx
 import React, { useState } from 'react';
-import { FileText, Download, CheckCircle2, Loader2 } from 'lucide-react';
+import { FileText, Download, Loader2, FileSpreadsheet, Table2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import reportService from '../../services/reportService';
+import { dayOffset } from '../../utils/dateRange';
+
+const label = (key) =>
+  String(key)
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (c) => c.toUpperCase());
+
+const cols = (...keys) => keys.map((key) => ({ key, label: label(key) }));
+
+// Each report matches one GET /reports/<id> endpoint.
+const REPORTS = [
+  {
+    id: 'summary',
+    title: 'Business Summary',
+    desc: 'Orders, sales, tax, discounts, refunds and net revenue for the period.',
+    category: 'Finance',
+    load: reportService.getSummary,
+    columns: [{ key: 'metric', label: 'Metric' }, { key: 'value', label: 'Value' }],
+    toRows: (d) => {
+      const skip = ['from', 'to', 'reservationsByStatus'];
+      const rows = Object.entries(d || {})
+        .filter(([k]) => !skip.includes(k))
+        .map(([k, v]) => ({ metric: label(k), value: v }));
+      Object.entries(d?.reservationsByStatus || {}).forEach(([k, v]) =>
+        rows.push({ metric: `Reservations (${k})`, value: v })
+      );
+      return rows;
+    },
+  },
+  {
+    id: 'sales',
+    title: 'Sales by Day',
+    desc: 'Orders, subtotal, discounts, tax and sales for every day.',
+    category: 'Finance',
+    load: reportService.getSalesReport,
+    columns: cols('period', 'orders', 'completedOrders', 'subtotal', 'discount', 'tax', 'sales', 'averageOrderValue'),
+  },
+  {
+    id: 'payment-methods',
+    title: 'Payment Methods',
+    desc: 'How customers paid: number of payments, totals and share.',
+    category: 'Finance',
+    load: reportService.getPaymentMethodsReport,
+    columns: cols('label', 'payments', 'total', 'share'),
+  },
+  {
+    id: 'categories',
+    title: 'Revenue by Category',
+    desc: 'Which menu categories bring in the most revenue.',
+    category: 'Menu',
+    load: reportService.getCategoriesReport,
+    columns: cols('category', 'revenue', 'share'),
+  },
+  {
+    id: 'top-items',
+    title: 'Top Selling Items',
+    desc: 'Best selling dishes by quantity and revenue.',
+    category: 'Menu',
+    load: reportService.getTopItemsReport,
+    columns: cols('rank', 'name', 'category', 'quantity', 'revenue'),
+  },
+  {
+    id: 'staff',
+    title: 'Staff Performance',
+    desc: 'Orders handled and sales per staff member.',
+    category: 'Staff',
+    load: reportService.getStaffReport,
+    columns: cols('name', 'position', 'orders', 'completedOrders', 'sales', 'averageOrderValue'),
+  },
+  {
+    id: 'inventory',
+    title: 'Inventory Usage',
+    desc: 'Ingredients used, purchased, returned and current stock.',
+    category: 'Inventory',
+    load: reportService.getInventoryReport,
+    columns: cols('ingredient', 'unit', 'used', 'purchased', 'returned', 'currentStock', 'minStockLevel', 'low'),
+  },
+];
 
 export default function Reports() {
-  const [downloadingId, setDownloadingId] = useState(null);
-  const [successId, setSuccessId] = useState(null);
+  const [from, setFrom] = useState(dayOffset(-29));
+  const [to, setTo] = useState(dayOffset(0));
+  const [activeId, setActiveId] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [error, setError] = useState('');
 
-  const reportsList = [
-    {
-      id: 1,
-      title: 'Monthly Financial Summary',
-      desc: 'Detailed profit, loss, gross revenue statements, and tax breakdowns.',
-      type: 'PDF / CSV',
-      category: 'Finance',
-    },
-    {
-      id: 2,
-      title: 'Inventory Usage & Waste Audit',
-      desc: 'Ingredient consumption trends, spoilage tracking, and shrinkage reports.',
-      type: 'PDF / Excel',
-      category: 'Inventory',
-    },
-    {
-      id: 3,
-      title: 'Staff Shift & Payroll Log',
-      desc: 'Employee hours, active roles, break durations, and attendance records.',
-      type: 'CSV / PDF',
-      category: 'HR',
-    },
-    {
-      id: 4,
-      title: 'Tax & VAT Collection Statement',
-      desc: 'Collected sales tax breakdown categorized for fiscal compliance and auditing.',
-      type: 'PDF',
-      category: 'Finance',
-    },
-    {
-      id: 5,
-      title: 'Customer Demographics & Retention',
-      desc: 'Repeat visitor statistics, average spend per guest, and loyalty metrics.',
-      type: 'PDF / CSV',
-      category: 'Operations',
-    },
-    {
-      id: 6,
-      title: 'Table Turnover & Seating Efficiency',
-      desc: 'Average duration per table, peak rush hours, and reservation ratios.',
-      type: 'PDF',
-      category: 'Operations',
-    },
-  ];
+  const active = REPORTS.find((r) => r.id === activeId);
+  const params = { from, to };
 
-  const buildRows = (report) => [
-    {
-      metricId: 'REC-01',
-      description: report.desc,
-      status: 'Verified',
-      value: '$14,250.00',
-    },
-    {
-      metricId: 'REC-02',
-      description: 'Secondary audit checkpoint verified',
-      status: 'Passed',
-      value: '98.5%',
-    },
-    {
-      metricId: 'REC-03',
-      description: 'Compliance & Fiscal Regulation Check',
-      status: 'Approved',
-      value: 'OK',
-    },
-  ];
-
-  const handleExportPDF = (report) => {
-    setDownloadingId(report.id);
-
-    setTimeout(() => {
-      try {
-        const doc = new jsPDF();
-
-        doc.setFontSize(18);
-        doc.setTextColor(15, 23, 42);
-        doc.text('RestoManager Official Report', 14, 20);
-
-        doc.setFontSize(11);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Report: ${report.title}`, 14, 28);
-        doc.text(`Category: ${report.category}`, 14, 35);
-        doc.text(`Generated Date: ${new Date().toLocaleString()}`, 14, 42);
-
-        const rows = buildRows(report).map((r) => [
-          r.metricId,
-          r.description.length > 50 ? `${r.description.slice(0, 47)}...` : r.description,
-          r.status,
-          r.value,
-        ]);
-
-        autoTable(doc, {
-          startY: 50,
-          head: [['Metric ID', 'Description', 'Status', 'Value']],
-          body: rows,
-          theme: 'grid',
-          headStyles: { fillColor: [16, 185, 129] },
-        });
-
-        doc.save(`${report.title.toLowerCase().replace(/\s+/g, '_')}.pdf`);
-        setSuccessId(report.id);
-        setTimeout(() => setSuccessId(null), 4000);
-      } finally {
-        setDownloadingId(null);
-      }
-    }, 300);
-  };
-
-  const handleExportExcel = (report) => {
-    setDownloadingId(report.id);
+  const generate = async (report) => {
+    setBusy(report.id);
+    setError('');
     try {
-      const ws = XLSX.utils.json_to_sheet(buildRows(report));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Report');
-      XLSX.writeFile(wb, `${report.title.toLowerCase().replace(/\s+/g, '_')}.xlsx`);
-      setSuccessId(report.id);
-      setTimeout(() => setSuccessId(null), 4000);
+      const data = await report.load(params);
+      const list = report.toRows ? report.toRows(data) : data?.rows || [];
+      setActiveId(report.id);
+      setRows(list);
+    } catch (err) {
+      setError(err.message || 'Failed to generate the report.');
     } finally {
-      setDownloadingId(null);
+      setBusy(null);
     }
   };
 
+  const fileName = (ext) => `${active.id}-${from}-to-${to}.${ext}`;
+  const body = () => rows.map((r) => active.columns.map((c) => String(r[c.key] ?? '')));
+
+  const exportCsv = async () => {
+    try {
+      await reportService.downloadCsv(active.id, params, fileName('csv'));
+    } catch (err) {
+      setError(err.message || 'CSV download failed.');
+    }
+  };
+
+  const exportPdf = () => {
+    const doc = new jsPDF({ orientation: active.columns.length > 6 ? 'landscape' : 'portrait' });
+    doc.setFontSize(14);
+    doc.text(active.title, 14, 16);
+    doc.setFontSize(9);
+    doc.text(`${from} to ${to}`, 14, 22);
+    autoTable(doc, { head: [active.columns.map((c) => c.label)], body: body(), startY: 28, styles: { fontSize: 8 } });
+    doc.save(fileName('pdf'));
+  };
+
+  const exportXlsx = () => {
+    const sheet = XLSX.utils.aoa_to_sheet([active.columns.map((c) => c.label), ...body()]);
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, active.title.slice(0, 31));
+    XLSX.writeFile(book, fileName('xlsx'));
+  };
+
   return (
-    <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-900 min-h-screen font-sans text-xs">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-700 pb-4">
+    <div className="p-6 space-y-6 bg-slate-50/50 dark:bg-slate-900 min-h-screen font-sans">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-            <FileText className="w-6 h-6 text-emerald-600" /> Manager Reports
+          <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <FileText className="w-6 h-6 text-indigo-500" /> Reports
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Export operational, financial, and inventory reports to PDF or Excel.
-          </p>
+          <p className="text-xs text-slate-500">Generate a report for any period, preview it, then export it.</p>
+        </div>
+        <div className="flex items-end gap-3 text-xs">
+          <label className="space-y-1">
+            <span className="block font-semibold text-slate-500">From</span>
+            <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="border rounded-xl px-3 py-2 bg-white dark:bg-slate-800" />
+          </label>
+          <label className="space-y-1">
+            <span className="block font-semibold text-slate-500">To</span>
+            <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className="border rounded-xl px-3 py-2 bg-white dark:bg-slate-800" />
+          </label>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {reportsList.map((report) => {
-          const isBusy = downloadingId === report.id;
-          const isDone = successId === report.id;
+      {error && <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">{error}</div>}
 
-          return (
-            <div
-              key={report.id}
-              className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between space-y-4"
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {REPORTS.map((r) => (
+          <div
+            key={r.id}
+            className={`bg-white dark:bg-slate-800 p-5 rounded-2xl border shadow-sm space-y-3 ${activeId === r.id ? 'border-emerald-400' : ''}`}
+          >
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{r.category}</span>
+            <h3 className="font-bold text-sm text-slate-800 dark:text-white">{r.title}</h3>
+            <p className="text-xs text-slate-500">{r.desc}</p>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => generate(r)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl text-xs font-semibold cursor-pointer"
             >
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
-                    {report.category}
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-400">{report.type}</span>
-                </div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                  {report.title}
-                </h3>
-                <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{report.desc}</p>
-              </div>
-
-              <div className="flex items-center gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => handleExportPDF(report)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white rounded-xl font-bold cursor-pointer transition"
-                >
-                  {isBusy ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : isDone ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Download className="w-3.5 h-3.5" />
-                  )}
-                  <span>{isDone ? 'Exported' : 'PDF'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  disabled={isBusy}
-                  onClick={() => handleExportExcel(report)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl font-bold cursor-pointer transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Excel</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
+              {busy === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Table2 className="w-3.5 h-3.5" />}
+              Generate
+            </button>
+          </div>
+        ))}
       </div>
+
+      {active && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border shadow-sm overflow-hidden">
+          <div className="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">{active.title}</h3>
+              <p className="text-[11px] text-slate-400">
+                {from} to {to} · {rows.length} row{rows.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <div className="flex gap-2 text-xs">
+              <button type="button" onClick={exportCsv} className="inline-flex items-center gap-1.5 px-3 py-2 border rounded-xl font-semibold cursor-pointer">
+                <Download className="w-3.5 h-3.5" /> CSV
+              </button>
+              <button type="button" onClick={exportXlsx} disabled={rows.length === 0} className="inline-flex items-center gap-1.5 px-3 py-2 border rounded-xl font-semibold cursor-pointer disabled:opacity-50">
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+              </button>
+              <button type="button" onClick={exportPdf} disabled={rows.length === 0} className="inline-flex items-center gap-1.5 px-3 py-2 border rounded-xl font-semibold cursor-pointer disabled:opacity-50">
+                <FileText className="w-3.5 h-3.5" /> PDF
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-900 text-slate-400">
+                <tr>
+                  {active.columns.map((c) => (
+                    <th key={c.key} className="p-3">{c.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={active.columns.length} className="p-6 text-center text-slate-400">
+                      No data for this period.
+                    </td>
+                  </tr>
+                ) : (
+                  rows.map((r, i) => (
+                    <tr key={i} className="border-t">
+                      {active.columns.map((c) => (
+                        <td key={c.key} className="p-3">{String(r[c.key] ?? '')}</td>
+                      ))}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

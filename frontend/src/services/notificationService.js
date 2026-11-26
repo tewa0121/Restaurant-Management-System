@@ -47,6 +47,9 @@ export const notificationService = {
     const res = await api.post('/notifications/read-all');
     return res;
   },
+    // aliases used by pages/waiter/Notifications.jsx
+  markRead: async (id) => notificationService.markAsRead(id),
+  markAllRead: async () => notificationService.markAllAsRead(),
 
   clearRead: async () => {
     const res = await api.delete('/notifications/read');

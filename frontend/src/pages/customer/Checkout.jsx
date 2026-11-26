@@ -34,7 +34,13 @@ export default function Checkout() {
     () =>
       items
         .filter((i) => Number.isInteger(Number(i.id)) && Number(i.id) >= 1)
-        .map((i) => ({ menuItemId: Number(i.id), quantity: qtyOf(i) })),
+        .map((i) => ({
+          menuItemId: Number(i.id),
+          quantity: qtyOf(i),
+          ...(i.specialInstructions
+            ? { specialInstructions: String(i.specialInstructions).slice(0, 500) }
+            : {}),
+        })),
     [items]
   );
 

@@ -47,7 +47,7 @@ export default function Categories() {
             <button
               key={cat.id}
               type="button"
-              onClick={() => navigate('/customer/browse-menu', { state: { categoryId: cat.id, categoryName: cat.name } })}
+          onClick={() => navigate('/customer/menu', { state: { categoryId: cat.id, categoryName: cat.name } })}
               className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-left hover:border-emerald-400 transition cursor-pointer"
             >
               <p className="font-extrabold text-sm text-gray-900">{cat.name}</p>

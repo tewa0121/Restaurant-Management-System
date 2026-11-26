@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { CheckCircle2, RefreshCw } from 'lucide-react';
 import orderService from '../../services/orderService';
 
@@ -7,8 +8,8 @@ export default function ReadyToServe() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadReady = async () => {
-    setLoading(true);
+  const loadReady = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await orderService.getKitchenOrders().catch(() => orderService.getOrders({ status: 'ready' }));
@@ -20,6 +21,8 @@ export default function ReadyToServe() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadReady(true), 8000);
 
   useEffect(() => {
     loadReady();

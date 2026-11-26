@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Clock, Play, RefreshCw } from 'lucide-react';
 import invoiceService from '../../services/invoiceService';
 
@@ -7,8 +8,8 @@ export function HoldBills() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadHeld = async () => {
-    setLoading(true);
+  const loadHeld = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await invoiceService.getInvoices({ status: 'held', limit: 100 });
@@ -19,6 +20,8 @@ export function HoldBills() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadHeld(true), 15000);
 
   useEffect(() => {
     loadHeld();

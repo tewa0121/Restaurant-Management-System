@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Wallet, RefreshCw, CheckCircle2 } from 'lucide-react';
 import orderService from '../../services/orderService';
 import paymentService from '../../services/paymentService';
@@ -13,8 +14,8 @@ export default function CashierDashboard() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const loadCashierData = async () => {
-    setLoading(true);
+  const loadCashierData = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const [ordersData, paymentsRes, invoices] = await Promise.all([
@@ -39,6 +40,8 @@ export default function CashierDashboard() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadCashierData(true), 15000);
 
   useEffect(() => {
     loadCashierData();

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Utensils, Users, RefreshCw } from 'lucide-react';
 import tableService from '../../services/tableService';
 
@@ -8,8 +9,8 @@ export default function WaiterTables() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadMine = async () => {
-    setLoading(true);
+  const loadMine = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await tableService.getMyTables().catch(() => tableService.getTables());
@@ -20,6 +21,8 @@ export default function WaiterTables() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadMine(true), 10000);
 
   useEffect(() => {
     loadMine();

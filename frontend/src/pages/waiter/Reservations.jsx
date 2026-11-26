@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { CalendarDays, RefreshCw } from 'lucide-react';
 import reservationService from '../../services/reservationService';
 
@@ -8,8 +9,8 @@ export default function WaiterReservations() {
   const [seatingId, setSeatingId] = useState(null);
   const [error, setError] = useState('');
 
-  const loadReservations = async () => {
-    setLoading(true);
+  const loadReservations = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await reservationService.getReservations({ limit: 100 });
@@ -20,6 +21,8 @@ export default function WaiterReservations() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadReservations(true), 30000);
 
   useEffect(() => {
     loadReservations();

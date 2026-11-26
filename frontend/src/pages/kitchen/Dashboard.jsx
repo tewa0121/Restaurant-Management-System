@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { ChefHat, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
 import orderService from '../../services/orderService';
 
@@ -8,8 +9,8 @@ export default function KitchenDashboard() {
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
 
-  const loadKitchenOrders = async () => {
-    setLoading(true);
+  const loadKitchenOrders = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const data = await orderService.getKitchenOrders({ limit: 100 });
@@ -20,6 +21,8 @@ export default function KitchenDashboard() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadKitchenOrders(true), 8000);
 
   useEffect(() => {
     loadKitchenOrders();

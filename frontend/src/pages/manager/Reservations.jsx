@@ -35,7 +35,12 @@ export default function Reservations() {
         setFormData((prev) => ({ ...prev, tableId: String(tblList[0].id) }));
       }
     } catch (err) {
-      setError(err.message || 'Failed to load reservations.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to load reservations.'
+      );
     } finally {
       setLoading(false);
     }
@@ -47,17 +52,18 @@ export default function Reservations() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!formData.customerName.trim() || !formData.reservationDate) return;
+    if (!formData.customerName.trim() || !formData.reservationDate || saving) return;
     setSaving(true);
     setError('');
     try {
+      const timeValue = (formData.reservationTime || '19:00').slice(0, 5);
       await reservationService.createReservation({
         customerName: formData.customerName.trim(),
         customerPhone: formData.customerPhone.trim() || undefined,
         tableId: formData.tableId ? Number(formData.tableId) : undefined,
         partySize: Number(formData.partySize) || 2,
-        reservationDate: formData.reservationDate,
-        reservationTime: formData.reservationTime || '19:00',
+        date: formData.reservationDate,
+        time: timeValue,
       });
       setIsAddOpen(false);
       setFormData({
@@ -70,7 +76,12 @@ export default function Reservations() {
       });
       await loadReservations();
     } catch (err) {
-      setError(err.message || 'Failed to create reservation.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to create reservation.'
+      );
     } finally {
       setSaving(false);
     }
@@ -87,7 +98,12 @@ export default function Reservations() {
       await reservationService.updateReservationStatus(id, normalized);
       await loadReservations();
     } catch (err) {
-      setError(err.message || 'Failed to update reservation status.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to update reservation status.'
+      );
     }
   };
 
@@ -98,7 +114,12 @@ export default function Reservations() {
       await reservationService.deleteReservation(id);
       setReservations((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
-      setError(err.message || 'Failed to delete reservation.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to delete reservation.'
+      );
     }
   };
 

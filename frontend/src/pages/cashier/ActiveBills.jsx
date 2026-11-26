@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { FileText, RefreshCw } from 'lucide-react';
 import orderService from '../../services/orderService';
 import paymentService from '../../services/paymentService';
 import invoiceService from '../../services/invoiceService';
+import useNewItemAlert from '../../hooks/useNewItemAlert';
+import { readPrefs, CASHIER_PREFS } from '../../utils/preferences';
 
 export function ActiveBills() {
   const [bills, setBills] = useState([]);
@@ -10,9 +13,10 @@ export function ActiveBills() {
   const [settlingId, setSettlingId] = useState(null);
   const [settledMsg, setSettledMsg] = useState('');
   const [error, setError] = useState('');
+  const [prefs] = useState(() => readPrefs(CASHIER_PREFS.scope, CASHIER_PREFS.defaults));
 
-  const loadActiveBills = async () => {
-    setLoading(true);
+  const loadActiveBills = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const [list, invoices] = await Promise.all([
@@ -41,6 +45,9 @@ export function ActiveBills() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadActiveBills(true), 10000);
+  useNewItemAlert(bills.map((b) => b.id), { ready: !loading, enabled: prefs.soundOnNewBill, kind: 'new' });
 
   useEffect(() => {
     loadActiveBills();

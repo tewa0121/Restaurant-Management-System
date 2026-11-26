@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { UtensilsCrossed, RefreshCw } from 'lucide-react';
 import tableService from '../../services/tableService';
 import orderService from '../../services/orderService';
@@ -9,8 +10,8 @@ export default function WaiterDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadFloorData = async () => {
-    setLoading(true);
+  const loadFloorData = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const [tablesData, ordersData] = await Promise.all([
@@ -25,6 +26,8 @@ export default function WaiterDashboard() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadFloorData(true), 10000);
 
   useEffect(() => {
     loadFloorData();

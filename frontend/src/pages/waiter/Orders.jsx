@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { ShoppingBag, RefreshCw } from 'lucide-react';
 import orderService from '../../services/orderService';
+import useNewItemAlert from '../../hooks/useNewItemAlert';
+import { readPrefs, WAITER_PREFS } from '../../utils/preferences';
 
 const TABS = ['All', 'pending', 'preparing', 'ready', 'served', 'completed'];
 
@@ -9,9 +12,10 @@ export default function WaiterOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [prefs] = useState(() => readPrefs(WAITER_PREFS.scope, WAITER_PREFS.defaults));
 
-  const loadOrders = async () => {
-    setLoading(true);
+  const loadOrders = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const params = { limit: 100 };
@@ -24,6 +28,12 @@ export default function WaiterOrders() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadOrders(true), 8000);
+  useNewItemAlert(
+    orders.filter((o) => String(o.status).toLowerCase() === 'ready').map((o) => o.id),
+    { ready: !loading, enabled: prefs.kitchenSound, kind: 'ready' }
+  );
 
   useEffect(() => {
     loadOrders();

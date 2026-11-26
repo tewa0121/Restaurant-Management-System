@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { Bell, CheckCircle2, RefreshCw } from 'lucide-react';
 import customerRequestService from '../../services/customerRequestService';
+import useNewItemAlert from '../../hooks/useNewItemAlert';
+import { readPrefs, WAITER_PREFS } from '../../utils/preferences';
 
 export default function WaiterCustomerRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [prefs] = useState(() => readPrefs(WAITER_PREFS.scope, WAITER_PREFS.defaults));
 
-  const loadRequests = async () => {
-    setLoading(true);
+  const loadRequests = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await customerRequestService.getRequests({ limit: 100 });
@@ -20,6 +24,12 @@ export default function WaiterCustomerRequests() {
     }
   };
 
+  usePolling(() => loadRequests(true), 6000);
+  useNewItemAlert(
+    requests.filter((r) => String(r.status).toLowerCase() === 'new').map((r) => r.id),
+    { ready: !loading, enabled: prefs.requestAlerts, kind: 'request' }
+  );
+
   useEffect(() => {
     loadRequests();
   }, []);
@@ -27,7 +37,7 @@ export default function WaiterCustomerRequests() {
   const handleComplete = async (id) => {
     setError('');
     try {
-      await customerRequestService.updateStatus(id, 'completed');
+      await customerRequestService.updateStatus(id, 'done');
       await loadRequests();
     } catch (err) {
       setError(err.message || 'Failed to update request status.');
@@ -66,7 +76,7 @@ export default function WaiterCustomerRequests() {
           <div className="p-8 text-center text-slate-400">No customer requests.</div>
         ) : (
           requests.map((req) => {
-            const st = String(req.status || 'pending').toLowerCase();
+            const st = String(req.status || 'new').toLowerCase();
             return (
               <div key={req.id} className="p-4 flex items-center justify-between gap-4">
                 <div>
@@ -78,7 +88,7 @@ export default function WaiterCustomerRequests() {
                   </p>
                   <p className="text-[11px] text-slate-400 capitalize mt-0.5">Status: {st}</p>
                 </div>
-                {st !== 'completed' && (
+                {st !== 'done' && (
                   <button
                     type="button"
                     onClick={() => handleComplete(req.id)}

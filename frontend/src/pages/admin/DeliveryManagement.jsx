@@ -42,10 +42,18 @@ export default function DeliveryManagement() {
       setDeliveries(list);
       setDrivers(driverList);
       if (driverList.length > 0 && !driverId) {
-        setDriverId(String(driverList[0].id));
+        const freeDriver = driverList.find(
+          (d) => d.available !== false && Number(d.activeDeliveries || 0) === 0
+        );
+        setDriverId(String((freeDriver || driverList[0]).id));
       }
     } catch (err) {
-      setError(err.message || 'Failed to load deliveries.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to load deliveries.'
+      );
     } finally {
       setLoading(false);
     }
@@ -57,14 +65,19 @@ export default function DeliveryManagement() {
 
   const openAssignModal = (del) => {
     setAssignTarget(del);
-    const currentDriver = del.driverId || del.driver_id || (drivers[0] ? drivers[0].id : '');
+    const existingDriver = del.driverId || del.driver_id;
+    const freeDriver = drivers.find(
+      (d) => d.available !== false && Number(d.activeDeliveries || 0) === 0
+    );
+    const currentDriver =
+      existingDriver || (freeDriver ? freeDriver.id : drivers[0] ? drivers[0].id : '');
     setDriverId(currentDriver ? String(currentDriver) : '');
     setEstimatedTime(String(del.estimatedTime ?? del.estimated_time ?? 30));
   };
 
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
-    if (!assignTarget || !driverId) return;
+    if (!assignTarget || !driverId || saving) return;
     const orderId = assignTarget.orderId || assignTarget.order_id || assignTarget.id;
     setSaving(true);
     setError('');
@@ -73,7 +86,14 @@ export default function DeliveryManagement() {
       setAssignTarget(null);
       await loadDeliveries();
     } catch (err) {
-      setError(err.message || 'Failed to assign driver.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to assign driver.'
+      );
+      setAssignTarget(null);
+      await loadDeliveries();
     } finally {
       setSaving(false);
     }
@@ -86,7 +106,12 @@ export default function DeliveryManagement() {
       await deliveryService.updateStatus(orderId, nextStatus);
       await loadDeliveries();
     } catch (err) {
-      setError(err.message || 'Failed to update delivery status.');
+      setError(
+        err?.response?.data?.message ||
+          err?.data?.message ||
+          err.message ||
+          'Failed to update delivery status.'
+      );
     }
   };
 
@@ -151,7 +176,13 @@ export default function DeliveryManagement() {
                     del.driver_name ||
                     (del.driverId ? `Driver #${del.driverId}` : 'Unassigned');
                   const currentStatus = String(del.status || 'unassigned').toLowerCase();
-                  const allowedNext = NEXT_STATUS_OPTIONS[currentStatus] || [];
+                  const orderStatus = String(
+                    del.order_status || del.orderStatus || ''
+                  ).toLowerCase();
+                  const isClosed =
+                    ['delivered', 'failed'].includes(currentStatus) ||
+                    ['completed', 'cancelled'].includes(orderStatus);
+                  const allowedNext = isClosed ? [] : NEXT_STATUS_OPTIONS[currentStatus] || [];
 
                   return (
                     <tr key={del.id || orderId} className="hover:bg-gray-50/70">
@@ -188,7 +219,7 @@ export default function DeliveryManagement() {
                         )}
                       </td>
                       <td className="p-4 text-right">
-                        {!['delivered', 'failed'].includes(currentStatus) ? (
+                        {!isClosed ? (
                           <button
                             type="button"
                             onClick={() => openAssignModal(del)}
@@ -229,11 +260,19 @@ export default function DeliveryManagement() {
                   className="w-full px-3 py-2 bg-gray-50 border rounded-xl outline-none"
                 >
                   <option value="">Select Driver</option>
-                  {drivers.map((drv) => (
-                    <option key={drv.id} value={drv.id}>
-                      {drv.name || drv.fullName || drv.full_name || `Driver #${drv.id}`}
-                    </option>
-                  ))}
+                  {drivers.map((drv) => {
+                    const isBusy =
+                      (drv.available === false || Number(drv.activeDeliveries || 0) > 0) &&
+                      Number(drv.id) !==
+                        Number(assignTarget.driverId || assignTarget.driver_id || 0);
+                    const label =
+                      drv.name || drv.fullName || drv.full_name || `Driver #${drv.id}`;
+                    return (
+                      <option key={drv.id} value={drv.id} disabled={isBusy}>
+                        {label} {isBusy ? '(Busy)' : '(Available)'}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <div>

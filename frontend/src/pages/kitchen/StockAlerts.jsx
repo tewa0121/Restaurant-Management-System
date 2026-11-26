@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import usePolling from '../../hooks/usePolling';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import inventoryService from '../../services/inventoryService';
 
@@ -7,8 +8,8 @@ export default function StockAlerts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadLowStock = async () => {
-    setLoading(true);
+  const loadLowStock = async (silent) => {
+    if (silent !== true) setLoading(true);
     setError('');
     try {
       const list = await inventoryService.getLowStock().catch(async () => {
@@ -22,6 +23,8 @@ export default function StockAlerts() {
       setLoading(false);
     }
   };
+
+  usePolling(() => loadLowStock(true), 30000);
 
   useEffect(() => {
     loadLowStock();

@@ -39,6 +39,19 @@ const DiscountModel = {
     return rows[0] || null;
   },
 
+  // Codes a customer can use right now: switched on, inside the date window
+  // and not used up. `today` is a YYYY-MM-DD string.
+  async listActive(today, conn) {
+    const [rows] = await exec(conn).query(
+      `${SELECT_DISCOUNT}
+       WHERE restaurant_id = ? AND is_active = TRUE AND start_date <= ? AND end_date >= ?
+         AND (usage_limit IS NULL OR usage_limit = 0 OR used_count < usage_limit)
+       ORDER BY end_date ASC, id DESC`,
+      [restaurantId, today, today]
+    );
+    return rows;
+  },
+
   async codeTakenByOther(code, excludeId, conn) {
     const [rows] = await exec(conn).query('SELECT id FROM discounts WHERE LOWER(code) = LOWER(?) AND id <> ? LIMIT 1', [
       code,

@@ -25,6 +25,7 @@ router.put(
       deliveryFee: { type: 'number', min: 0, max: 999999, strip: /[^0-9.\-]/g, label: 'Delivery fee' },
       openingTime: { type: 'time', label: 'Opening time' },
       closingTime: { type: 'time', label: 'Closing time' },
+      supportEmail: { type: 'email', maxLength: 100, label: 'Support email' },
       receiptFooter: { type: 'string', maxLength: 500, label: 'Receipt footer' },
       notificationsEnabled: { type: 'boolean', label: 'Notifications' },
     },

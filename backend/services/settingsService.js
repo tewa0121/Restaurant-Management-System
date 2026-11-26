@@ -14,6 +14,7 @@ const SETTING_KEYS = {
   closingTime: 'closing_time',
   receiptFooter: 'receipt_footer',
   notificationsEnabled: 'notifications_enabled',
+  supportEmail: 'support_email',
 };
 
 const RESTAURANT_KEYS = { restaurantName: 'name', address: 'address', phone: 'phone' };
@@ -35,6 +36,7 @@ async function buildSettings() {
     openingTime: stored.opening_time || null,
     closingTime: stored.closing_time || null,
     receiptFooter: stored.receipt_footer || null,
+    supportEmail: stored.support_email || null,
     notificationsEnabled: stored.notifications_enabled === undefined ? true : stored.notifications_enabled === 'true',
   };
 }
@@ -55,6 +57,7 @@ const SettingsService = {
       deliveryFee: settings.deliveryFee,
       openingTime: settings.openingTime,
       closingTime: settings.closingTime,
+      supportEmail: settings.supportEmail,
     };
   },
 

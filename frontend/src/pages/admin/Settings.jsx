@@ -12,6 +12,7 @@ export default function Settings() {
     openingTime: '08:00',
     closingTime: '22:00',
     receiptFooter: '',
+    supportEmail: '',
     notificationsEnabled: true,
   });
 
@@ -38,6 +39,7 @@ export default function Settings() {
           openingTime: (data.openingTime ?? data.opening_time ?? '08:00').slice(0, 5),
           closingTime: (data.closingTime ?? data.closing_time ?? '22:00').slice(0, 5),
           receiptFooter: data.receiptFooter ?? data.receipt_footer ?? '',
+          supportEmail: data.supportEmail ?? '',
           notificationsEnabled: Boolean(
             data.notificationsEnabled ?? data.notifications_enabled ?? true
           ),
@@ -70,6 +72,7 @@ export default function Settings() {
         openingTime: settings.openingTime || undefined,
         closingTime: settings.closingTime || undefined,
         receiptFooter: settings.receiptFooter.trim(),
+        supportEmail: settings.supportEmail.trim() || undefined,
         notificationsEnabled: Boolean(settings.notificationsEnabled),
       });
       setSaved(true);
@@ -167,7 +170,7 @@ export default function Settings() {
 
           <div>
             <label className="font-bold block mb-1 text-gray-700 dark:text-gray-300">
-              DELIVERY FEE ($)
+              DELIVERY FEE
             </label>
             <input
               type="number"
@@ -212,6 +215,18 @@ export default function Settings() {
             type="text"
             value={settings.address}
             onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+            className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#0b1d3a] border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-semibold text-gray-800 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label className="font-bold block mb-1 text-gray-700 dark:text-gray-300">
+            SUPPORT EMAIL (shown on the customer Help page)
+          </label>
+          <input
+            type="email"
+            value={settings.supportEmail}
+            onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })}
             className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#0b1d3a] border border-gray-200 dark:border-gray-700 rounded-xl outline-none font-semibold text-gray-800 dark:text-white"
           />
         </div>

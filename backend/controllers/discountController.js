@@ -7,6 +7,10 @@ exports.list = asyncHandler(async (req, res) => {
   list(res, rows, pagination);
 });
 
+exports.active = asyncHandler(async (req, res) => {
+  ok(res, await DiscountService.listActive(req.user));
+});
+
 exports.get = asyncHandler(async (req, res) => {
   ok(res, await DiscountService.get(req.params.id));
 });

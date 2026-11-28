@@ -14,8 +14,12 @@ export default function WaiterNotifications() {
     if (!silent) setLoading(true);
     try {
       const result = await notificationService.getNotifications({ page: 1, limit: 50 });
-      setNotifications(result.items);
-      setUnreadCount(result.unreadCount);
+      // notificationService.getNotifications() returns a plain array
+      const list = Array.isArray(result) ? result : Array.isArray(result?.items) ? result.items : [];
+      setNotifications(list);
+      setUnreadCount(
+        Number.isFinite(result?.unreadCount) ? result.unreadCount : list.filter((n) => !n.isRead).length
+      );
     } catch (err) {
       if (!silent) {
         showNotification(err?.message || 'Failed to load notifications.', 'error');
@@ -110,7 +114,7 @@ export default function WaiterNotifications() {
             )}
           </h1>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            Shift alerts, order ready notifications, and table requests.
+            Order updates, stock alerts, requests, and reservations.
           </p>
         </div>
 

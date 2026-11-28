@@ -829,9 +829,11 @@ async function seedDatabase() {
     await promiseDb.execute('INSERT IGNORE INTO restaurants (id, name, address) VALUES (1, "Main Branch", "123 Main St")');
     await promiseDb.execute('INSERT IGNORE INTO restaurant_settings (restaurant_id, setting_key, setting_value) VALUES (1, "currency", "ETB"), (1, "tax_rate", "15"), (1, "delivery_fee", "0")');
 
-    // 3. Demo accounts: development only, never in production
-    if (process.env.NODE_ENV === 'production') {
-      console.log('🌱 Seed: roles and settings verified. Demo users skipped (production).');
+    // 3. Demo accounts: created ONLY when SEED_DEMO=true is set explicitly.
+    //    (Previously this depended on NODE_ENV, so a missing NODE_ENV left a
+    //    known admin@resto.com / password123 account on live servers.)
+    if (process.env.SEED_DEMO !== 'true' || process.env.NODE_ENV === 'production') {
+      console.log('🌱 Seed: roles and settings verified. Demo users skipped (set SEED_DEMO=true in development to create them).');
       return;
     }
 

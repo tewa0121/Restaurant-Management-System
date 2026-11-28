@@ -1,98 +1,79 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, Plus, Trash2 } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
-import menuService from '../../services/menuService';
+import { useCart } from '../../hooks/useCart';
+import { PATHS } from '../../utils/paths';
+
+// TEMPORARY demo data. IDs match the dishes on the Home page so the same
+// dish is never two different cart lines. Step 3 uses the backend
+// favorites API instead.
+const INITIAL_FAVORITES = [
+  { id: 'dish-1', name: 'Grilled Chicken with Veggies', price: 12.99, image: '/assets/food-placeholders/food-grilled-chicken.png' },
+  { id: 'dish-2', name: 'Beef Burger with Fries', price: 10.99, image: '/assets/food-placeholders/food-burger-fries.png' },
+  { id: 'dish-3', name: 'Margherita Pizza', price: 11.99, image: '/assets/food-placeholders/food-pizza.png' },
+];
+
+const FALLBACK_IMG = '/assets/food-placeholders/food-burger.png';
 
 export default function Favorites() {
-  const { addToCart, formatMoney } = useCart();
-  const [favoriteList, setFavoriteList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const loadFavorites = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const list = await menuService.getFavorites();
-      setFavoriteList(list);
-    } catch (err) {
-      setError(err.message || 'Failed to load favorites.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const handleRemove = async (id) => {
-    setError('');
-    try {
-      await menuService.removeFavorite(id);
-      setFavoriteList((prev) => prev.filter((item) => item.id !== id));
-    } catch (err) {
-      setError(err.message || 'Failed to remove favorite.');
-    }
-  };
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const [favoriteList, setFavoriteList] = useState(INITIAL_FAVORITES);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-sans">
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <h1 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-          <Heart className="w-5 h-5 text-rose-500" /> Favorite Dishes
-        </h1>
-        <p className="text-xs text-gray-500 mt-1">Your saved dishes from the menu.</p>
+    <div className="p-6 space-y-5 pb-8 text-gray-900 dark:text-white">
+      <div>
+        <h1 className="text-xl font-bold">Saved Favorites</h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400">Quickly reorder your favorite meals</p>
       </div>
 
-      {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center text-xs text-gray-400">
-          Loading favorites...
-        </div>
-      ) : favoriteList.length === 0 ? (
-        <div className="bg-white p-8 rounded-2xl border border-gray-100 text-center text-xs text-gray-400">
-          No favorite items saved yet. Tap the heart on a dish in the menu to save it here.
+      {favoriteList.length === 0 ? (
+        <div className="bg-white dark:bg-[#0B1426] rounded-2xl p-12 text-center border border-gray-100 dark:border-gray-800 text-gray-400 space-y-3">
+          <Heart size={40} className="mx-auto opacity-30" />
+          <p className="text-xs font-semibold">You have no favorites yet</p>
+          <button
+            onClick={() => navigate(PATHS.menu)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+          >
+            Browse Menu
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          {favoriteList.map((item) => {
-            const isAvailable = item.isAvailable !== false && item.available !== false;
-            return (
-              <div
-                key={item.id}
-                className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-3"
-              >
-                <div>
-                  <p className="font-extrabold text-sm text-gray-900">{item.name}</p>
-                  <p className="font-bold text-emerald-600 mt-1">{formatMoney(item.price)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={!isAvailable}
-                    onClick={() => addToCart({ ...item, price: Number(item.price || 0) })}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 disabled:opacity-50 text-white rounded-xl font-bold cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> <span>{isAvailable ? 'Cart' : 'Unavailable'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(item.id)}
-                    aria-label="Remove favorite"
-                    className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-xl cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {favoriteList.map((dish) => (
+            <div
+              key={dish.id}
+              className="bg-white dark:bg-[#0B1426] rounded-2xl border border-gray-100 dark:border-gray-800 p-3 flex flex-col justify-between"
+            >
+              <div className="relative h-32 w-full rounded-xl overflow-hidden mb-2">
+                <img
+                  src={dish.image}
+                  alt={dish.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
+                />
+                <button
+                  onClick={() => setFavoriteList((prev) => prev.filter((i) => i.id !== dish.id))}
+                  aria-label={`Remove ${dish.name} from favorites`}
+                  className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-red-500 cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
-            );
-          })}
+              <h3 className="font-bold text-xs truncate">{dish.name}</h3>
+              <div className="flex justify-between items-center mt-2 border-t border-gray-100 dark:border-gray-800 pt-2">
+                <span className="font-bold text-xs">${dish.price.toFixed(2)}</span>
+                <button
+                  onClick={() =>
+                    addToCart({ id: dish.id, name: dish.name, price: dish.price, image: dish.image })
+                  }
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  Add <Plus size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

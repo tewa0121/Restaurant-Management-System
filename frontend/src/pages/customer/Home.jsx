@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import { useCart } from '../../hooks/useCart';
 import { useAuth } from '../../hooks/useAuth';
-import { PATHS } from '../../utils/paths';
 
 export default function CustomerHome() {
   const navigate = useNavigate();
@@ -156,7 +155,7 @@ export default function CustomerHome() {
             </h2>
             <p className="text-xs text-gray-300">Order your favorite meals from our wide range of tasty dishes.</p>
             <div className="flex items-center gap-3 pt-2">
-              <button onClick={() => navigate(PATHS.menu)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs">
+              <button onClick={() => navigate('/customer/menu')} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs">
                 Order Now <ArrowRight size={14} />
               </button>
               <button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer">
@@ -498,7 +497,7 @@ export default function CustomerHome() {
                     onClick={() => {
                       setPaymentStatus(null);
                       setIsCartOpen(false);
-                      navigate(PATHS.track);
+                      navigate('/customer/track-order');
                     }}
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition-all cursor-pointer"
                   >

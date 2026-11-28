@@ -1,7 +1,44 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import settingsService from '../services/settingsService';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 
-export const CartContext = createContext();
+export const CartContext = createContext(null);
+
+// TEMPORARY: these will come from GET /settings/public and POST /orders/preview
+// in Step 2. The server must be the one that computes real totals.
+export const TAX_RATE = 0.08;
+export const DELIVERY_FEE = 2.99;
+
+const STORAGE_KEY = 'resto_cart';
+const MAX_QTY = 99;
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const clampQty = (n) => Math.min(MAX_QTY, Math.max(1, parseInt(n, 10) || 1));
+
+// Read + sanitize whatever is in localStorage (old versions stored
+// items without ids or with `quantity` / `image_url`).
+const loadCart = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((i) => i && i.id != null && Number.isFinite(Number(i.price)))
+      .map((i) => ({
+        id: String(i.id),
+        name: i.name || 'Item',
+        price: Number(i.price),
+        image: i.image || i.image_url || '',
+        qty: clampQty(i.qty ?? i.quantity ?? 1),
+      }));
+  } catch (e) {
+    return [];
+  }
+};
 
 export const useCart = () => {
   const context = useContext(CartContext);
@@ -11,159 +48,84 @@ export const useCart = () => {
   return context;
 };
 
-const DEFAULT_SETTINGS = { currency: 'ETB', taxRate: 15, deliveryFee: 0 };
-
-const toNumber = (value, fallback = 0) => {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-};
-
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState(() => {
-    try {
-      const savedCart = localStorage.getItem('resto_cart');
-      const parsed = savedCart ? JSON.parse(savedCart) : [];
-      if (!Array.isArray(parsed)) return [];
-      // keep only real menu items (numeric database ids); older builds could
-      // have saved sample items with ids like "overview-1"
-      return parsed.filter((i) => Number.isInteger(Number(i?.id)) && Number(i.id) >= 1);
-    } catch (e) {
-      return [];
-    }
-  });
-
-  // Currency, tax rate and delivery fee come from the restaurant settings
-  // (the same values the server uses to price an order).
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-
-  useEffect(() => {
-    let cancelled = false;
-    settingsService
-      .getPublicSettings()
-      .then((data) => {
-        if (cancelled || !data) return;
-        setSettings({
-          currency: data.currency || DEFAULT_SETTINGS.currency,
-          taxRate: toNumber(data.taxRate, DEFAULT_SETTINGS.taxRate),
-          deliveryFee: toNumber(data.deliveryFee, DEFAULT_SETTINGS.deliveryFee),
-        });
-      })
-      .catch(() => {
-        // keep defaults when the settings endpoint is unreachable
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [cart, setCart] = useState(loadCart);
 
   useEffect(() => {
     try {
-      localStorage.setItem('resto_cart', JSON.stringify(cart));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
     } catch (e) {
       console.error('Failed to save cart to localStorage:', e);
     }
   }, [cart]);
 
-  const addToCart = (item) => {
-    const qtyToAdd = Math.max(1, Number(item.quantity ?? item.qty ?? 1) || 1);
-    const unitPrice = Number(item.price ?? 0) || 0;
+  // item: { id, name, price, image }   (id is required)
+  const addToCart = useCallback((item, qty = 1) => {
+    if (!item || item.id == null) {
+      console.warn('addToCart ignored: item.id is required', item);
+      return;
+    }
+    const id = String(item.id);
+    const amount = clampQty(qty);
 
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((i) => String(i.id) === String(item.id));
-      if (existingItem) {
-        return prevCart.map((i) =>
-          String(i.id) === String(item.id)
-            ? {
-                ...i,
-                price: unitPrice,
-                qty: (Number(i.qty ?? i.quantity ?? 1) || 1) + qtyToAdd,
-                quantity: (Number(i.qty ?? i.quantity ?? 1) || 1) + qtyToAdd,
-              }
-            : i
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === id);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === id ? { ...i, qty: Math.min(MAX_QTY, i.qty + amount) } : i
         );
       }
       return [
-        ...prevCart,
+        ...prev,
         {
-          ...item,
-          price: unitPrice,
-          qty: qtyToAdd,
-          quantity: qtyToAdd,
+          id,
+          name: item.name || 'Item',
+          price: Number(item.price) || 0,
+          image: item.image || item.image_url || '',
+          qty: amount,
         },
       ];
     });
-  };
+  }, []);
 
-  const removeFromCart = (id) => {
-    setCart((prevCart) => prevCart.filter((item) => String(item.id) !== String(id)));
-  };
+  const removeFromCart = useCallback((id) => {
+    setCart((prev) => prev.filter((i) => i.id !== String(id)));
+  }, []);
 
-  // newQty is the NEW absolute quantity (not a +1 / -1 change).
-  const updateQuantity = (id, newQty) => {
-    const numericQty = Number(newQty) || 0;
-    if (numericQty <= 0) {
-      removeFromCart(id);
+  // ABSOLUTE quantity (not +1/-1). 0 or less removes the item.
+  const updateQuantity = useCallback((id, newQty) => {
+    const key = String(id);
+    if (newQty <= 0) {
+      setCart((prev) => prev.filter((i) => i.id !== key));
       return;
     }
-    setCart((prevCart) =>
-      prevCart.map((item) =>
-        String(item.id) === String(id)
-          ? { ...item, qty: numericQty, quantity: numericQty }
-          : item
-      )
+    setCart((prev) =>
+      prev.map((i) => (i.id === key ? { ...i, qty: clampQty(newQty) } : i))
     );
-  };
+  }, []);
 
-  const clearCart = () => setCart([]);
+  const clearCart = useCallback(() => setCart([]), []);
 
-  const currency = settings.currency;
-  const formatMoney = useCallback(
-    (amount) => `${currency} ${toNumber(amount).toFixed(2)}`,
-    [currency]
+  const totals = useMemo(() => {
+    const subtotal = round2(cart.reduce((sum, i) => sum + i.price * i.qty, 0));
+    const itemCount = cart.reduce((sum, i) => sum + i.qty, 0);
+    const deliveryFee = cart.length > 0 ? DELIVERY_FEE : 0;
+    const tax = round2(subtotal * TAX_RATE);
+    const totalAmount = round2(subtotal + deliveryFee + tax);
+    return { subtotal, itemCount, deliveryFee, tax, totalAmount };
+  }, [cart]);
+
+  const value = useMemo(
+    () => ({
+      cart,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      ...totals,
+    }),
+    [cart, addToCart, removeFromCart, updateQuantity, clearCart, totals]
   );
 
-  const subtotal = cart.reduce(
-    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty ?? item.quantity ?? 1) || 1),
-    0
-  );
-  const itemCount = cart.reduce(
-    (sum, item) => sum + (Number(item.qty ?? item.quantity ?? 1) || 1),
-    0
-  );
-
-  // The delivery fee depends on the order type, which is chosen at checkout,
-  // so the cart only estimates subtotal + tax. Checkout asks the server for
-  // the exact total.
-  const taxRate = settings.taxRate;
-  const tax = (subtotal * taxRate) / 100;
-  const deliveryFee = 0;
-  const configuredDeliveryFee = settings.deliveryFee;
-  const totalAmount = subtotal + tax;
-
-  const totals = { subtotal, tax, taxRate, deliveryFee, configuredDeliveryFee, total: totalAmount };
-
-  return (
-    <CartContext.Provider
-      value={{
-        cart,
-        cartItems: cart, // alias used by Cart page and CartSidebar
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        subtotal,
-        itemCount,
-        deliveryFee,
-        configuredDeliveryFee,
-        tax,
-        taxRate,
-        totalAmount,
-        totals,
-        currency,
-        formatMoney,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
-  );
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };

@@ -3,10 +3,16 @@ import settingsService from '../services/settingsService';
 
 export const CartContext = createContext();
 
+const fallbackFormatMoney = (amount) => `ETB ${(Number(amount) || 0).toFixed(2)}`;
+
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
     throw new Error('useCart must be used within a CartProvider');
+  }
+  // Safety net: pages call formatMoney() from this hook, so it must always be a function.
+  if (typeof context.formatMoney !== 'function') {
+    return { ...context, formatMoney: fallbackFormatMoney };
   }
   return context;
 };

@@ -1,32 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, CreditCard, Banknote } from 'lucide-react';
-import { useCart } from '../../hooks/useCart';
-import { PATHS } from '../../utils/paths';
+import { useCart } from '../../context/CartContext';
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cart, totalAmount, clearCart } = useCart();
+  const { cartItems, totals, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('card');
 
-  // TEMPORARY: no backend call yet. Step 2 replaces this with
-  // POST /api/orders (order type, address, server-side totals).
   const handlePlaceOrder = () => {
     alert('Order placed successfully!');
     clearCart();
-    navigate(PATHS.track);
+    navigate('/customer/tracking');
   };
 
+  // ❌ REMOVED <CustomerLayout> WRAPPER
   return (
-    <div className="max-w-[900px] mx-auto space-y-6 pb-10 px-4 pt-6">
+    <div className="max-w-[900px] mx-auto space-y-6 pb-10 px-4">
       
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate(PATHS.cart)} aria-label="Back to cart" className="p-2 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50">
+        <button onClick={() => navigate('/customer/cart')} className="p-2 bg-white rounded-full shadow-sm border border-gray-200 hover:bg-gray-50">
           <ArrowLeft size={20} className="text-gray-700" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Checkout</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Checkout</h1>
           <p className="text-gray-500 text-sm">Complete your order</p>
         </div>
       </div>
@@ -42,9 +40,9 @@ export default function Checkout() {
               <MapPin size={20} className="text-green-600" /> Delivery Address
             </h3>
             <div className="space-y-3">
-              <input type="text" placeholder="Full Name" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-green-500" />
-              <input type="text" placeholder="Phone Number" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-green-500" />
-              <textarea placeholder="Full Address (Street, Building, City)" rows="2" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-green-500 resize-none"></textarea>
+              <input type="text" placeholder="Full Name" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-green-500" />
+              <input type="text" placeholder="Phone Number" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-green-500" />
+              <textarea placeholder="Full Address (Street, Building, City)" rows="2" className="w-full border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 resize-none"></textarea>
             </div>
           </div>
 
@@ -59,14 +57,14 @@ export default function Checkout() {
                 className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}
               >
                 <CreditCard size={24} className={paymentMethod === 'card' ? 'text-green-600' : 'text-gray-500'} />
-                <span className="font-semibold text-sm text-gray-900">Credit Card</span>
+                <span className="font-semibold text-sm">Credit Card</span>
               </button>
               <button 
                 onClick={() => setPaymentMethod('cash')}
                 className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}
               >
                 <Banknote size={24} className={paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-500'} />
-                <span className="font-semibold text-sm text-gray-900">Cash on Delivery</span>
+                <span className="font-semibold text-sm">Cash on Delivery</span>
               </button>
             </div>
           </div>
@@ -79,10 +77,10 @@ export default function Checkout() {
             <h3 className="font-bold text-lg text-gray-900 mb-4 border-b border-gray-100 pb-4">Your Order</h3>
             
             <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
-              {cart.map((item) => (
+              {cartItems.map(item => (
                 <div key={item.id} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{item.qty}x {item.name}</span>
-                  <span className="font-medium text-gray-900">${(item.price * item.qty).toFixed(2)}</span>
+                  <span className="text-gray-600">{item.quantity}x {item.name}</span>
+                  <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -90,13 +88,13 @@ export default function Checkout() {
             <div className="space-y-3 text-sm mb-6 border-t border-gray-100 pt-4">
               <div className="flex justify-between text-gray-500 font-medium">
                 <span>Total</span>
-                <span className="text-lg font-bold text-gray-900">${totalAmount.toFixed(2)}</span>
+                <span className="text-lg font-bold text-gray-900">${totals.total.toFixed(2)}</span>
               </div>
             </div>
 
             <button 
               onClick={handlePlaceOrder}
-              disabled={cart.length === 0}
+              disabled={cartItems.length === 0}
               className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50"
             >
               Place Order

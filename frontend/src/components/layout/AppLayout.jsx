@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import {
   Home, Utensils, Grid, Tag, ShoppingBag, Heart, Clock, User, BookOpen, HelpCircle,
@@ -12,6 +12,8 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import ThemeLayout from './ThemeLayout';
+import notificationService, { isNotificationRead } from '../../services/notificationService';
+import usePolling from '../../hooks/usePolling';
 
 // ==========================================
 // 1. PORTAL CONFIG (roles + paths match App.jsx)
@@ -451,45 +453,86 @@ export function StaffSidebarContent({ role, onCloseMobile }) {
 // ==========================================
 // 4B. NOTIFICATIONS (per portal / page)
 // ==========================================
-const NOTIFICATIONS_BY_ROLE = {
-  customer: [
-    { id: 1, title: 'Order on the way', text: 'Your order #1042 is out for delivery.', time: '2m ago', path: '/customer/track' },
-    { id: 2, title: 'New offer', text: 'Get 10% off on all pizzas today.', time: '1h ago', path: '/customer/offers' },
-    { id: 3, title: 'Order delivered', text: 'Order #1038 was delivered. Enjoy!', time: 'Yesterday', path: '/customer/orders' },
-  ],
-  admin: [
-    { id: 1, title: 'New order', text: 'A new order was placed.', time: '1m ago', path: '/admin/panel/order-management' },
-    { id: 2, title: 'Low stock', text: 'Tomatoes are running low.', time: '20m ago', path: '/admin/panel/inventory-management' },
-    { id: 3, title: 'New reservation', text: 'Table for 4 booked for 7:30 PM.', time: '1h ago', path: '/admin/panel/reservation-management' },
-  ],
-  cashier: [
-    { id: 1, title: 'Bill ready', text: 'Table 5 is waiting for payment.', time: '1m ago', path: '/cashier/active-bills' },
-    { id: 2, title: 'Refund request', text: 'A refund request needs approval.', time: '30m ago', path: '/cashier/refunds' },
-  ],
-  kitchen: [
-    { id: 1, title: 'Incoming order', text: 'New order #1043 received.', time: 'Just now', path: '/kitchen/incoming-orders' },
-    { id: 2, title: 'Stock alert', text: 'Cheese is below minimum level.', time: '15m ago', path: '/kitchen/stock-alerts' },
-  ],
-  manager: [
-    { id: 1, title: 'Daily report', text: "Yesterday's sales report is ready.", time: '1h ago', path: '/manager/reports' },
-    { id: 2, title: 'Inventory', text: '3 items need restocking.', time: '2h ago', path: '/manager/inventory-management' },
-  ],
-  waiter: [
-    { id: 1, title: 'Customer request', text: 'Table 3 is asking for the bill.', time: '1m ago', path: '/waiter/customer-requests' },
-    { id: 2, title: 'Order ready', text: 'Order for Table 7 is ready to serve.', time: '5m ago', path: '/waiter/orders' },
-  ],
+// Where each role lands when a notification of a given type is clicked,
+// and where its full notifications page lives (routes are declared in App.jsx).
+const NOTIFICATION_TARGETS = {
+  admin: {
+    page: '/admin/panel/notifications',
+    order: '/admin/panel/order-management',
+    inventory: '/admin/panel/inventory-management',
+    reservation: '/admin/panel/reservation-management',
+    payment: '/admin/panel/payment-management',
+  },
+  cashier: {
+    page: '/cashier/notifications',
+    order: '/cashier/active-bills',
+    payment: '/cashier/payment-history',
+  },
+  kitchen: {
+    page: '/kitchen/notifications',
+    order: '/kitchen/incoming-orders',
+    inventory: '/kitchen/stock-alerts',
+  },
+  manager: {
+    page: '/manager/notifications',
+    order: '/manager/orders',
+    inventory: '/manager/inventory-management',
+    reservation: '/manager/reservations',
+  },
+  waiter: {
+    page: '/waiter/notifications',
+    order: '/waiter/orders',
+    reservation: '/waiter/reservations',
+  },
+  customer: {
+    page: '/notifications',
+    order: '/orders',
+  },
+};
+
+const timeAgo = (value) => {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return '';
+  const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
 };
 
 export function NotificationBell({ role = 'customer' }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const wrapRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState(() =>
-    (NOTIFICATIONS_BY_ROLE[role] || []).map((n) => ({ ...n, read: false }))
-  );
+  const [items, setItems] = useState([]);
 
-  const unread = items.filter((n) => !n.read).length;
+  const targets = NOTIFICATION_TARGETS[role] || NOTIFICATION_TARGETS.customer;
+  const unread = items.filter((n) => !isNotificationRead(n)).length;
+
+  // Real notifications from the API. Guests (not signed in) never call it,
+  // because a 401 would clear the session and fire "auth:expired".
+  const load = useCallback(async () => {
+    if (!isAuthenticated) {
+      setItems([]);
+      return;
+    }
+    try {
+      const list = await notificationService.getNotifications({ page: 1, limit: 20 });
+      setItems(list);
+    } catch {
+      // keep what we already have; the bell must never break the header
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  usePolling(load, isAuthenticated ? 30000 : null);
 
   useEffect(() => {
     setOpen(false);
@@ -505,27 +548,52 @@ export function NotificationBell({ role = 'customer' }) {
     return () => document.removeEventListener('pointerdown', handleOutside, true);
   }, [open]);
 
-  const markAllRead = () => setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-  const removeItem = (id) => setItems((prev) => prev.filter((n) => n.id !== id));
+  const markRead = (id) =>
+    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, isRead: true, is_read: 1, read: true } : x)));
 
-  const handleItemClick = (n) => {
-    setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+  const markAllRead = async () => {
+    setItems((prev) => prev.map((x) => ({ ...x, isRead: true, is_read: 1, read: true })));
+    try {
+      await notificationService.markAllAsRead();
+    } catch {
+      load(); // roll back to what the server says
+    }
+  };
+
+  const removeItem = async (id) => {
+    setItems((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await notificationService.deleteNotification(id);
+    } catch {
+      load();
+    }
+  };
+
+  const handleItemClick = async (n) => {
     setOpen(false);
-    if (n.path) navigate(n.path);
+    if (!isNotificationRead(n)) {
+      markRead(n.id);
+      notificationService.markAsRead(n.id).catch(() => load());
+    }
+    const target = targets[n.type];
+    if (target) navigate(target);
   };
 
   return (
     <div ref={wrapRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Notifications"
+        onClick={() => {
+          setOpen((v) => !v);
+          if (!open) load();
+        }}
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
         className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
       >
         <Bell size={18} />
         {unread > 0 && (
           <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-            {unread}
+            {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
@@ -558,44 +626,66 @@ export function NotificationBell({ role = 'customer' }) {
 
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/60 scrollbar-thin">
             {items.length === 0 ? (
-              <p className="text-[11px] text-gray-400 py-6 text-center">No notifications.</p>
+              <p className="text-[11px] text-gray-400 py-6 text-center">
+                {isAuthenticated ? 'No notifications yet.' : 'Sign in to see your notifications.'}
+              </p>
             ) : (
-              items.map((n) => (
-                <div
-                  key={n.id}
-                  className={`flex items-start transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
-                    n.read ? '' : 'bg-emerald-50/60 dark:bg-emerald-950/20'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleItemClick(n)}
-                    className="flex-1 min-w-0 text-left px-3 py-2.5 flex items-start gap-2 cursor-pointer"
+              items.slice(0, 8).map((n) => {
+                const read = isNotificationRead(n);
+                return (
+                  <div
+                    key={n.id}
+                    className={`flex items-start transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/60 ${
+                      read ? '' : 'bg-emerald-50/60 dark:bg-emerald-950/20'
+                    }`}
                   >
-                    <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${n.read ? 'bg-transparent' : 'bg-emerald-600'}`} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-[11px] text-gray-900 dark:text-white truncate">{n.title}</span>
-                        <span className="text-[9px] text-gray-400 shrink-0">{n.time}</span>
-                      </div>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{n.text}</p>
-                    </div>
-                  </button>
-
-                  {n.read && (
                     <button
                       type="button"
-                      onClick={() => removeItem(n.id)}
-                      aria-label="Dismiss notification"
-                      className="mt-2 mr-2 p-1 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer shrink-0"
+                      onClick={() => handleItemClick(n)}
+                      className="flex-1 min-w-0 text-left px-3 py-2.5 flex items-start gap-2 cursor-pointer"
                     >
-                      <X size={12} />
+                      <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${read ? 'bg-transparent' : 'bg-emerald-600'}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-[11px] text-gray-900 dark:text-white truncate">{n.title || 'Notification'}</span>
+                          <span className="text-[9px] text-gray-400 shrink-0">{timeAgo(n.createdAt || n.created_at)}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug break-words line-clamp-3">
+                          {n.message || n.body || ''}
+                        </p>
+                      </div>
                     </button>
-                  )}
-                </div>
-              ))
+
+                    {read && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(n.id)}
+                        aria-label="Dismiss notification"
+                        className="mt-2 mr-2 p-1 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer shrink-0"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
+
+          {isAuthenticated && (
+            <div className="px-3 py-2 border-t border-gray-100 dark:border-gray-800 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  navigate(targets.page);
+                }}
+                className="text-[10px] font-extrabold text-emerald-600 hover:underline cursor-pointer"
+              >
+                View all notifications
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

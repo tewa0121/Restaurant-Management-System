@@ -17,6 +17,12 @@ const allowedOrigins = (
   .filter(Boolean);
 
 app.disable('x-powered-by');
+
+// Behind Caddy/Nginx set TRUST_PROXY=1 so req.ip is the real client address
+// (needed for the rate limiter and session IP logging).
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY) || process.env.TRUST_PROXY);
+}
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
 app.use(

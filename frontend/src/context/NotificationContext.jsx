@@ -49,11 +49,13 @@ export function NotificationProvider({ children }) {
       {children}
       <aside
         aria-label="Notifications"
+        aria-live="polite"
         className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"
       >
         {notifications.map((n) => (
           <div
             key={n.id}
+            role={n.type === 'error' ? 'alert' : 'status'}
             className={`pointer-events-auto flex items-center justify-between p-3.5 rounded-xl shadow-xl border text-xs font-bold transition-all backdrop-blur-md ${
               n.type === 'success'
                 ? 'bg-emerald-900/95 text-white border-emerald-700'
@@ -75,11 +77,12 @@ export function NotificationProvider({ children }) {
                 <AlertTriangle size={16} className="text-amber-400 shrink-0" />
               )}
               {n.type === 'info' && <Info size={16} className="text-sky-400 shrink-0" />}
-              <span className="truncate">{n.message}</span>
+              <span className="break-words line-clamp-3">{n.message}</span>
             </div>
             <button
               type="button"
               onClick={() => removeNotification(n.id)}
+              aria-label="Dismiss"
               className="p-1 text-white/70 hover:text-white rounded-lg cursor-pointer shrink-0 ml-2"
             >
               <X size={14} />

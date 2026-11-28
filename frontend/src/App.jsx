@@ -138,6 +138,7 @@ export default function App() {
                   <Route path="address" element={<AddressBook />} />
                   <Route path="addresses" element={<AddressBook />} />
                   <Route path="help" element={<HelpSupport />} />
+                  <Route path="notifications" element={<WaiterNotifications />} />
                   <Route path="cart" element={<Cart />} />
                   <Route path="checkout" element={<Checkout />} />
                 </Route>
@@ -156,6 +157,7 @@ export default function App() {
                   <Route path="address" element={<AddressBook />} />
                   <Route path="addresses" element={<AddressBook />} />
                   <Route path="help" element={<HelpSupport />} />
+                  <Route path="notifications" element={<WaiterNotifications />} />
                   <Route path="cart" element={<Cart />} />
                   <Route path="checkout" element={<Checkout />} />
                 </Route>
@@ -191,6 +193,7 @@ export default function App() {
                     <Route path="payment-management" element={<PaymentManagement />} />
                     <Route path="reports-and-analytics" element={<ReportsAndAnalytics />} />
                     <Route path="logs-and-activity" element={<LogsAndActivity />} />
+                    <Route path="notifications" element={<WaiterNotifications />} />
                     {/* <Route path="restaurants" element={<Restaurants />} /> */}
                     <Route path="settings" element={<Settings />} />
                   </Route>
@@ -212,6 +215,7 @@ export default function App() {
                     <Route path="daily-cash-report" element={<DailyCashReport />} />
                     <Route path="customers" element={<Customers />} />
                     <Route path="settings" element={<CashierSettings />} />
+                    <Route path="notifications" element={<WaiterNotifications />} />
                   </Route>
                 </Route>
 
@@ -229,6 +233,7 @@ export default function App() {
                     <Route path="reports" element={<KitchenReports />} />
                     <Route path="performance" element={<Performance />} />
                     <Route path="settings" element={<KitchenSettings />} />
+                    <Route path="notifications" element={<WaiterNotifications />} />
                   </Route>
                 </Route>
 
@@ -257,6 +262,7 @@ export default function App() {
                     <Route path="analytics" element={<ManagerAnalytics />} />
                     <Route path="settings" element={<ManagerSettings />} />
                     <Route path="activity-log" element={<ManagerActivityLog />} />
+                    <Route path="notifications" element={<WaiterNotifications />} />
                   </Route>
                 </Route>
 

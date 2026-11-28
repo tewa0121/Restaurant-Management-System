@@ -1,166 +1,55 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import authService from '../services/authService';
+// src/context/AuthContext.jsx
+import React, { createContext, useContext, useState } from 'react';
 
-export const AuthContext = createContext(null);
-
-const STORAGE_KEYS = {
-  user: 'user',
-  token: 'token',
-};
-
-const safeGetItem = (storage, key) => {
-  try {
-    return storage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-
-const safeSetItem = (storage, key, value) => {
-  try {
-    storage.setItem(key, value);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const safeRemoveItem = (storage, key) => {
-  try {
-    storage.removeItem(key);
-  } catch {
-    // Ignore storage access errors
-  }
-};
-
-const readStoredValue = (key) => {
-  return safeGetItem(localStorage, key) ?? safeGetItem(sessionStorage, key) ?? null;
-};
-
-const clearAllAuthStorage = () => {
-  safeRemoveItem(localStorage, STORAGE_KEYS.token);
-  safeRemoveItem(localStorage, STORAGE_KEYS.user);
-  safeRemoveItem(sessionStorage, STORAGE_KEYS.token);
-  safeRemoveItem(sessionStorage, STORAGE_KEYS.user);
-};
-
-const normalizeUser = (rawUser) => {
-  if (!rawUser || typeof rawUser !== 'object') return null;
-
-  const rawRoles = Array.isArray(rawUser.roles)
-    ? rawUser.roles
-    : typeof rawUser.role === 'string' && rawUser.role.trim()
-    ? [rawUser.role.trim()]
-    : [];
-
-  const roles = rawRoles
-    .filter((r) => typeof r === 'string' && r.trim())
-    .map((r) => r.trim());
-
-  const primaryRole =
-    (typeof rawUser.role === 'string' && rawUser.role.trim()) ||
-    (typeof rawUser.primaryRole === 'string' && rawUser.primaryRole.trim()) ||
-    roles[0] ||
-    'Customer';
-
-  const normalizedRoles = roles.length > 0 ? roles : [primaryRole];
-
-  return {
-    ...rawUser,
-    roles: normalizedRoles,
-    role: primaryRole,
-  };
-};
-
-const parseStoredUser = () => {
-  const saved = readStoredValue(STORAGE_KEYS.user);
-  if (!saved) return null;
-  try {
-    return normalizeUser(JSON.parse(saved));
-  } catch {
-    return null;
-  }
-};
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => parseStoredUser());
-  const [token, setToken] = useState(() => readStoredValue(STORAGE_KEYS.token));
-
-  const persistAuthState = useCallback((nextUser, nextToken, remember = true) => {
-    const normalizedUser = normalizeUser(nextUser);
-    const normalizedToken = typeof nextToken === 'string' && nextToken.trim() ? nextToken.trim() : null;
-    const targetStorage = remember ? localStorage : sessionStorage;
-
-    clearAllAuthStorage();
-
-    if (normalizedToken) {
-      safeSetItem(targetStorage, STORAGE_KEYS.token, normalizedToken);
-    }
-    if (normalizedUser) {
-      safeSetItem(targetStorage, STORAGE_KEYS.user, JSON.stringify(normalizedUser));
-    }
-
-    setToken(normalizedToken);
-    setUser(normalizedUser);
-    return normalizedUser;
-  }, []);
-
-  const login = useCallback(
-    async (emailOrUser, passwordOrToken, remember = true) => {
-      if (typeof emailOrUser === 'object' && emailOrUser !== null) {
-        return persistAuthState(emailOrUser, passwordOrToken || null, remember);
+  // Restore user from localStorage on initial load, or provide a default dev
+  // admin user so staff layout testing isn't blocked.
+  // NOTE: this default mock user is removed in Step 2 together with the real
+  // customer login.
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        return null;
       }
+    }
+    return { name: 'System Admin', role: 'admin' };
+  });
 
-      const res = await authService.loginRequest(emailOrUser, passwordOrToken, remember);
-      const rawUser = res?.user ?? res?.data?.user ?? res;
-      const rawToken = res?.token ?? res?.data?.token ?? null;
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
 
-      return persistAuthState(rawUser, rawToken, remember);
-    },
-    [persistAuthState]
-  );
+  const login = (userData, userToken) => {
+    setUser(userData);
+    setToken(userToken);
+    localStorage.setItem('token', userToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
 
-  const logout = useCallback(() => {
-    clearAllAuthStorage();
+  const logout = () => {
     setUser(null);
     setToken(null);
-    Promise.resolve(authService.logoutRequest?.()).catch(() => {});
-  }, []);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
 
-  useEffect(() => {
-    const handleStorageChange = (event) => {
-      if (event.key !== STORAGE_KEYS.user && event.key !== STORAGE_KEYS.token) {
-        return;
-      }
-      setUser(parseStoredUser());
-      setToken(readStoredValue(STORAGE_KEYS.token));
-    };
+  // A real session needs a real token (the string "undefined" can be left
+  // in localStorage by the old fake login).
+  const isAuthenticated = Boolean(token && token !== 'undefined');
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  const value = useMemo(
-    () => ({
-      user,
-      token,
-      isAuthenticated: Boolean(token || user),
-      login,
-      logout,
-    }),
-    [user, token, login, logout]
+  return (
+    <AuthContext.Provider
+      value={{ user, token, isAuthenticated, login, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// Custom hook to consume AuthContext safely
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
